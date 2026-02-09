@@ -1,0 +1,1017 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ระบบจัดการสต๊อกวัสดุ Test Kit - กลุ่มวิจัยเคมีดิน</title>
+  
+  <!-- Libraries -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> <!-- Chart.js for Dashboard -->
+  
+  <style>
+    body { font-family: 'Sarabun', sans-serif; background-color: #f3f4f6; }
+    .hidden { display: none !important; }
+    
+    /* Loading Spinner */
+    .loader {
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #3498db;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #f1f1f1; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+    /* Table Animation */
+    .fade-in { animation: fadeIn 0.3s ease-in-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  </style>
+</head>
+<body class="text-gray-800 h-screen flex flex-col overflow-hidden">
+
+  <!-- ================= NOTIFICATIONS & OVERLAYS ================= -->
+  <div id="toast" class="fixed top-5 right-5 z-[60] hidden p-4 rounded shadow-lg text-white transform transition-all duration-300 translate-y-0"></div>
+  
+  <div id="loadingOverlay" class="fixed inset-0 bg-black bg-opacity-50 z-[60] hidden flex flex-col items-center justify-center text-white">
+    <div class="loader mb-3"></div>
+    <p class="font-medium animate-pulse">กำลังประมวลผลข้อมูล...</p>
+  </div>
+
+  <!-- ================= AUTHENTICATION PAGE ================= -->
+  <div id="authPage" class="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-900 to-slate-800 p-4 absolute inset-0 z-50 overflow-y-auto">
+    <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md border-t-4 border-indigo-500">
+      <div class="text-center mb-8">
+        <div class="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-3 text-indigo-600">
+          <i class="fas fa-flask text-2xl"></i>
+        </div>
+        <h1 class="text-2xl font-bold text-slate-800">กลุ่มวิจัยเคมีดิน</h1>
+        <p class="text-slate-500 text-sm mt-1">ระบบบริหารจัดการวัสดุ Test Kit</p>
+      </div>
+
+      <!-- Login Form -->
+      <form id="loginForm" class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium mb-1 text-slate-600">ชื่อผู้ใช้งาน</label>
+          <div class="relative">
+            <i class="fas fa-user absolute left-3 top-3 text-slate-400"></i>
+            <input type="text" id="loginUser" class="w-full border border-slate-300 p-2 pl-10 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition" placeholder="Username" required>
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-1 text-slate-600">รหัสผ่าน</label>
+          <div class="relative">
+            <i class="fas fa-lock absolute left-3 top-3 text-slate-400"></i>
+            <input type="password" id="loginPass" class="w-full border border-slate-300 p-2 pl-10 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition" placeholder="••••••••" required>
+          </div>
+        </div>
+        <button type="submit" class="w-full bg-indigo-600 text-white p-2.5 rounded-lg hover:bg-indigo-700 font-bold shadow-md hover:shadow-lg transition transform hover:-translate-y-0.5">เข้าสู่ระบบ</button>
+        <div class="text-center mt-4">
+          <span class="text-sm text-slate-500">ยังไม่มีบัญชี? </span>
+          <a href="#" onclick="toggleAuth('register')" class="text-sm text-indigo-600 font-semibold hover:underline">ลงทะเบียนใช้งาน</a>
+        </div>
+      </form>
+
+      <!-- Register Form -->
+      <form id="registerForm" class="hidden space-y-3">
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-medium mb-1 text-slate-600">Username</label>
+            <input type="text" id="regUser" class="w-full border p-2 rounded-lg text-sm" required>
+          </div>
+          <div>
+            <label class="block text-xs font-medium mb-1 text-slate-600">Password</label>
+            <input type="password" id="regPass" class="w-full border p-2 rounded-lg text-sm" required>
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-medium mb-1 text-slate-600">ชื่อ-นามสกุล</label>
+          <input type="text" id="regName" class="w-full border p-2 rounded-lg text-sm" placeholder="เช่น นายรักงาน ราชการ" required>
+        </div>
+        <div>
+          <label class="block text-xs font-medium mb-1 text-slate-600">กลุ่มงาน/สังกัด</label>
+          <input type="text" id="regGroup" class="w-full border p-2 rounded-lg text-sm" required>
+        </div>
+        <button type="submit" class="w-full bg-emerald-600 text-white p-2.5 rounded-lg hover:bg-emerald-700 font-bold shadow-md mt-2">สมัครสมาชิก</button>
+        <div class="text-center mt-3">
+          <a href="#" onclick="toggleAuth('login')" class="text-sm text-slate-500 hover:text-slate-700"><i class="fas fa-arrow-left"></i> กลับไปหน้าเข้าสู่ระบบ</a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================= MAIN APPLICATION LAYOUT ================= -->
+  <div id="mainApp" class="hidden flex h-full">
+    
+    <!-- Sidebar -->
+    <aside class="w-64 bg-slate-900 text-slate-300 flex flex-col shadow-xl z-20 transition-all duration-300" id="sidebar">
+      <div class="p-6 border-b border-slate-700 flex items-center gap-3">
+        <div class="w-8 h-8 bg-indigo-500 rounded flex items-center justify-center text-white font-bold">TK</div>
+        <div>
+          <h2 class="text-lg font-bold text-white tracking-wide">Test Kit Stock</h2>
+          <p class="text-[10px] text-slate-400">Inventory System v1.2</p>
+        </div>
+      </div>
+
+      <nav class="flex-1 overflow-y-auto py-4 px-2 space-y-1">
+        <div class="px-4 py-2 text-xs font-bold text-slate-500 uppercase tracking-wider">Main Menu</div>
+        <a href="#" onclick="route('dashboard')" class="nav-item flex items-center px-4 py-3 rounded-lg hover:bg-slate-800 transition group active-nav" data-page="dashboard">
+          <i class="fas fa-chart-pie w-6 group-hover:text-indigo-400"></i> <span>ภาพรวม (Dashboard)</span>
+        </a>
+        <a href="#" onclick="route('inventory')" class="nav-item flex items-center px-4 py-3 rounded-lg hover:bg-slate-800 transition group" data-page="inventory">
+          <i class="fas fa-boxes w-6 group-hover:text-indigo-400"></i> <span>รายการวัสดุ</span>
+        </a>
+        
+        <div class="mt-4 px-4 py-2 text-xs font-bold text-slate-500 uppercase tracking-wider">Operation</div>
+        <a href="#" onclick="route('withdraw')" class="nav-item flex items-center px-4 py-3 rounded-lg hover:bg-slate-800 transition group" data-page="withdraw">
+          <i class="fas fa-hand-holding-box w-6 group-hover:text-rose-400 text-rose-300"></i> <span>เบิกวัสดุ</span>
+        </a>
+        <a href="#" onclick="route('import')" class="nav-item flex items-center px-4 py-3 rounded-lg hover:bg-slate-800 transition group" data-page="import">
+          <i class="fas fa-truck-loading w-6 group-hover:text-emerald-400 text-emerald-300"></i> <span>นำเข้าสต๊อก</span>
+        </a>
+
+        <div class="mt-4 px-4 py-2 text-xs font-bold text-slate-500 uppercase tracking-wider">Analysis</div>
+        <a href="#" onclick="route('reports')" class="nav-item flex items-center px-4 py-3 rounded-lg hover:bg-slate-800 transition group" data-page="reports">
+          <i class="fas fa-file-alt w-6 group-hover:text-indigo-400"></i> <span>รายงาน & ประวัติ</span>
+        </a>
+
+        <!-- Admin Only Section -->
+        <div id="adminMenuSection" class="hidden">
+          <div class="mt-4 px-4 py-2 text-xs font-bold text-slate-500 uppercase tracking-wider">Administrator</div>
+          <a href="#" onclick="route('users')" class="nav-item flex items-center px-4 py-3 rounded-lg hover:bg-slate-800 transition group" data-page="users">
+            <i class="fas fa-users-cog w-6 group-hover:text-amber-400"></i> <span>จัดการผู้ใช้งาน</span>
+          </a>
+          <a href="#" onclick="route('settings')" class="nav-item flex items-center px-4 py-3 rounded-lg hover:bg-slate-800 transition group" data-page="settings">
+            <i class="fas fa-cogs w-6 group-hover:text-slate-100"></i> <span>ตั้งค่าระบบ</span>
+          </a>
+        </div>
+      </nav>
+
+      <!-- User Profile Small -->
+      <div class="p-4 border-t border-slate-700 bg-slate-950/50">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold text-lg" id="avatarInitials">U</div>
+          <div class="flex-1 min-w-0">
+            <p class="text-sm font-medium text-white truncate" id="sidebarName">Username</p>
+            <p class="text-xs text-slate-400 truncate" id="sidebarRole">Role</p>
+          </div>
+          <button onclick="logout()" class="text-slate-400 hover:text-red-400 transition" title="Logout"><i class="fas fa-sign-out-alt"></i></button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Content Wrapper -->
+    <div class="flex-1 flex flex-col min-w-0 bg-gray-50">
+      
+      <!-- Top Header -->
+      <header class="bg-white shadow-sm h-16 flex items-center justify-between px-6 z-10">
+        <div class="flex items-center gap-4">
+          <button class="md:hidden text-slate-600 hover:text-indigo-600" onclick="document.getElementById('sidebar').classList.toggle('-translate-x-full'); document.getElementById('sidebar').classList.toggle('absolute'); document.getElementById('sidebar').classList.toggle('h-full');">
+            <i class="fas fa-bars text-xl"></i>
+          </button>
+          <h2 class="text-xl font-bold text-slate-800" id="pageTitle">ภาพรวม (Dashboard)</h2>
+        </div>
+        
+        <div class="flex items-center gap-4">
+          <!-- Notification Bell -->
+          <div class="relative cursor-pointer group">
+            <i class="fas fa-bell text-slate-400 text-lg group-hover:text-indigo-500 transition"></i>
+            <span class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full">3</span>
+          </div>
+          <div class="h-8 w-px bg-slate-200"></div>
+          <div class="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded-lg px-2 transition" onclick="route('settings')">
+            <span class="text-sm text-slate-600 hidden md:block" id="headerGroupName">กลุ่มวิจัยเคมีดิน</span>
+            <i class="fas fa-chevron-down text-xs text-slate-400"></i>
+          </div>
+        </div>
+      </header>
+
+      <!-- Main Content Area -->
+      <main class="flex-1 overflow-y-auto p-6 relative" id="contentArea">
+        <!-- Dynamic Content Injected Here -->
+      </main>
+    </div>
+  </div>
+
+  <!-- ================= MODALS ================= -->
+  
+  <!-- Material Modal (Add/Edit) -->
+  <div id="materialModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden z-[70] flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl w-full max-w-lg shadow-2xl transform transition-all scale-100">
+      <div class="flex justify-between items-center p-5 border-b">
+        <h3 id="matModalTitle" class="text-lg font-bold text-slate-800">จัดการวัสดุ</h3>
+        <button onclick="closeModal('materialModal')" class="text-slate-400 hover:text-slate-600"><i class="fas fa-times text-xl"></i></button>
+      </div>
+      <form id="materialForm" class="p-5">
+        <input type="hidden" id="matId">
+        
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-slate-700 mb-1">ชื่อวัสดุ <span class="text-red-500">*</span></label>
+          <input type="text" id="matName" class="w-full border border-slate-300 p-2.5 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="เช่น Test Kit pH (ชุดเล็ก)" required>
+        </div>
+
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-slate-700 mb-2">รูปภาพประกอบ</label>
+          <div class="flex flex-col gap-3">
+            <!-- Tabs -->
+            <div class="flex bg-slate-100 p-1 rounded-lg w-fit">
+              <button type="button" onclick="toggleImgInput('file')" id="btnTabFile" class="px-3 py-1.5 text-xs font-medium rounded-md shadow-sm bg-white text-indigo-600 transition">อัปโหลดไฟล์</button>
+              <button type="button" onclick="toggleImgInput('url')" id="btnTabUrl" class="px-3 py-1.5 text-xs font-medium rounded-md text-slate-500 hover:text-slate-700 transition">ใช้ Link</button>
+            </div>
+            
+            <!-- Inputs -->
+            <div id="inputSectionFile" class="border-2 border-dashed border-slate-300 rounded-lg p-4 text-center hover:bg-slate-50 transition cursor-pointer relative">
+              <input type="file" id="matImgFile" accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" onchange="previewImage(this)">
+              <div id="uploadPreview" class="hidden h-32 w-full mb-2 bg-contain bg-center bg-no-repeat"></div>
+              <div id="uploadPlaceholder">
+                <i class="fas fa-cloud-upload-alt text-3xl text-slate-400 mb-2"></i>
+                <p class="text-sm text-slate-500">คลิกเพื่อเลือกไฟล์ หรือลากวางที่นี่</p>
+                <p class="text-xs text-slate-400 mt-1">ไฟล์จะถูกบันทึกลง Google Drive</p>
+              </div>
+            </div>
+            <div id="inputSectionUrl" class="hidden">
+              <input type="url" id="matImgUrl" class="w-full border border-slate-300 p-2.5 rounded-lg" placeholder="https://example.com/image.jpg">
+            </div>
+          </div>
+        </div>
+
+        <div class="flex justify-end gap-3 mt-6">
+          <button type="button" onclick="closeModal('materialModal')" class="px-5 py-2.5 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 font-medium">ยกเลิก</button>
+          <button type="submit" class="px-5 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium shadow-lg shadow-indigo-200">บันทึกข้อมูล</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Transaction Modal -->
+  <div id="transModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden z-[70] flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl w-full max-w-md shadow-2xl">
+      <div class="p-5 border-b bg-gray-50 rounded-t-xl flex justify-between items-center">
+        <h3 id="transModalTitle" class="text-lg font-bold text-slate-800">ทำรายการ</h3>
+        <button onclick="closeModal('transModal')" class="text-slate-400 hover:text-slate-600"><i class="fas fa-times"></i></button>
+      </div>
+      <form id="transForm" class="p-6">
+        <input type="hidden" id="transType">
+        <input type="hidden" id="transMatId">
+        <input type="hidden" id="transMatName">
+        
+        <div class="flex items-start gap-4 mb-6">
+          <div class="w-16 h-16 bg-slate-100 rounded-lg flex-shrink-0 flex items-center justify-center overflow-hidden border">
+             <img id="transImgPreview" src="" class="w-full h-full object-cover" onerror="this.src='https://via.placeholder.com/64?text=No+Img'">
+          </div>
+          <div>
+            <p class="text-xs text-slate-500 uppercase font-bold tracking-wider">กำลังทำรายการกับ</p>
+            <p class="font-bold text-lg text-slate-800 line-clamp-2" id="transMatNameDisplay">ชื่อวัสดุ</p>
+            <p class="text-sm text-slate-500">คงเหลือปัจจุบัน: <span id="transCurrentQty" class="font-bold text-indigo-600">0</span> ชิ้น</p>
+          </div>
+        </div>
+
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-slate-700 mb-1">จำนวนที่ต้องการ <span class="text-red-500">*</span></label>
+          <div class="flex items-center">
+            <button type="button" onclick="adjQty(-1)" class="w-10 h-10 border rounded-l-lg hover:bg-slate-50">-</button>
+            <input type="number" id="transQty" class="w-full h-10 border-y text-center font-bold text-lg outline-none" min="1" value="1" required>
+            <button type="button" onclick="adjQty(1)" class="w-10 h-10 border rounded-r-lg hover:bg-slate-50">+</button>
+          </div>
+        </div>
+
+        <div id="importFields" class="hidden mb-4 p-3 bg-blue-50 rounded-lg border border-blue-100">
+          <label class="block text-sm font-medium text-blue-800 mb-1">อ้างอิงเอกสาร / เลขที่หนังสือ</label>
+          <input type="text" id="transRef" class="w-full border border-blue-200 p-2 rounded bg-white focus:ring-2 focus:ring-blue-300 outline-none placeholder-blue-300" placeholder="เช่น กค.123/2567">
+        </div>
+
+        <button type="submit" id="btnTransSubmit" class="w-full py-3 rounded-lg font-bold text-white shadow-md transition transform active:scale-95 mt-2">ยืนยัน</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- JAVASCRIPT APP LOGIC -->
+  <script>
+    // --- CONFIGURATION ---
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxdK7zgf3YLbUPUEEgBhfe2jP2g6J4jvgGLhNUJnTd4WGlL9OJUVL5wJFBI6iMV9d4o/exec";
+    
+    // --- STATE ---
+    const state = {
+      user: null,
+      materials: [],
+      usersList: [],
+      reports: { withdraw: [], import: [] },
+      pagination: { currentPage: 1, itemsPerPage: 9, totalPages: 1 },
+      filter: { search: '', sort: 'newest' }
+    };
+    
+    // Global Chart Instances (For destroying before re-render)
+    let stockChartInstance = null;
+    let statusChartInstance = null;
+
+    // --- API HANDLER ---
+    async function api(action, payload = {}) {
+      document.getElementById('loadingOverlay').classList.remove('hidden');
+      try {
+        let result;
+        if (typeof google !== 'undefined' && google.script) {
+          result = await new Promise((resolve, reject) => {
+            google.script.run
+              .withSuccessHandler(res => res.success ? resolve(res.data) : reject(new Error(res.error)))
+              .withFailureHandler(err => reject(err))
+              .apiHandler({ action, payload });
+          });
+        } else {
+          // Fetch Fallback for Local Dev
+          const res = await fetch(WEB_APP_URL, {
+            method: 'POST',
+            redirect: 'follow',
+            headers: { "Content-Type": "text/plain;charset=utf-8" },
+            body: JSON.stringify({ action, payload })
+          });
+          const json = await res.json();
+          if(!json.success) throw new Error(json.error);
+          result = json.data;
+        }
+        document.getElementById('loadingOverlay').classList.add('hidden');
+        return result;
+      } catch (err) {
+        document.getElementById('loadingOverlay').classList.add('hidden');
+        showToast(err.message, 'error');
+        throw err;
+      }
+    }
+
+    // --- AUTHENTICATION ---
+    function initApp() {
+      const savedUser = localStorage.getItem('user_session');
+      if (savedUser) {
+        state.user = JSON.parse(savedUser);
+        setupUI();
+        route('dashboard');
+        startAutoLogout();
+      } else {
+        document.getElementById('authPage').classList.remove('hidden');
+      }
+    }
+
+    function setupUI() {
+      document.getElementById('authPage').classList.add('hidden');
+      document.getElementById('mainApp').classList.remove('hidden');
+      
+      // Sidebar Profile
+      document.getElementById('sidebarName').innerText = state.user.fullname;
+      document.getElementById('sidebarRole').innerText = state.user.role.toUpperCase();
+      document.getElementById('headerGroupName').innerText = state.user.group || 'ทั่วไป';
+      document.getElementById('avatarInitials').innerText = state.user.fullname.charAt(0);
+
+      // Admin Menu
+      if (state.user.role === 'admin') {
+        document.getElementById('adminMenuSection').classList.remove('hidden');
+      } else {
+        document.getElementById('adminMenuSection').classList.add('hidden');
+      }
+    }
+
+    document.getElementById('loginForm').onsubmit = async (e) => {
+      e.preventDefault();
+      try {
+        const user = await api('login', {
+          username: document.getElementById('loginUser').value,
+          password: document.getElementById('loginPass').value
+        });
+        state.user = user;
+        localStorage.setItem('user_session', JSON.stringify(user));
+        setupUI();
+        route('dashboard');
+        showToast(`ยินดีต้อนรับ, ${user.fullname}`);
+      } catch(e) {}
+    };
+
+    document.getElementById('registerForm').onsubmit = async (e) => {
+      e.preventDefault();
+      try {
+        const res = await api('register', {
+          username: document.getElementById('regUser').value,
+          password: document.getElementById('regPass').value,
+          fullname: document.getElementById('regName').value,
+          group: document.getElementById('regGroup').value
+        });
+        showToast(res.message);
+        toggleAuth('login');
+        document.getElementById('registerForm').reset();
+      } catch(e) {}
+    };
+
+    function logout() {
+      // Clear data but DO NOT reload page to avoid "File not found" error
+      localStorage.removeItem('user_session');
+      state.user = null;
+      
+      // Destroy charts if they exist
+      if (stockChartInstance) { stockChartInstance.destroy(); stockChartInstance = null; }
+      if (statusChartInstance) { statusChartInstance.destroy(); statusChartInstance = null; }
+
+      // Switch to Auth View
+      document.getElementById('mainApp').classList.add('hidden');
+      document.getElementById('authPage').classList.remove('hidden');
+      
+      // Reset Forms
+      document.getElementById('loginForm').reset();
+      
+      // Reset Menu active states
+      document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('bg-slate-800', 'text-white', 'active-nav'));
+    }
+
+    function toggleAuth(mode) {
+      document.getElementById('loginForm').classList.toggle('hidden', mode === 'register');
+      document.getElementById('registerForm').classList.toggle('hidden', mode !== 'register');
+    }
+
+    // Auto Logout Simulation (30 mins inactivity)
+    let logoutTimer;
+    function startAutoLogout() {
+      clearTimeout(logoutTimer);
+      logoutTimer = setTimeout(() => {
+        alert('Session Expired: กรุณาเข้าสู่ระบบใหม่');
+        logout();
+      }, 30 * 60 * 1000);
+      window.onmousemove = window.onkeypress = startAutoLogout;
+    }
+
+    // --- ROUTER ---
+    async function route(page) {
+      // Update Active Menu
+      document.querySelectorAll('.nav-item').forEach(el => {
+        if(el.dataset.page === page) el.classList.add('bg-slate-800', 'text-white', 'active-nav');
+        else el.classList.remove('bg-slate-800', 'text-white', 'active-nav');
+      });
+
+      const titles = {
+        'dashboard': 'ภาพรวม (Dashboard)',
+        'inventory': 'รายการวัสดุ (Inventory)',
+        'withdraw': 'เบิกวัสดุ (Withdraw)',
+        'import': 'นำเข้าสต๊อก (Import)',
+        'reports': 'รายงานและประวัติ (Reports)',
+        'users': 'จัดการผู้ใช้งาน (Users)',
+        'settings': 'ตั้งค่าระบบ (Settings)'
+      };
+      document.getElementById('pageTitle').innerText = titles[page];
+      
+      const content = document.getElementById('contentArea');
+
+      switch(page) {
+        case 'dashboard': renderDashboard(content); break;
+        case 'inventory': renderInventory(content, 'view'); break;
+        case 'withdraw': renderInventory(content, 'withdraw'); break;
+        case 'import': renderInventory(content, 'import'); break;
+        case 'reports': renderReports(content); break;
+        case 'users': renderUsers(content); break;
+        case 'settings': renderSettings(content); break;
+      }
+    }
+
+    // --- VIEWS ---
+
+    async function renderDashboard(container) {
+      // 1. Destroy Charts BEFORE modifying DOM to prevent freeze
+      if (stockChartInstance) { stockChartInstance.destroy(); stockChartInstance = null; }
+      if (statusChartInstance) { statusChartInstance.destroy(); statusChartInstance = null; }
+
+      // 2. Set skeleton
+      container.innerHTML = `
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 fade-in">
+          ${cardSkeleton()}${cardSkeleton()}${cardSkeleton()}${cardSkeleton()}
+        </div>
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 fade-in">
+          <div class="bg-white p-6 rounded-xl shadow-sm lg:col-span-2 h-80 flex items-center justify-center border border-slate-100 skeleton-box"></div>
+          <div class="bg-white p-6 rounded-xl shadow-sm h-80 border border-slate-100 skeleton-box"></div>
+        </div>
+      `;
+
+      try {
+        state.materials = await api('getMaterials'); // Fetch fresh data
+        
+        // Calculate Stats
+        const totalItems = state.materials.length;
+        const totalStock = state.materials.reduce((sum, m) => sum + parseInt(m.qty||0), 0);
+        const lowStock = state.materials.filter(m => parseInt(m.qty||0) < 5).length;
+        const lastUpdate = state.materials.length > 0 ? formatDate(state.materials[state.materials.length-1].last_import_date || new Date()) : '-';
+
+        container.innerHTML = `
+          <!-- Stats Cards -->
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 fade-in">
+            ${statCard('ทั้งหมด', totalItems + ' รายการ', 'fas fa-box', 'bg-blue-500')}
+            ${statCard('คงเหลือรวม', totalStock + ' ชิ้น', 'fas fa-layer-group', 'bg-emerald-500')}
+            ${statCard('ใกล้หมด', lowStock + ' รายการ', 'fas fa-exclamation-triangle', 'bg-amber-500')}
+            ${statCard('อัปเดตล่าสุด', lastUpdate.split(' ')[0], 'fas fa-clock', 'bg-purple-500')}
+          </div>
+
+          <!-- Charts Area -->
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 fade-in">
+            <div class="bg-white p-6 rounded-xl shadow-sm lg:col-span-2 border border-slate-100">
+              <h3 class="font-bold text-slate-700 mb-4">แนวโน้มวัสดุคงเหลือ (Top 10)</h3>
+              <canvas id="stockChart" height="250"></canvas>
+            </div>
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+              <h3 class="font-bold text-slate-700 mb-4">สถานะสต๊อก</h3>
+              <canvas id="statusChart" height="200"></canvas>
+            </div>
+          </div>
+        `;
+
+        // Render Charts with safety try-catch for canvas
+        try {
+          const topMat = [...state.materials].sort((a,b) => b.qty - a.qty).slice(0, 10);
+          
+          const ctx1 = document.getElementById('stockChart');
+          if(ctx1) {
+            stockChartInstance = new Chart(ctx1, {
+              type: 'bar',
+              data: {
+                labels: topMat.map(m => m.name.substring(0, 15) + '...'),
+                datasets: [{
+                  label: 'จำนวนคงเหลือ',
+                  data: topMat.map(m => m.qty),
+                  backgroundColor: '#6366f1',
+                  borderRadius: 4
+                }]
+              },
+              options: { responsive: true, maintainAspectRatio: false }
+            });
+          }
+
+          const ctx2 = document.getElementById('statusChart');
+          if(ctx2) {
+            statusChartInstance = new Chart(ctx2, {
+              type: 'doughnut',
+              data: {
+                labels: ['ปกติ', 'ใกล้หมด (<5)', 'หมดสต๊อก'],
+                datasets: [{
+                  data: [
+                    totalItems - lowStock - state.materials.filter(m=>m.qty==0).length,
+                    lowStock,
+                    state.materials.filter(m=>m.qty==0).length
+                  ],
+                  backgroundColor: ['#10b981', '#f59e0b', '#ef4444']
+                }]
+              },
+              options: { responsive: true, maintainAspectRatio: false }
+            });
+          }
+        } catch(chartErr) {
+          console.error("Chart Rendering Error:", chartErr);
+        }
+
+      } catch(e) { 
+        console.error(e); 
+        // Show error in dashboard if failed
+        container.innerHTML = `<div class="p-8 text-center text-red-500"><i class="fas fa-exclamation-circle text-4xl mb-4"></i><p>โหลดข้อมูลไม่สำเร็จ กรุณาลองใหม่</p><p class="text-xs mt-2 text-gray-400">${e.message}</p></div>`;
+      }
+    }
+
+    async function renderInventory(container, mode) {
+      // Clean charts if navigating away from dashboard
+      if (stockChartInstance) { stockChartInstance.destroy(); stockChartInstance = null; }
+      if (statusChartInstance) { statusChartInstance.destroy(); statusChartInstance = null; }
+
+      // mode: 'view' (Manage), 'withdraw', 'import'
+      const isManage = mode === 'view';
+      const isAdmin = state.user.role === 'admin';
+      
+      container.innerHTML = `
+        <div class="bg-white rounded-xl shadow-sm border border-slate-100 flex flex-col h-full fade-in">
+          <!-- Toolbar -->
+          <div class="p-4 border-b border-slate-100 flex flex-col md:flex-row gap-4 justify-between items-center bg-white rounded-t-xl sticky top-0 z-10">
+            <div class="relative w-full md:w-96">
+              <i class="fas fa-search absolute left-3 top-3 text-slate-400"></i>
+              <input type="text" id="searchInput" placeholder="ค้นหารหัส หรือชื่อวัสดุ..." class="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" onkeyup="handleSearch()">
+            </div>
+            
+            <div class="flex gap-2 w-full md:w-auto">
+              ${isManage && isAdmin ? `<button onclick="openMaterialModal()" class="flex-1 md:flex-none px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 shadow-sm transition"><i class="fas fa-plus mr-2"></i>เพิ่มวัสดุ</button>` : ''}
+              <select id="sortSelect" onchange="handleSort()" class="border p-2 rounded-lg text-sm bg-white cursor-pointer focus:ring-2 focus:ring-indigo-500 outline-none">
+                <option value="newest">ใหม่ล่าสุด</option>
+                <option value="name">ชื่อ ก-ฮ</option>
+                <option value="qty_asc">น้อยไปมาก</option>
+                <option value="qty_desc">มากไปน้อย</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Grid / List -->
+          <div id="inventoryContainer" class="p-6 overflow-y-auto flex-1 bg-slate-50 min-h-[400px]">
+            <div class="loader mx-auto mt-10"></div>
+          </div>
+
+          <!-- Pagination -->
+          <div class="p-4 border-t border-slate-100 bg-white rounded-b-xl flex justify-between items-center">
+            <span class="text-sm text-slate-500" id="pageInfo">แสดง 0-0 จาก 0</span>
+            <div class="flex gap-1" id="paginationControls"></div>
+          </div>
+        </div>
+      `;
+
+      if (state.materials.length === 0) state.materials = await api('getMaterials');
+      renderMaterialList(mode);
+    }
+
+    function renderMaterialList(mode) {
+      const container = document.getElementById('inventoryContainer');
+      const filtered = state.materials
+        .filter(m => m.name.toLowerCase().includes(state.filter.search.toLowerCase()))
+        .sort((a,b) => {
+          if(state.filter.sort === 'name') return a.name.localeCompare(b.name);
+          if(state.filter.sort === 'qty_asc') return a.qty - b.qty;
+          if(state.filter.sort === 'qty_desc') return b.qty - a.qty;
+          return b.material_id.localeCompare(a.material_id); // newest (ID based)
+        });
+
+      // Pagination Logic
+      const page = state.pagination.currentPage;
+      const perPage = state.pagination.itemsPerPage;
+      const start = (page - 1) * perPage;
+      const paginated = filtered.slice(start, start + perPage);
+      state.pagination.totalPages = Math.ceil(filtered.length / perPage);
+
+      // Render Pagination Controls
+      document.getElementById('pageInfo').innerText = `แสดง ${filtered.length > 0 ? start + 1 : 0}-${Math.min(start + perPage, filtered.length)} จาก ${filtered.length} รายการ`;
+      renderPaginationControls();
+
+      // Render Items
+      if (paginated.length === 0) {
+        container.innerHTML = `<div class="text-center text-slate-400 mt-10"><i class="fas fa-box-open text-4xl mb-2"></i><p>ไม่พบรายการวัสดุ</p></div>`;
+        return;
+      }
+
+      const gridClass = "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6";
+      
+      container.innerHTML = `<div class="${gridClass}">` + paginated.map(m => {
+        const isLow = m.qty < 5;
+        const noStock = m.qty == 0;
+        const statusColor = noStock ? 'bg-red-100 text-red-700' : isLow ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700';
+        const statusText = noStock ? 'หมด' : isLow ? 'ใกล้หมด' : 'ปกติ';
+
+        // Action Button Logic
+        let actionBtn = '';
+        if (mode === 'view' && state.user.role === 'admin') {
+          actionBtn = `
+            <div class="border-t p-3 flex gap-2 bg-gray-50 rounded-b-xl">
+              <button onclick='openMaterialModal(${JSON.stringify(m)})' class="flex-1 py-1.5 text-xs border border-slate-300 rounded text-slate-600 hover:bg-white hover:border-indigo-500 hover:text-indigo-600 transition">แก้ไข</button>
+              <button onclick="deleteMaterial('${m.material_id}')" class="flex-1 py-1.5 text-xs border border-slate-300 rounded text-slate-600 hover:bg-white hover:border-red-500 hover:text-red-600 transition">ลบ</button>
+            </div>`;
+        } else if (mode === 'withdraw') {
+          actionBtn = `<button onclick='openTransModal("withdraw", ${JSON.stringify(m)})' class="w-full py-3 bg-rose-500 text-white font-bold hover:bg-rose-600 transition rounded-b-xl ${noStock ? 'opacity-50 cursor-not-allowed' : ''}" ${noStock ? 'disabled' : ''}>เบิกออก</button>`;
+        } else if (mode === 'import') {
+          actionBtn = `<button onclick='openTransModal("import", ${JSON.stringify(m)})' class="w-full py-3 bg-emerald-500 text-white font-bold hover:bg-emerald-600 transition rounded-b-xl">นำเข้า</button>`;
+        }
+
+        return `
+          <div class="bg-white rounded-xl shadow-sm hover:shadow-md transition duration-300 flex flex-col border border-slate-100">
+            <div class="relative h-40 bg-slate-100 rounded-t-xl overflow-hidden group">
+              <img src="${m.image_url || 'https://via.placeholder.com/300?text=No+Image'}" class="w-full h-full object-cover transition duration-500 group-hover:scale-110" onerror="this.src='https://via.placeholder.com/300?text=Image+Error'">
+              <span class="absolute top-2 left-2 px-2 py-1 text-[10px] font-bold rounded-full ${statusColor}">${statusText}</span>
+              <span class="absolute top-2 right-2 px-2 py-1 text-[10px] bg-black/50 text-white rounded backdrop-blur-sm">ID: ${m.material_id.substring(m.material_id.length-4)}</span>
+            </div>
+            <div class="p-4 flex-1">
+              <h4 class="font-bold text-slate-800 mb-1 line-clamp-1" title="${m.name}">${m.name}</h4>
+              <div class="flex items-end justify-between mt-3">
+                <div class="text-xs text-slate-400">
+                  <p>Update: ${formatDate(m.last_import_date || m.last_withdraw_date)}</p>
+                </div>
+                <div class="text-right">
+                  <span class="text-2xl font-bold ${noStock ? 'text-slate-400' : 'text-indigo-600'}">${m.qty}</span>
+                  <span class="text-xs text-slate-500">ชิ้น</span>
+                </div>
+              </div>
+            </div>
+            ${actionBtn}
+          </div>
+        `;
+      }).join('') + `</div>`;
+    }
+
+    async function renderReports(container) {
+      container.innerHTML = `
+        <div class="flex justify-between items-center mb-6 fade-in">
+          <h2 class="text-2xl font-bold text-slate-800">รายงานการใช้งาน</h2>
+          <button onclick="exportCSV()" class="px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-900 transition"><i class="fas fa-file-csv mr-2"></i>Export CSV</button>
+        </div>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 h-[calc(100vh-180px)]">
+          <!-- Withdraw Log -->
+          <div class="bg-white rounded-xl shadow-sm border border-slate-100 flex flex-col fade-in">
+             <div class="p-4 border-b bg-rose-50 rounded-t-xl flex justify-between items-center">
+               <h3 class="font-bold text-rose-700"><i class="fas fa-history mr-2"></i>ประวัติการเบิก</h3>
+               <span class="text-xs text-rose-400">100 รายการล่าสุด</span>
+             </div>
+             <div class="overflow-y-auto flex-1 p-0" id="withdrawLog">
+               <div class="loader mx-auto mt-10"></div>
+             </div>
+          </div>
+          <!-- Import Log -->
+          <div class="bg-white rounded-xl shadow-sm border border-slate-100 flex flex-col fade-in">
+             <div class="p-4 border-b bg-emerald-50 rounded-t-xl flex justify-between items-center">
+               <h3 class="font-bold text-emerald-700"><i class="fas fa-file-invoice mr-2"></i>ประวัติการนำเข้า</h3>
+               <span class="text-xs text-emerald-400">100 รายการล่าสุด</span>
+             </div>
+             <div class="overflow-y-auto flex-1 p-0" id="importLog">
+               <div class="loader mx-auto mt-10"></div>
+             </div>
+          </div>
+        </div>
+      `;
+
+      try {
+        state.reports = await api('getReports');
+        renderReportTable('withdrawLog', state.reports.withdraw, 'text-rose-600', '-');
+        renderReportTable('importLog', state.reports.import, 'text-emerald-600', '+');
+      } catch(e) {}
+    }
+
+    function renderReportTable(id, data, colorClass, prefix) {
+      const el = document.getElementById(id);
+      if(data.length === 0) {
+        el.innerHTML = `<p class="text-center text-slate-400 mt-10 text-sm">ไม่มีข้อมูล</p>`;
+        return;
+      }
+      el.innerHTML = `<table class="w-full text-left text-sm">
+        <thead class="bg-slate-50 text-slate-500 sticky top-0"><tr><th class="p-3 font-medium">เวลา</th><th class="p-3 font-medium">รายการ</th><th class="p-3 font-medium text-right">จำนวน</th><th class="p-3 font-medium">ผู้ทำรายการ</th></tr></thead>
+        <tbody class="divide-y divide-slate-100">` + 
+        data.map(r => `
+          <tr class="hover:bg-slate-50 transition">
+            <td class="p-3 text-slate-500 text-xs">${formatDate(r.timestamp||r['วันที่'])}</td>
+            <td class="p-3 font-medium text-slate-700">${r.material_name||r['ชื่อวัสดุ']}</td>
+            <td class="p-3 text-right font-bold ${colorClass}">${prefix}${r.qty||r['จำนวน']}</td>
+            <td class="p-3 text-slate-600 flex items-center gap-2">
+              <div class="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center text-[10px] text-slate-500">${(r.user_name||r['ผู้เบิก']||r['ผู้นำเข้า']||'?').charAt(0)}</div>
+              <span class="truncate w-24">${r.user_name||r['ผู้เบิก']||r['ผู้นำเข้า']}</span>
+            </td>
+          </tr>
+        `).join('') + `</tbody></table>`;
+    }
+
+    async function renderUsers(container) {
+      if(state.user.role !== 'admin') return;
+      container.innerHTML = `
+        <div class="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden fade-in">
+          <div class="p-4 border-b bg-amber-50 rounded-t-xl"><h3 class="font-bold text-amber-800">จัดการสิทธิ์ผู้ใช้งาน</h3></div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+              <thead class="bg-slate-50 text-slate-500 border-b">
+                <tr><th class="p-4">User</th><th class="p-4">Name/Group</th><th class="p-4">Status</th><th class="p-4">Role</th><th class="p-4">Action</th></tr>
+              </thead>
+              <tbody id="userTableBody" class="divide-y divide-slate-100"></tbody>
+            </table>
+          </div>
+        </div>`;
+      
+      const users = await api('getUsers');
+      document.getElementById('userTableBody').innerHTML = users.map(u => `
+        <tr class="hover:bg-slate-50">
+          <td class="p-4 font-medium text-slate-700">${u.username}</td>
+          <td class="p-4"><div>${u.fullname}</div><div class="text-xs text-slate-400">${u.group}</div></td>
+          <td class="p-4"><span class="px-2 py-1 rounded-full text-xs font-bold ${u.status === 'approved' ? 'bg-green-100 text-green-700' : u.status === 'pending' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'}">${u.status}</span></td>
+          <td class="p-4 uppercase text-xs font-bold text-slate-500">${u.role}</td>
+          <td class="p-4">
+            ${u.status === 'pending' ? `<button onclick="updateUser('${u.user_id}', 'approved')" class="text-green-600 hover:bg-green-50 px-2 py-1 rounded mr-1">Approve</button><button onclick="updateUser('${u.user_id}', 'rejected')" class="text-red-600 hover:bg-red-50 px-2 py-1 rounded">Reject</button>` : `<button onclick="updateUser('${u.user_id}', 'rejected')" class="text-slate-400 hover:text-red-600 text-xs">Ban User</button>`}
+          </td>
+        </tr>`).join('');
+    }
+
+    function renderSettings(container) {
+      container.innerHTML = `
+        <div class="max-w-2xl mx-auto bg-white rounded-xl shadow-sm border border-slate-100 p-8 fade-in">
+          <h2 class="text-xl font-bold mb-6 pb-4 border-b">ตั้งค่าระบบ</h2>
+          
+          <div class="space-y-6">
+             <div class="flex items-center justify-between">
+               <div><p class="font-medium">Theme Mode</p><p class="text-xs text-slate-400">ปรับเปลี่ยนหน้าจอเป็นโหมดมืด</p></div>
+               <button class="w-12 h-6 bg-slate-200 rounded-full relative transition"><span class="w-4 h-4 bg-white rounded-full absolute top-1 left-1 shadow"></span></button>
+             </div>
+             
+             <div class="flex items-center justify-between">
+               <div><p class="font-medium">แจ้งเตือนทาง Email</p><p class="text-xs text-slate-400">รับสรุปยอดคงเหลือทุกสัปดาห์</p></div>
+               <button class="w-12 h-6 bg-indigo-500 rounded-full relative transition"><span class="w-4 h-4 bg-white rounded-full absolute top-1 right-1 shadow"></span></button>
+             </div>
+
+             <div class="pt-6 border-t">
+               <label class="block text-sm font-medium mb-2">Low Stock Threshold</label>
+               <input type="number" value="5" class="border p-2 rounded w-24 text-center">
+               <span class="text-sm text-slate-500 ml-2">ชิ้น</span>
+             </div>
+
+             <div class="pt-6 mt-6 border-t flex justify-end">
+               <button class="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700">บันทึกการตั้งค่า</button>
+             </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // --- HELPER LOGIC ---
+
+    function handleSearch() {
+      state.filter.search = document.getElementById('searchInput').value;
+      state.pagination.currentPage = 1;
+      renderMaterialList(document.getElementById('inventoryContainer').previousElementSibling ? 'view' : 'withdraw'); 
+    }
+
+    function handleSort() {
+      state.filter.sort = document.getElementById('sortSelect').value;
+      renderMaterialList('view');
+    }
+
+    function renderPaginationControls() {
+      const { currentPage, totalPages } = state.pagination;
+      const el = document.getElementById('paginationControls');
+      el.innerHTML = `
+        <button onclick="changePage(-1)" class="px-3 py-1 border rounded hover:bg-slate-50 disabled:opacity-50" ${currentPage===1?'disabled':''}><i class="fas fa-chevron-left"></i></button>
+        <span class="px-3 py-1 bg-slate-100 rounded text-sm font-medium">${currentPage} / ${totalPages}</span>
+        <button onclick="changePage(1)" class="px-3 py-1 border rounded hover:bg-slate-50 disabled:opacity-50" ${currentPage===totalPages?'disabled':''}><i class="fas fa-chevron-right"></i></button>
+      `;
+    }
+
+    function changePage(delta) {
+      state.pagination.currentPage += delta;
+      renderMaterialList('view'); // Re-render logic handles current mode implicitly for list
+    }
+
+    // Modal & Form Handlers
+    function toggleImgInput(mode) {
+      document.getElementById('inputSectionFile').classList.toggle('hidden', mode !== 'file');
+      document.getElementById('inputSectionUrl').classList.toggle('hidden', mode !== 'url');
+      document.getElementById('btnTabFile').className = mode === 'file' ? 'px-3 py-1.5 text-xs font-medium rounded-md shadow-sm bg-white text-indigo-600' : 'px-3 py-1.5 text-xs font-medium rounded-md text-slate-500 hover:text-slate-700';
+      document.getElementById('btnTabUrl').className = mode === 'url' ? 'px-3 py-1.5 text-xs font-medium rounded-md shadow-sm bg-white text-indigo-600' : 'px-3 py-1.5 text-xs font-medium rounded-md text-slate-500 hover:text-slate-700';
+    }
+
+    function previewImage(input) {
+      if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          document.getElementById('uploadPreview').style.backgroundImage = `url(${e.target.result})`;
+          document.getElementById('uploadPreview').classList.remove('hidden');
+          document.getElementById('uploadPlaceholder').classList.add('hidden');
+        }
+        reader.readAsDataURL(input.files[0]);
+      }
+    }
+
+    function openMaterialModal(mat = null) {
+      document.getElementById('materialForm').reset();
+      toggleImgInput('file');
+      document.getElementById('uploadPreview').classList.add('hidden');
+      document.getElementById('uploadPlaceholder').classList.remove('hidden');
+      
+      if (mat) {
+        document.getElementById('matModalTitle').innerText = 'แก้ไขวัสดุ';
+        document.getElementById('matId').value = mat.material_id;
+        document.getElementById('matName').value = mat.name;
+        document.getElementById('matImgUrl').value = mat.image_url;
+      } else {
+        document.getElementById('matModalTitle').innerText = 'เพิ่มวัสดุใหม่';
+        document.getElementById('matId').value = '';
+      }
+      document.getElementById('materialModal').classList.remove('hidden');
+    }
+
+    function openTransModal(type, mat) {
+      document.getElementById('transForm').reset();
+      document.getElementById('transType').value = type;
+      document.getElementById('transMatId').value = mat.material_id;
+      document.getElementById('transMatName').value = mat.name;
+      document.getElementById('transMatNameDisplay').innerText = mat.name;
+      document.getElementById('transCurrentQty').innerText = mat.qty;
+      document.getElementById('transImgPreview').src = mat.image_url || 'https://via.placeholder.com/64?text=Img';
+      
+      const isImport = type === 'import';
+      document.getElementById('transModalTitle').innerText = isImport ? 'นำเข้าสต๊อก' : 'เบิกวัสดุ';
+      document.getElementById('transModalTitle').className = isImport ? 'text-lg font-bold text-emerald-700' : 'text-lg font-bold text-rose-700';
+      document.getElementById('btnTransSubmit').className = `w-full py-3 rounded-lg font-bold text-white shadow-md transition transform active:scale-95 mt-2 ${isImport ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-rose-600 hover:bg-rose-700'}`;
+      document.getElementById('btnTransSubmit').innerText = isImport ? 'ยืนยันการนำเข้า' : 'ยืนยันการเบิก';
+      
+      document.getElementById('importFields').classList.toggle('hidden', !isImport);
+      document.getElementById('transModal').classList.remove('hidden');
+    }
+
+    function adjQty(delta) {
+      const el = document.getElementById('transQty');
+      const val = parseInt(el.value) || 0;
+      if(val + delta >= 1) el.value = val + delta;
+    }
+
+    // Submit Handlers
+    document.getElementById('materialForm').onsubmit = async (e) => {
+      e.preventDefault();
+      const id = document.getElementById('matId').value;
+      const fileInput = document.getElementById('matImgFile');
+      let payload = {
+        name: document.getElementById('matName').value,
+        image_url: document.getElementById('matImgUrl').value
+      };
+      
+      if (fileInput.files.length > 0) {
+        const reader = new FileReader();
+        payload.image_data = await new Promise(r => { reader.onload = e => r(e.target.result); reader.readAsDataURL(fileInput.files[0]); });
+      }
+
+      try {
+        await api(id ? 'updateMaterial' : 'addMaterial', { ...payload, material_id: id });
+        closeModal('materialModal');
+        state.materials = await api('getMaterials'); // Force refresh
+        renderMaterialList('view');
+        showToast('บันทึกข้อมูลสำเร็จ');
+      } catch(e) {}
+    };
+
+    document.getElementById('transForm').onsubmit = async (e) => {
+      e.preventDefault();
+      const type = document.getElementById('transType').value;
+      try {
+        await api(type === 'import' ? 'importMaterial' : 'withdrawMaterial', {
+          material_id: document.getElementById('transMatId').value,
+          material_name: document.getElementById('transMatName').value,
+          qty: document.getElementById('transQty').value,
+          user_name: state.user.fullname,
+          ref_doc: document.getElementById('transRef').value
+        });
+        closeModal('transModal');
+        state.materials = await api('getMaterials'); // Force refresh
+        renderMaterialList(type);
+        showToast('ทำรายการสำเร็จ');
+      } catch(e) {}
+    };
+
+    async function deleteMaterial(id) {
+      if(confirm('ยืนยันการลบ? การกระทำนี้ไม่สามารถย้อนกลับได้')) {
+        await api('deleteMaterial', { material_id: id });
+        state.materials = await api('getMaterials');
+        renderMaterialList('view');
+        showToast('ลบรายการสำเร็จ', 'error'); // error style for red toast
+      }
+    }
+
+    async function updateUser(uid, status) {
+      if(confirm(`ยืนยันการเปลี่ยนสถานะเป็น ${status}?`)) {
+        await api('updateUserStatus', { user_id: uid, status });
+        renderUsers(document.getElementById('contentArea'));
+        showToast('อัปเดตสถานะผู้ใช้สำเร็จ');
+      }
+    }
+
+    // Export to CSV
+    function exportCSV() {
+      const data = [...state.reports.withdraw.map(x => ({...x, type: 'withdraw'})), ...state.reports.import.map(x => ({...x, type: 'import'}))];
+      if (data.length === 0) return showToast('ไม่มีข้อมูลให้ Export', 'error');
+      
+      const csvContent = "data:text/csv;charset=utf-8," 
+        + "Date,Type,Item,Qty,User\n"
+        + data.map(e => `${e.timestamp||e['วันที่']},${e.type},${e.material_name||e['ชื่อวัสดุ']},${e.qty||e['จำนวน']},${e.user_name||e['ผู้เบิก']}`).join("\n");
+        
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", "stock_report.csv");
+      document.body.appendChild(link);
+      link.click();
+    }
+
+    // Common UI Utils
+    function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+    function showToast(msg, type = 'success') {
+      const t = document.getElementById('toast');
+      t.innerText = msg;
+      t.className = `fixed top-5 right-5 z-[80] p-4 rounded shadow-lg text-white transform transition-all duration-300 translate-y-0 ${type === 'success' ? 'bg-emerald-600' : 'bg-rose-600'}`;
+      t.classList.remove('hidden');
+      setTimeout(() => { t.classList.add('hidden'); }, 3000);
+    }
+    function formatDate(d) {
+      if(!d) return '-';
+      const dt = new Date(d);
+      return dt.toLocaleDateString('th-TH') + ' ' + dt.toLocaleTimeString('th-TH', {hour:'2-digit', minute:'2-digit'});
+    }
+    
+    // UI Generators
+    function cardSkeleton() { return `<div class="bg-white p-6 rounded-xl shadow-sm h-32 border border-slate-100 skeleton-box"></div>`; }
+    function statCard(title, value, icon, colorClass) {
+      return `
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex items-center justify-between hover:shadow-md transition">
+          <div>
+            <p class="text-slate-500 text-sm mb-1">${title}</p>
+            <p class="text-2xl font-bold text-slate-800">${value}</p>
+          </div>
+          <div class="w-12 h-12 rounded-full ${colorClass} bg-opacity-10 flex items-center justify-center text-${colorClass.split('-')[1]}-600">
+            <i class="${icon} text-xl ${colorClass.replace('bg-', 'text-')}"></i>
+          </div>
+        </div>
+      `;
+    }
+
+    // Initial Load
+    window.onload = initApp;
+  </script>
+</body>
+</html>
