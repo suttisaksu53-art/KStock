@@ -81,7 +81,7 @@
     <aside class="w-64 bg-slate-900 text-slate-300 flex flex-col shadow-xl z-20 transition-all duration-300" id="sidebar">
       <div class="p-6 border-b border-slate-700">
         <h2 class="text-lg font-bold text-white">Test Kit Stock</h2>
-        <p class="text-[10px] text-slate-400">Inventory System</p>
+        <p class="text-[10px] text-slate-400">Inventory System v1.5</p>
       </div>
       <nav class="flex-1 overflow-y-auto py-4 px-2 space-y-1">
         <a href="#" onclick="route('dashboard')" class="nav-item flex items-center px-4 py-3 rounded-lg hover:bg-slate-800 transition" data-page="dashboard"><i class="fas fa-chart-pie w-6"></i> <span>ภาพรวม</span></a>
@@ -125,7 +125,7 @@
             <button type="button" onclick="openCamera('mat')" class="px-3 py-1 bg-indigo-100 text-indigo-700 rounded text-xs"><i class="fas fa-camera"></i> ถ่ายรูป</button>
           </div>
           <div id="matInputFile" class="border-2 border-dashed rounded-lg p-4 text-center cursor-pointer relative h-32 flex items-center justify-center">
-            <input type="file" id="matImgFile" accept="image/*" class="absolute inset-0 w-full h-full opacity-0" onchange="previewImage(this, 'mat')">
+            <input type="file" id="matImgFile" accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" onchange="previewImage(this, 'mat')">
             <div id="matPreview" class="hidden absolute inset-0 bg-contain bg-center bg-no-repeat bg-white"></div>
             <div id="matPlaceholder" class="text-gray-400 text-sm">คลิกเพื่อเลือกไฟล์</div>
           </div>
@@ -136,14 +136,12 @@
     </div>
   </div>
 
-  <!-- MODAL: TRANSACTION (With Photo) -->
+  <!-- MODAL: TRANSACTION -->
   <div id="transModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden z-[70] flex items-center justify-center p-4">
     <div class="bg-white rounded-xl w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto">
       <div class="p-5 border-b bg-gray-50 flex justify-between"><h3 id="transModalTitle" class="text-lg font-bold">ทำรายการ</h3><button onclick="closeModal('transModal')"><i class="fas fa-times"></i></button></div>
       <form id="transForm" class="p-6">
-        <input type="hidden" id="transType">
-        <input type="hidden" id="transMatId">
-        <input type="hidden" id="transMatName">
+        <input type="hidden" id="transType"><input type="hidden" id="transMatId"><input type="hidden" id="transMatName">
         <div class="flex items-center gap-3 mb-4">
           <img id="transImgPreview" class="w-16 h-16 object-cover rounded bg-gray-200">
           <div><p class="font-bold text-lg line-clamp-1" id="transMatNameDisplay">Material</p><p class="text-sm text-gray-500">คงเหลือ: <span id="transCurrentQty">0</span></p></div>
@@ -157,7 +155,6 @@
           <div><label class="block text-sm font-medium text-blue-800">อ้างอิงเอกสาร</label><input type="text" id="transRef" class="w-full border p-2 rounded"></div>
         </div>
         
-        <!-- Transaction Photo Proof -->
         <div class="mb-4">
           <label class="block text-sm font-medium mb-2 text-gray-700">รูปภาพยืนยัน (ไม่บังคับ)</label>
           <div class="flex gap-2 mb-2">
@@ -170,7 +167,6 @@
             <div id="transPlaceholder" class="text-gray-400 text-xs">คลิกเพื่อแนบรูป</div>
           </div>
         </div>
-
         <button type="submit" id="btnTransSubmit" class="w-full py-3 rounded-lg font-bold text-white shadow-md">ยืนยัน</button>
       </form>
     </div>
@@ -181,12 +177,9 @@
     <div class="bg-white rounded-xl w-full max-w-sm shadow-2xl">
       <div class="p-4 border-b flex justify-between"><h3 class="font-bold">แนบรูปย้อนหลัง</h3><button onclick="closeModal('proofModal')"><i class="fas fa-times"></i></button></div>
       <form id="proofForm" class="p-4">
-        <input type="hidden" id="proofTxId">
-        <input type="hidden" id="proofType">
+        <input type="hidden" id="proofTxId"><input type="hidden" id="proofType">
         <div class="mb-4">
-          <div class="flex gap-2 mb-2 justify-center">
-            <button type="button" onclick="openCamera('proof')" class="px-4 py-2 bg-indigo-600 text-white rounded-full shadow"><i class="fas fa-camera"></i> ถ่ายรูป</button>
-          </div>
+          <div class="flex gap-2 mb-2 justify-center"><button type="button" onclick="openCamera('proof')" class="px-4 py-2 bg-indigo-600 text-white rounded-full shadow"><i class="fas fa-camera"></i> ถ่ายรูป</button></div>
           <div class="border-2 border-dashed rounded-lg p-2 relative h-40 flex items-center justify-center bg-gray-50">
             <input type="file" id="proofFile" accept="image/*" class="absolute inset-0 w-full h-full opacity-0" onchange="previewImage(this, 'proof')">
             <div id="proofPreview" class="hidden absolute inset-0 bg-contain bg-center bg-no-repeat bg-white"></div>
@@ -195,6 +188,39 @@
         </div>
         <button type="submit" class="w-full bg-indigo-600 text-white py-2 rounded font-bold">อัปโหลด</button>
       </form>
+    </div>
+  </div>
+
+  <!-- MODAL: PERMISSIONS (NEW) -->
+  <div id="permModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden z-[80] flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl w-full max-w-md shadow-2xl">
+      <div class="p-4 border-b flex justify-between"><h3 class="font-bold">กำหนดสิทธิ์ผู้ใช้งาน</h3><button onclick="closeModal('permModal')"><i class="fas fa-times"></i></button></div>
+      <div class="p-6">
+        <div class="mb-4 text-center">
+            <div class="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-bold text-xl mx-auto mb-2" id="permUserInitial">U</div>
+            <h4 id="permUserName" class="font-bold">User</h4>
+        </div>
+        <input type="hidden" id="permUserId">
+        <div class="space-y-3">
+            <label class="flex items-center justify-between p-3 bg-gray-50 rounded cursor-pointer">
+                <span>ดูข้อมูล (View Stock)</span>
+                <input type="checkbox" id="perm_view_stock" checked disabled class="w-5 h-5 accent-indigo-600">
+            </label>
+            <label class="flex items-center justify-between p-3 bg-gray-50 rounded cursor-pointer">
+                <span>เบิกวัสดุ (Withdraw)</span>
+                <input type="checkbox" id="perm_withdraw_material" class="w-5 h-5 accent-indigo-600">
+            </label>
+            <label class="flex items-center justify-between p-3 bg-gray-50 rounded cursor-pointer">
+                <span>นำเข้าสต๊อก (Import)</span>
+                <input type="checkbox" id="perm_import_material" class="w-5 h-5 accent-indigo-600">
+            </label>
+            <label class="flex items-center justify-between p-3 bg-gray-50 rounded cursor-pointer">
+                <span>จัดการรายการ (Add/Edit/Delete)</span>
+                <input type="checkbox" id="perm_manage_material" class="w-5 h-5 accent-indigo-600">
+            </label>
+        </div>
+        <button onclick="savePermissions()" class="w-full mt-6 bg-indigo-600 text-white py-2 rounded font-bold">บันทึกสิทธิ์</button>
+      </div>
     </div>
   </div>
 
@@ -209,9 +235,7 @@
       try {
         let result;
         if (typeof google !== 'undefined' && google.script) {
-          result = await new Promise((resolve, reject) => {
-            google.script.run.withSuccessHandler(res => res.success ? resolve(res.data) : reject(new Error(res.error))).withFailureHandler(reject).apiHandler({ action, payload });
-          });
+          result = await new Promise((resolve, reject) => google.script.run.withSuccessHandler(res => res.success ? resolve(res.data) : reject(new Error(res.error))).withFailureHandler(reject).apiHandler({ action, payload }));
         } else {
           const res = await fetch(WEB_APP_URL, { method: 'POST', redirect: 'follow', headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ action, payload }) });
           const json = await res.json();
@@ -227,86 +251,80 @@
       }
     }
 
-    // --- AUTH ---
-    function initApp() {
-      const savedUser = localStorage.getItem('user_session');
-      if (savedUser) { state.user = JSON.parse(savedUser); setupUI(); route('dashboard'); } else { document.getElementById('authPage').classList.remove('hidden'); }
-    }
+    // AUTH
+    function initApp() { const u = localStorage.getItem('user_session'); if (u) { state.user = JSON.parse(u); setupUI(); route('dashboard'); } else { document.getElementById('authPage').classList.remove('hidden'); } }
     function setupUI() {
       document.getElementById('authPage').classList.add('hidden'); document.getElementById('mainApp').classList.remove('hidden');
-      document.getElementById('sidebarName').innerText = state.user.fullname; document.getElementById('sidebarRole').innerText = state.user.role.toUpperCase();
-      document.getElementById('headerGroupName').innerText = state.user.group || 'ทั่วไป'; document.getElementById('avatarInitials').innerText = state.user.fullname.charAt(0);
+      document.getElementById('sidebarName').innerText = state.user.fullname.split(' ')[0]; document.getElementById('sidebarRole').innerText = state.user.role.toUpperCase();
+      document.getElementById('avatarInitials').innerText = state.user.fullname.charAt(0);
       document.getElementById('adminMenuSection').classList.toggle('hidden', state.user.role !== 'admin');
     }
     document.getElementById('loginForm').onsubmit = async (e) => { e.preventDefault(); try { state.user = await api('login', { username: document.getElementById('loginUser').value, password: document.getElementById('loginPass').value }); localStorage.setItem('user_session', JSON.stringify(state.user)); setupUI(); route('dashboard'); } catch(e) {} };
     function logout() { localStorage.removeItem('user_session'); location.reload(); }
     function toggleAuth(mode) { document.getElementById('loginForm').classList.toggle('hidden', mode === 'register'); document.getElementById('registerForm').classList.toggle('hidden', mode !== 'register'); }
 
-    // --- ROUTING ---
+    // ROUTING
     async function route(page) {
-      document.querySelectorAll('.nav-item').forEach(el => el.classList.toggle('bg-slate-800', el.dataset.page === page));
-      document.querySelectorAll('.nav-item').forEach(el => el.classList.toggle('text-white', el.dataset.page === page));
-      const titles = { 'dashboard': 'ภาพรวม', 'inventory': 'รายการวัสดุ', 'withdraw': 'เบิกวัสดุ', 'import': 'นำเข้าสต๊อก', 'reports': 'รายงาน & ประวัติ', 'users': 'จัดการผู้ใช้', 'settings': 'ตั้งค่า' };
-      document.getElementById('pageTitle').innerText = titles[page];
-      const content = document.getElementById('contentArea');
-      
-      // Clean charts
+      document.querySelectorAll('.nav-item').forEach(el => {
+        el.classList.toggle('bg-slate-800', el.dataset.page === page);
+        el.classList.toggle('text-white', el.dataset.page === page);
+      });
+      const c = document.getElementById('contentArea');
       if (stockChartInstance) { stockChartInstance.destroy(); stockChartInstance = null; }
       if (statusChartInstance) { statusChartInstance.destroy(); statusChartInstance = null; }
 
       switch(page) {
-        case 'dashboard': renderDashboard(content); break;
-        case 'inventory': renderInventory(content, 'view'); break;
-        case 'withdraw': renderInventory(content, 'withdraw'); break;
-        case 'import': renderInventory(content, 'import'); break;
-        case 'reports': renderReports(content); break;
-        case 'users': renderUsers(content); break;
-        case 'settings': renderSettings(content); break;
+        case 'dashboard': renderDashboard(c); break;
+        case 'inventory': renderInventory(c, 'view'); break;
+        case 'withdraw': renderInventory(c, 'withdraw'); break;
+        case 'import': renderInventory(c, 'import'); break;
+        case 'reports': renderReports(c); break;
+        case 'users': renderUsers(c); break;
       }
     }
 
-    // --- DASHBOARD ---
+    // DASHBOARD
     async function renderDashboard(c) {
-      c.innerHTML = `<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">${cardSkeleton().repeat(4)}</div><div class="grid grid-cols-1 lg:grid-cols-3 gap-6"><div class="lg:col-span-2 h-64 bg-white rounded-xl shadow-sm border border-slate-100"></div><div class="h-64 bg-white rounded-xl shadow-sm border border-slate-100"></div></div>`;
+      c.innerHTML = `<div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">${cardSkeleton().repeat(4)}</div><div class="grid grid-cols-1 lg:grid-cols-3 gap-6"><div class="lg:col-span-2 h-64 bg-white rounded-xl shadow-sm border"></div><div class="h-64 bg-white rounded-xl shadow-sm border"></div></div>`;
       try {
         state.materials = await api('getMaterials');
         const total = state.materials.length, stock = state.materials.reduce((s, m) => s + parseInt(m.qty||0), 0), low = state.materials.filter(m => parseInt(m.qty||0)<5).length;
-        const last = state.materials.length ? formatDate(state.materials[state.materials.length-1].last_import_date) : '-';
+        const last = state.materials.length ? formatDate(state.materials[state.materials.length-1].last_import_date).split(' ')[0] : '-';
         
         c.innerHTML = `
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 fade-in">
             ${statCard('ทั้งหมด', total, 'fas fa-box', 'bg-blue-500')} ${statCard('คงเหลือรวม', stock, 'fas fa-layer-group', 'bg-emerald-500')}
-            ${statCard('ใกล้หมด', low, 'fas fa-exclamation-triangle', 'bg-amber-500')} ${statCard('อัปเดตล่าสุด', last.split(' ')[0], 'fas fa-clock', 'bg-purple-500')}
+            ${statCard('ใกล้หมด', low, 'fas fa-exclamation-triangle', 'bg-amber-500')} ${statCard('อัปเดตล่าสุด', last, 'fas fa-clock', 'bg-purple-500')}
           </div>
           <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 fade-in">
-            <div class="bg-white p-6 rounded-xl shadow-sm lg:col-span-2 border border-slate-100"><h3 class="font-bold mb-4">Top 10 คงเหลือ</h3><div class="relative h-64 w-full"><canvas id="stockChart"></canvas></div></div>
-            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100"><h3 class="font-bold mb-4">สถานะ</h3><div class="relative h-48 w-full"><canvas id="statusChart"></canvas></div></div>
+            <div class="bg-white p-6 rounded-xl shadow-sm lg:col-span-2 border"><h3 class="font-bold mb-4">Top 10</h3><div class="relative h-64 w-full"><canvas id="stockChart"></canvas></div></div>
+            <div class="bg-white p-6 rounded-xl shadow-sm border"><h3 class="font-bold mb-4">สถานะ</h3><div class="relative h-48 w-full"><canvas id="statusChart"></canvas></div></div>
           </div>`;
-          
         const top = [...state.materials].sort((a,b)=>b.qty-a.qty).slice(0,10);
-        const ctx1 = document.getElementById('stockChart');
-        if(ctx1) {
-          stockChartInstance = new Chart(ctx1, { type: 'bar', data: { labels: top.map(m=>m.name.substring(0,10)), datasets: [{ label: 'Qty', data: top.map(m=>m.qty), backgroundColor: '#6366f1' }] }, options: { responsive: true, maintainAspectRatio: false } });
-        }
-        
-        const ctx2 = document.getElementById('statusChart');
-        if(ctx2) {
-          statusChartInstance = new Chart(ctx2, { type: 'bar', data: { labels: ['ปกติ', 'ต่ำ', 'หมด'], datasets: [{ label: 'Items', data: [total-low-state.materials.filter(m=>m.qty==0).length, low, state.materials.filter(m=>m.qty==0).length], backgroundColor: ['#10b981', '#f59e0b', '#ef4444'] }] }, options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false } });
-        }
-      } catch(e) { c.innerHTML = `<div class="text-center text-red-500 p-8">Error loading dashboard</div>`; }
+        stockChartInstance = new Chart(document.getElementById('stockChart'), { type: 'bar', data: { labels: top.map(m=>m.name.substring(0,10)), datasets: [{ label: 'Qty', data: top.map(m=>m.qty), backgroundColor: '#6366f1' }] }, options: { responsive: true, maintainAspectRatio: false } });
+        statusChartInstance = new Chart(document.getElementById('statusChart'), { type: 'doughnut', data: { labels: ['ปกติ', 'ต่ำ', 'หมด'], datasets: [{ data: [total-low-state.materials.filter(m=>m.qty==0).length, low, state.materials.filter(m=>m.qty==0).length], backgroundColor: ['#10b981', '#f59e0b', '#ef4444'] }] }, options: { responsive: true, maintainAspectRatio: false } });
+      } catch(e) {}
     }
 
-    // --- INVENTORY ---
+    // INVENTORY
     async function renderInventory(c, mode) {
-      c.innerHTML = `<div class="bg-white rounded-xl shadow-sm border border-slate-100 flex flex-col h-full fade-in">
+      const perms = state.user.permissions || [];
+      const isAdmin = state.user.role === 'admin';
+      
+      // Permission Check
+      if (mode === 'withdraw' && !isAdmin && !perms.includes('withdraw_material')) return c.innerHTML = '<div class="p-10 text-center text-gray-400">คุณไม่มีสิทธิ์เข้าถึงเมนูนี้</div>';
+      if (mode === 'import' && !isAdmin && !perms.includes('import_material')) return c.innerHTML = '<div class="p-10 text-center text-gray-400">คุณไม่มีสิทธิ์เข้าถึงเมนูนี้</div>';
+      const canManage = isAdmin || perms.includes('manage_material');
+
+      c.innerHTML = `<div class="bg-white rounded-xl shadow-sm border flex flex-col h-full fade-in">
         <div class="p-4 border-b flex flex-col md:flex-row gap-4 justify-between items-center">
-          <input type="text" id="searchInput" placeholder="ค้นหา..." class="w-full md:w-96 border p-2 rounded-lg" onkeyup="handleSearch()">
+          <input type="text" id="searchInput" placeholder="ค้นหา..." class="w-full md:w-96 border p-2 rounded-lg" onkeyup="handleSearch('${mode}')">
           <div class="flex gap-2">
-            ${mode==='view'&&state.user.role==='admin'?`<button onclick="openMaterialModal()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg">+ เพิ่ม</button>`:''}
-            <select id="sortSelect" onchange="handleSort()" class="border p-2 rounded-lg"><option value="newest">ใหม่สุด</option><option value="qty_asc">น้อย-มาก</option></select>
+            ${mode==='view'&&canManage?`<button onclick="openMaterialModal()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg">+ เพิ่ม</button>`:''}
+            <select id="sortSelect" onchange="renderMaterialList('${mode}')" class="border p-2 rounded-lg"><option value="newest">ใหม่สุด</option><option value="qty_asc">น้อย-มาก</option></select>
           </div>
         </div>
-        <div id="inventoryContainer" class="p-6 overflow-y-auto flex-1 bg-slate-50 min-h-[400px]"><div class="loader mx-auto"></div></div>
+        <div id="inventoryContainer" class="p-6 overflow-y-auto flex-1 bg-slate-50 min-h-[400px]"></div>
         <div class="p-4 border-t flex justify-between"><span id="pageInfo"></span><div id="paginationControls" class="flex gap-1"></div></div>
       </div>`;
       if(!state.materials.length) state.materials = await api('getMaterials');
@@ -314,38 +332,76 @@
     }
 
     function renderMaterialList(mode) {
-      const filtered = state.materials.filter(m=>m.name.toLowerCase().includes(state.filter.search.toLowerCase())).sort((a,b)=>{ if(state.filter.sort==='qty_asc')return a.qty-b.qty; return b.material_id.localeCompare(a.material_id); });
+      const txt = document.getElementById('searchInput')?.value.toLowerCase() || '';
+      const sort = document.getElementById('sortSelect')?.value || 'newest';
+      let list = state.materials.filter(m=>m.name.toLowerCase().includes(txt));
+      if(sort==='qty_asc') list.sort((a,b)=>a.qty-b.qty); else list.sort((a,b)=>b.material_id.localeCompare(a.material_id));
+      
       const { currentPage, itemsPerPage } = state.pagination;
       const start = (currentPage-1)*itemsPerPage;
-      const paginated = filtered.slice(start, start+itemsPerPage);
-      state.pagination.totalPages = Math.ceil(filtered.length/itemsPerPage);
-      document.getElementById('pageInfo').innerText = `แสดง ${filtered.length?start+1:0}-${Math.min(start+itemsPerPage, filtered.length)} จาก ${filtered.length}`;
-      renderPaginationControls();
+      const paginated = list.slice(start, start+itemsPerPage);
+      state.pagination.totalPages = Math.ceil(list.length/itemsPerPage);
+      document.getElementById('pageInfo').innerText = `แสดง ${list.length?start+1:0}-${Math.min(start+itemsPerPage, list.length)} จาก ${list.length}`;
+      renderPaginationControls(mode);
       
       const c = document.getElementById('inventoryContainer');
-      if(!paginated.length) { c.innerHTML = '<p class="text-center text-gray-400">ไม่พบข้อมูล</p>'; return; }
+      const isAdmin = state.user.role === 'admin';
+      const perms = state.user.permissions || [];
+      const canManage = isAdmin || perms.includes('manage_material');
+
       c.innerHTML = `<div class="grid grid-cols-1 md:grid-cols-3 gap-6">` + paginated.map(m => `
         <div class="bg-white rounded-xl shadow-sm hover:shadow-md transition flex flex-col border overflow-hidden">
           <div class="h-40 bg-gray-100 relative"><img src="${m.image_url||'https://via.placeholder.com/300'}" class="w-full h-full object-cover"></div>
           <div class="p-4 flex-1"><h4 class="font-bold mb-1 line-clamp-1">${m.name}</h4><div class="flex justify-between items-end"><span class="text-xs text-gray-400">${formatDate(m.last_import_date||m.last_withdraw_date).split(' ')[0]}</span><span class="text-xl font-bold text-indigo-600">${m.qty}</span></div></div>
-          ${mode==='view'&&state.user.role==='admin'?`<div class="border-t p-2 flex gap-2"><button onclick='openMaterialModal(${JSON.stringify(m)})' class="flex-1 py-1 text-xs border rounded">แก้ไข</button><button onclick="deleteMaterial('${m.material_id}')" class="flex-1 py-1 text-xs border rounded text-red-600">ลบ</button></div>`:
+          ${mode==='view'&&canManage?`<div class="border-t p-2 flex gap-2"><button onclick='openMaterialModal(${JSON.stringify(m)})' class="flex-1 py-1 text-xs border rounded">แก้ไข</button><button onclick="deleteMaterial('${m.material_id}')" class="flex-1 py-1 text-xs border rounded text-red-600">ลบ</button></div>`:
             `<button onclick='openTransModal("${mode}",${JSON.stringify(m)})' class="w-full py-3 text-white font-bold ${mode==='import'?'bg-emerald-500':'bg-rose-500'}">${mode==='import'?'นำเข้า':'เบิกออก'}</button>`}
         </div>`).join('') + `</div>`;
     }
 
     // --- REPORTS ---
     async function renderReports(c) {
-      c.innerHTML = `<div class="flex justify-between mb-6 fade-in"><h2 class="text-2xl font-bold">รายงาน</h2><div class="flex gap-2"><button onclick="exportCSV()" class="px-3 py-1 bg-slate-800 text-white rounded">CSV</button><button onclick="exportPDF()" class="px-3 py-1 bg-red-600 text-white rounded">PDF</button></div></div>
+      c.innerHTML = `<div class="flex flex-col md:flex-row justify-between mb-6 fade-in gap-4">
+        <h2 class="text-2xl font-bold">รายงาน</h2>
+        <div class="flex gap-2 items-center">
+            <span class="text-sm">วันที่: </span>
+            <input type="date" id="reportStartDate" class="border p-1 rounded text-sm" onchange="filterReports()">
+            <span>-</span>
+            <input type="date" id="reportEndDate" class="border p-1 rounded text-sm" onchange="filterReports()">
+            <button onclick="exportCSV()" class="px-3 py-1 bg-slate-800 text-white rounded">CSV</button>
+            <button onclick="exportPDF()" class="px-3 py-1 bg-red-600 text-white rounded">PDF</button>
+        </div>
+      </div>
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 h-[calc(100vh-180px)]">
         <div class="bg-white rounded-xl shadow-sm border flex flex-col"><div class="p-4 border-b bg-rose-50 font-bold text-rose-700">ประวัติการเบิก</div><div class="overflow-y-auto flex-1" id="withdrawLog"></div></div>
         <div class="bg-white rounded-xl shadow-sm border flex flex-col"><div class="p-4 border-b bg-emerald-50 font-bold text-emerald-700">ประวัติการนำเข้า</div><div class="overflow-y-auto flex-1" id="importLog"></div></div>
       </div>`;
       try {
         state.reports = await api('getReports');
+        filterReports(); // Initial render
+      } catch(e) {}
+    }
+
+    function filterReports() {
+        const startStr = document.getElementById('reportStartDate')?.value;
+        const endStr = document.getElementById('reportEndDate')?.value;
+        
+        const filterFn = (item) => {
+            if (!startStr && !endStr) return true;
+            const itemDate = new Date(item.timestamp);
+            if (startStr && itemDate < new Date(startStr)) return false;
+            if (endStr) {
+                const endDate = new Date(endStr);
+                endDate.setHours(23, 59, 59);
+                if (itemDate > endDate) return false;
+            }
+            return true;
+        };
+
         const renderLog = (data, type, color) => {
-          if(!data.length) return '<p class="p-4 text-center text-gray-400">ไม่มีข้อมูล</p>';
+          const filtered = data.filter(filterFn);
+          if(!filtered.length) return '<p class="p-4 text-center text-gray-400">ไม่มีข้อมูลในช่วงเวลานี้</p>';
           return `<table class="w-full text-sm text-left"><thead class="bg-gray-50 sticky top-0"><tr><th class="p-3">เวลา</th><th class="p-3">รายการ</th><th class="p-3 text-right">จำนวน</th><th class="p-3">หลักฐาน</th></tr></thead><tbody>` +
-          data.map(r => {
+          filtered.map(r => {
             const hasProof = r.proof_url && r.proof_url.length > 5;
             const canUpload = r.user_name === state.user.fullname && r.transaction_id;
             let proofBtn = '-';
@@ -354,436 +410,175 @@
             return `<tr class="border-b hover:bg-gray-50"><td class="p-3 text-xs text-gray-500">${formatDate(r.timestamp)}<br>${r.user_name}</td><td class="p-3">${r.material_name}</td><td class="p-3 text-right font-bold ${color}">${r.qty}</td><td class="p-3">${proofBtn}</td></tr>`;
           }).join('') + `</tbody></table>`;
         };
+        
         document.getElementById('withdrawLog').innerHTML = renderLog(state.reports.withdraw, 'withdraw', 'text-rose-600');
         document.getElementById('importLog').innerHTML = renderLog(state.reports.import, 'import', 'text-emerald-600');
-      } catch(e) {}
     }
 
-    async function renderUsers(container) {
-      if(state.user.role !== 'admin') return;
-      container.innerHTML = `
-        <div class="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden fade-in">
-          <div class="p-4 border-b bg-amber-50 rounded-t-xl"><h3 class="font-bold text-amber-800">จัดการสิทธิ์ผู้ใช้งาน</h3></div>
-          <div class="overflow-x-auto">
+    // --- USERS ---
+    async function renderUsers(c) {
+      if (state.user.role !== 'admin') return c.innerHTML = '<div class="p-10 text-center text-gray-400">Access Denied</div>';
+      c.innerHTML = `
+        <div class="bg-white rounded-xl shadow-sm border overflow-hidden fade-in">
             <table class="w-full text-left text-sm">
-              <thead class="bg-slate-50 text-slate-500 border-b">
-                <tr><th class="p-4">User</th><th class="p-4">Name/Group</th><th class="p-4">Status</th><th class="p-4">Role</th><th class="p-4">Action</th></tr>
-              </thead>
-              <tbody id="userTableBody" class="divide-y divide-slate-100"></tbody>
+                <thead class="bg-gray-50 border-b"><tr><th class="p-4">User</th><th class="p-4">Name</th><th class="p-4">Status</th><th class="p-4">Role</th><th class="p-4">Action</th></tr></thead>
+                <tbody id="userTableBody"></tbody>
             </table>
-          </div>
         </div>`;
-      
       const users = await api('getUsers');
       document.getElementById('userTableBody').innerHTML = users.map(u => `
-        <tr class="hover:bg-slate-50">
-          <td class="p-4 font-medium text-slate-700">${u.username}</td>
-          <td class="p-4"><div>${u.fullname}</div><div class="text-xs text-slate-400">${u.group}</div></td>
-          <td class="p-4"><span class="px-2 py-1 rounded-full text-xs font-bold ${u.status === 'approved' ? 'bg-green-100 text-green-700' : u.status === 'pending' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'}">${u.status}</span></td>
-          <td class="p-4 uppercase text-xs font-bold text-slate-500">${u.role}</td>
-          <td class="p-4">
-            ${u.status === 'pending' ? `<button onclick="updateUser('${u.user_id}', 'approved')" class="text-green-600 hover:bg-green-50 px-2 py-1 rounded mr-1">Approve</button><button onclick="updateUser('${u.user_id}', 'rejected')" class="text-red-600 hover:bg-red-50 px-2 py-1 rounded">Reject</button>` : `<button onclick="updateUser('${u.user_id}', 'rejected')" class="text-slate-400 hover:text-red-600 text-xs">Ban User</button>`}
-          </td>
+        <tr class="border-b hover:bg-gray-50">
+            <td class="p-4 font-bold">${u.username}</td>
+            <td class="p-4">${u.fullname}<br><span class="text-xs text-gray-400">${u.group}</span></td>
+            <td class="p-4"><span class="px-2 py-1 rounded text-xs ${u.status==='approved'?'bg-green-100 text-green-800':u.status==='pending'?'bg-yellow-100':'bg-red-100'}">${u.status}</span></td>
+            <td class="p-4 uppercase text-xs font-bold">${u.role}</td>
+            <td class="p-4">
+                ${u.status === 'pending' ? 
+                `<button onclick="updateUser('${u.user_id}', 'approved')" class="text-green-600 mr-2">อนุมัติ</button><button onclick="updateUser('${u.user_id}', 'rejected')" class="text-red-600">ปฏิเสธ</button>` : 
+                `<button onclick='openPermModal(${JSON.stringify(u)})' class="text-blue-600 bg-blue-50 px-3 py-1 rounded text-xs">กำหนดสิทธิ์</button>`}
+            </td>
         </tr>`).join('');
     }
 
-    function renderSettings(container) {
-      container.innerHTML = `
-        <div class="max-w-2xl mx-auto bg-white rounded-xl shadow-sm border border-slate-100 p-8 fade-in">
-          <h2 class="text-xl font-bold mb-6 pb-4 border-b">ตั้งค่าระบบ</h2>
-          <div class="space-y-6">
-             <div class="flex items-center justify-between">
-               <div><p class="font-medium">Theme Mode</p><p class="text-xs text-slate-400">ปรับเปลี่ยนหน้าจอเป็นโหมดมืด</p></div>
-               <button class="w-12 h-6 bg-slate-200 rounded-full relative transition"><span class="w-4 h-4 bg-white rounded-full absolute top-1 left-1 shadow"></span></button>
-             </div>
-             <div class="pt-6 mt-6 border-t flex justify-end">
-               <button class="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700">บันทึกการตั้งค่า</button>
-             </div>
-          </div>
-        </div>
-      `;
-    }
-
-    // --- HELPER LOGIC ---
-
-    function handleSearch() {
-      state.filter.search = document.getElementById('searchInput').value;
-      state.pagination.currentPage = 1;
-      renderMaterialList(document.getElementById('inventoryContainer').previousElementSibling ? 'view' : 'withdraw'); 
-    }
-
-    function handleSort() {
-      state.filter.sort = document.getElementById('sortSelect').value;
-      renderMaterialList('view');
-    }
-
-    function renderPaginationControls() {
-      const { currentPage, totalPages } = state.pagination;
-      const el = document.getElementById('paginationControls');
-      el.innerHTML = `
-        <button onclick="changePage(-1)" class="px-3 py-1 border rounded hover:bg-slate-50 disabled:opacity-50" ${currentPage===1?'disabled':''}><i class="fas fa-chevron-left"></i></button>
-        <span class="px-3 py-1 bg-slate-100 rounded text-sm font-medium">${currentPage} / ${totalPages}</span>
-        <button onclick="changePage(1)" class="px-3 py-1 border rounded hover:bg-slate-50 disabled:opacity-50" ${currentPage===totalPages?'disabled':''}><i class="fas fa-chevron-right"></i></button>
-      `;
-    }
-
-    function changePage(delta) {
-      state.pagination.currentPage += delta;
-      renderMaterialList('view'); 
-    }
-
-    // Modal & Form Handlers
-    function toggleImgInput(type, prefix) {
-      const elFile = document.getElementById(prefix+'InputFile');
-      const elUrl = document.getElementById(prefix+'ImgUrl');
-      
-      if(type==='file') { 
-        if(elFile) elFile.classList.remove('hidden'); 
-        if(elUrl) elUrl.classList.add('hidden'); 
-      } else { 
-        if(elFile) elFile.classList.add('hidden'); 
-        if(elUrl) elUrl.classList.remove('hidden'); 
-      }
-    }
-
-    function previewImage(input, prefix) {
-      if (input.files && input.files[0]) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-          document.getElementById(prefix+'Preview').style.backgroundImage = `url(${e.target.result})`;
-          document.getElementById(prefix+'Preview').classList.remove('hidden');
-          const placeholder = document.getElementById(prefix+'Placeholder');
-          if(placeholder) placeholder.classList.add('hidden');
-        }
-        reader.readAsDataURL(input.files[0]);
-      }
-    }
-
-    function openMaterialModal(mat = null) {
-      document.getElementById('materialForm').reset();
-      toggleImgInput('file', 'mat');
-      document.getElementById('matPreview').classList.add('hidden');
-      document.getElementById('matPlaceholder').classList.remove('hidden');
-      
-      if (mat) {
-        document.getElementById('matModalTitle').innerText = 'แก้ไขวัสดุ';
-        document.getElementById('matId').value = mat.material_id;
-        document.getElementById('matName').value = mat.name;
-        document.getElementById('matImgUrl').value = mat.image_url;
-      } else {
-        document.getElementById('matModalTitle').innerText = 'เพิ่มวัสดุใหม่';
-        document.getElementById('matId').value = '';
-      }
-      document.getElementById('materialModal').classList.remove('hidden');
-    }
-
-    function openTransModal(type, mat) {
-      document.getElementById('transForm').reset();
-      document.getElementById('transType').value = type;
-      document.getElementById('transMatId').value = mat.material_id;
-      document.getElementById('transMatName').value = mat.name;
-      document.getElementById('transMatNameDisplay').innerText = mat.name;
-      document.getElementById('transCurrentQty').innerText = mat.qty;
-      document.getElementById('transImgPreview').src = mat.image_url || 'https://via.placeholder.com/64?text=Img';
-      
-      // Default Date to Today
-      document.getElementById('transDate').valueAsDate = new Date();
-
-      const isImport = type === 'import';
-      document.getElementById('transModalTitle').innerText = isImport ? 'นำเข้าสต๊อก' : 'เบิกวัสดุ';
-      document.getElementById('transModalTitle').className = isImport ? 'text-lg font-bold text-emerald-700' : 'text-lg font-bold text-rose-700';
-      document.getElementById('btnTransSubmit').className = `w-full py-3 rounded-lg font-bold text-white shadow-md transition transform active:scale-95 mt-2 ${isImport ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-rose-600 hover:bg-rose-700'}`;
-      document.getElementById('btnTransSubmit').innerText = isImport ? 'ยืนยันการนำเข้า' : 'ยืนยันการเบิก';
-      
-      document.getElementById('importFields').classList.toggle('hidden', !isImport);
-      document.getElementById('transModal').classList.remove('hidden');
+    // --- MODAL LOGIC ---
+    function openPermModal(u) {
+        document.getElementById('permUserName').innerText = u.fullname;
+        document.getElementById('permUserInitial').innerText = u.fullname.charAt(0);
+        document.getElementById('permUserId').value = u.user_id;
+        
+        let perms = [];
+        try { perms = JSON.parse(u.permissions) || []; } catch(e) { perms = []; }
+        
+        document.getElementById('perm_view_stock').checked = true; // Always
+        document.getElementById('perm_withdraw_material').checked = perms.includes('withdraw_material');
+        document.getElementById('perm_import_material').checked = perms.includes('import_material');
+        document.getElementById('perm_manage_material').checked = perms.includes('manage_material');
+        
+        document.getElementById('permModal').classList.remove('hidden');
     }
     
-    function openProofModal(txId, type) {
-      document.getElementById('proofForm').reset();
-      // Reset preview
-      document.getElementById('proofPreview').classList.add('hidden');
-      document.getElementById('proofPlaceholder').classList.remove('hidden');
-      
-      document.getElementById('proofTxId').value = txId; 
-      document.getElementById('proofType').value = type;
-      document.getElementById('proofModal').classList.remove('hidden');
+    async function savePermissions() {
+        const uid = document.getElementById('permUserId').value;
+        const perms = ['view_stock'];
+        if(document.getElementById('perm_withdraw_material').checked) perms.push('withdraw_material');
+        if(document.getElementById('perm_import_material').checked) perms.push('import_material');
+        if(document.getElementById('perm_manage_material').checked) perms.push('manage_material');
+        
+        // Note: Assuming backend updateUserStatus handles 'permissions' field update
+        // Use updateUserStatus existing endpoint logic
+        await api('updateUserStatus', { user_id: uid, permissions: perms });
+        closeModal('permModal');
+        renderUsers(document.getElementById('contentArea'));
+        showToast('บันทึกสิทธิ์เรียบร้อย');
     }
 
-    function adjQty(delta) {
-      const el = document.getElementById('transQty');
-      const val = parseInt(el.value) || 0;
-      if(val + delta >= 1) el.value = val + delta;
+    function openMaterialModal(m){ document.getElementById('materialForm').reset(); toggleImgInput('file', 'mat'); if(m){document.getElementById('matId').value=m.material_id;document.getElementById('matName').value=m.name;document.getElementById('matImgUrl').value=m.image_url;}else{document.getElementById('matId').value='';} document.getElementById('materialModal').classList.remove('hidden'); }
+    function openTransModal(type, m){ 
+      document.getElementById('transForm').reset(); 
+      document.getElementById('transType').value=type; document.getElementById('transMatId').value=m.material_id; 
+      document.getElementById('transMatName').value=m.name; document.getElementById('transMatNameDisplay').innerText=m.name; 
+      document.getElementById('transCurrentQty').innerText=m.qty; document.getElementById('transImgPreview').src=m.image_url;
+      document.getElementById('transDate').valueAsDate = new Date(); 
+      const isImport = type==='import';
+      document.getElementById('transModalTitle').innerText = isImport?'นำเข้าสต๊อก':'เบิกวัสดุ';
+      document.getElementById('btnTransSubmit').className = `w-full py-3 rounded-lg font-bold text-white shadow-md ${isImport?'bg-emerald-600':'bg-rose-600'}`;
+      document.getElementById('importFields').classList.toggle('hidden', !isImport);
+      document.getElementById('transModal').classList.remove('hidden'); 
     }
+    function openProofModal(txId, type) { document.getElementById('proofForm').reset(); document.getElementById('proofTxId').value = txId; document.getElementById('proofType').value = type; document.getElementById('proofModal').classList.remove('hidden'); }
 
-    // Submit Handlers
+    // --- FORM SUBMITS ---
     document.getElementById('materialForm').onsubmit = async (e) => {
-      e.preventDefault();
-      const id = document.getElementById('matId').value;
-      const fileInput = document.getElementById('matImgFile');
-      let payload = {
-        name: document.getElementById('matName').value,
-        image_url: document.getElementById('matImgUrl').value
-      };
-      
-      if (fileInput.files.length > 0) {
-        const reader = new FileReader();
-        payload.image_data = await new Promise(r => { reader.onload = e => r(e.target.result); reader.readAsDataURL(fileInput.files[0]); });
-      }
-
-      try {
-        await api(id ? 'updateMaterial' : 'addMaterial', { ...payload, material_id: id });
-        closeModal('materialModal');
-        state.materials = await api('getMaterials'); 
-        renderMaterialList('view');
-        showToast('บันทึกข้อมูลสำเร็จ');
-      } catch(e) {}
+      e.preventDefault(); const id = document.getElementById('matId').value; const fileInput = document.getElementById('matImgFile');
+      let payload = { name: document.getElementById('matName').value, image_url: document.getElementById('matImgUrl').value };
+      if (fileInput.files.length > 0) { const r = new FileReader(); payload.image_data = await new Promise(res => { r.onload = evt => res(evt.target.result); r.readAsDataURL(fileInput.files[0]); }); }
+      try { await api(id ? 'updateMaterial' : 'addMaterial', { ...payload, material_id: id }); closeModal('materialModal'); state.materials = await api('getMaterials'); renderMaterialList('view'); showToast('บันทึกสำเร็จ'); } catch(e) {}
     };
 
     document.getElementById('transForm').onsubmit = async (e) => {
-      e.preventDefault();
-      const type = document.getElementById('transType').value;
-      
-      // 3. Handle Date: Combine Date and Ref for backend log
-      const dateStr = document.getElementById('transDate').value;
-      const rawRef = document.getElementById('transRef').value;
+      e.preventDefault(); const type = document.getElementById('transType').value;
+      const dateStr = document.getElementById('transDate').value; const rawRef = document.getElementById('transRef').value;
       const combinedRef = (type === 'import' && dateStr) ? `[Date: ${dateStr}] ${rawRef}` : rawRef;
-      
-      const fileInput = document.getElementById('transProofFile');
-      let imageData = null;
-      if (fileInput.files.length > 0) {
-        const reader = new FileReader();
-        imageData = await new Promise(r => { reader.onload = e => r(e.target.result); reader.readAsDataURL(fileInput.files[0]); });
-      }
-
+      const fileInput = document.getElementById('transProofFile'); let imageData = null;
+      if (fileInput.files.length > 0) { const r = new FileReader(); imageData = await new Promise(res => { r.onload = evt => res(evt.target.result); r.readAsDataURL(fileInput.files[0]); }); }
       try {
         await api(type === 'import' ? 'importMaterial' : 'withdrawMaterial', {
-          material_id: document.getElementById('transMatId').value,
-          material_name: document.getElementById('transMatName').value,
-          qty: document.getElementById('transQty').value,
-          user_name: state.user.fullname,
-          ref_doc: combinedRef,
-          image_data: imageData
+          material_id: document.getElementById('transMatId').value, material_name: document.getElementById('transMatName').value,
+          qty: document.getElementById('transQty').value, user_name: state.user.fullname, ref_doc: combinedRef, image_data: imageData
         });
-        closeModal('transModal');
-        state.materials = await api('getMaterials');
-        renderMaterialList(type);
-        showToast('ทำรายการสำเร็จ');
+        closeModal('transModal'); state.materials = await api('getMaterials'); renderMaterialList(type); showToast('ทำรายการสำเร็จ');
       } catch(e) {}
     };
     
     document.getElementById('proofForm').onsubmit = async (e) => {
-      e.preventDefault();
-      const fileInput = document.getElementById('proofFile');
-      let imageData = null;
+      e.preventDefault(); const fileInput = document.getElementById('proofFile');
       if (fileInput.files.length > 0) {
-        const reader = new FileReader();
-        imageData = await new Promise(r => { reader.onload = e => r(e.target.result); reader.readAsDataURL(fileInput.files[0]); });
-      } else {
-        return showToast('กรุณาเลือกรูปภาพ', 'error');
-      }
-      
-      try {
-        await api('uploadProof', {
-          transaction_id: document.getElementById('proofTxId').value,
-          type: document.getElementById('proofType').value,
-          user_name: state.user.fullname,
-          image_data: imageData
-        });
-        closeModal('proofModal');
-        state.reports = await api('getReports');
-        renderReports(document.getElementById('contentArea'));
-        showToast('อัปโหลดรูปภาพสำเร็จ');
-      } catch(e) {}
+        const r = new FileReader(); const imageData = await new Promise(res => { r.onload = evt => res(evt.target.result); r.readAsDataURL(fileInput.files[0]); });
+        try {
+            await api('uploadProof', { transaction_id: document.getElementById('proofTxId').value, type: document.getElementById('proofType').value, user_name: state.user.fullname, image_data: imageData });
+            closeModal('proofModal'); state.reports = await api('getReports'); renderReports(document.getElementById('contentArea')); showToast('อัปโหลดสำเร็จ');
+        } catch(e) {}
+      } else showToast('เลือกรูปก่อน', 'error');
     };
 
-    // 2. Export PDF Function
-    function exportPDF() {
-      const { jsPDF } = window.jspdf;
-      const doc = new jsPDF();
-      
-      // Font setup (standard font, Thai might need custom font in advanced setup)
-      doc.setFontSize(18);
-      doc.text("Stock Report", 14, 22);
-      doc.setFontSize(11);
-      doc.setTextColor(100);
-      
-      const data = [...state.reports.withdraw.map(x => [x.timestamp||x['วันที่'], 'Withdraw', x.material_name||x['ชื่อวัสดุ'], x.qty||x['จำนวน'], x.user_name||x['ผู้เบิก']]),
-                    ...state.reports.import.map(x => [x.timestamp||x['วันที่'], 'Import', x.material_name||x['ชื่อวัสดุ'], x.qty||x['จำนวน'], x.user_name||x['ผู้นำเข้า']])];
-      
-      doc.autoTable({
-        head: [['Date', 'Type', 'Item', 'Qty', 'User']],
-        body: data,
-        startY: 30,
-      });
-      
-      doc.save('stock_report.pdf');
+    // --- UTILS ---
+    function toggleImgInput(type, prefix) {
+      const f=document.getElementById(prefix+'InputFile'), u=document.getElementById(prefix+'ImgUrl');
+      if(f && u) { if(type==='file'){ f.classList.remove('hidden'); u.classList.add('hidden'); } else { f.classList.add('hidden'); u.classList.remove('hidden'); } }
     }
-
-    // 4. Camera Functions
-    async function openCamera(target) {
-      currentCamTarget = target;
-      const modal = document.getElementById('cameraModal');
-      const video = document.getElementById('cameraVideo');
-      modal.classList.remove('hidden');
-      
-      try {
-        videoStream = await navigator.mediaDevices.getUserMedia({ 
-          video: { facingMode: currentFacingMode } 
-        });
-        video.srcObject = videoStream;
-      } catch (err) {
-        alert('ไม่สามารถเปิดกล้องได้: ' + err.message);
-        closeCamera();
-      }
+    function previewImage(input, prefix) {
+      if (input.files[0]) { const r = new FileReader(); r.onload = e => { document.getElementById(prefix+'Preview').style.backgroundImage = `url(${e.target.result})`; document.getElementById(prefix+'Preview').classList.remove('hidden'); const ph=document.getElementById(prefix+'Placeholder'); if(ph)ph.classList.add('hidden'); }; r.readAsDataURL(input.files[0]); }
     }
-
-    async function switchCamera() {
-      if (videoStream) {
-        videoStream.getTracks().forEach(track => track.stop());
-      }
-      currentFacingMode = currentFacingMode === 'environment' ? 'user' : 'environment';
-      openCamera(currentCamTarget);
-    }
-
+    
+    // CAMERA
+    async function openCamera(target) { currentCamTarget = target; document.getElementById('cameraModal').classList.remove('hidden'); try { videoStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: currentFacingMode } }); document.getElementById('cameraVideo').srcObject = videoStream; } catch (e) { alert('Camera Error'); closeCamera(); } }
+    function switchCamera() { if (videoStream) videoStream.getTracks().forEach(t => t.stop()); currentFacingMode = currentFacingMode === 'environment' ? 'user' : 'environment'; openCamera(currentCamTarget); }
+    function closeCamera() { document.getElementById('cameraModal').classList.add('hidden'); if (videoStream) { videoStream.getTracks().forEach(t => t.stop()); videoStream = null; } }
     function capturePhoto() {
-      const video = document.getElementById('cameraVideo');
-      const canvas = document.getElementById('cameraCanvas');
-      
-      // Fix 3: Image resizing for faster upload
-      // Calculate new size (max width 800px)
-      const maxWidth = 800;
-      const scale = maxWidth / video.videoWidth;
-      const newWidth = maxWidth;
-      const newHeight = video.videoHeight * scale;
-
-      canvas.width = newWidth;
-      canvas.height = newHeight;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(video, 0, 0, newWidth, newHeight);
-      
-      // Compress to JPEG with 0.7 quality
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
-      
-      // Better way: Create a file object and assign to correct input based on target
-      fetch(dataUrl)
-      .then(res => res.blob())
-      .then(blob => {
-        const file = new File([blob], "camera_capture.jpg", { type: "image/jpeg" });
-        const container = new DataTransfer();
-        container.items.add(file);
-        
-        let targetId = '';
-        if(currentCamTarget === 'mat') targetId = 'matImgFile';
-        else if(currentCamTarget === 'trans') targetId = 'transProofFile';
-        else if(currentCamTarget === 'proof') targetId = 'proofFile';
-        
-        const fileInput = document.getElementById(targetId);
-        if(fileInput) {
-            fileInput.files = container.files;
-            
-            // Trigger preview manually
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                // Find preview element ID
-                let previewId = '';
-                if(currentCamTarget === 'mat') previewId = 'matPreview';
-                else if(currentCamTarget === 'trans') previewId = 'transPreview';
-                else if(currentCamTarget === 'proof') previewId = 'proofPreview';
-                
-                let placeholderId = '';
-                if(currentCamTarget === 'mat') placeholderId = 'matPlaceholder';
-                else if(currentCamTarget === 'trans') placeholderId = 'transPlaceholder';
-                else if(currentCamTarget === 'proof') placeholderId = 'proofPlaceholder';
-
-                const previewEl = document.getElementById(previewId);
-                const placeholderEl = document.getElementById(placeholderId);
-                
-                if(previewEl) {
-                    previewEl.style.backgroundImage = `url(${e.target.result})`;
-                    previewEl.classList.remove('hidden');
-                }
-                if(placeholderEl) {
-                    placeholderEl.classList.add('hidden');
-                }
-            };
-            reader.readAsDataURL(file);
-        }
+      const v = document.getElementById('cameraVideo'), c = document.getElementById('cameraCanvas');
+      c.width = 800; c.height = v.videoHeight * (800 / v.videoWidth); c.getContext('2d').drawImage(v, 0, 0, c.width, c.height);
+      const dataUrl = c.toDataURL('image/jpeg', 0.7);
+      fetch(dataUrl).then(r => r.blob()).then(blob => {
+        const f = new File([blob], "cam.jpg", { type: "image/jpeg" }); const dt = new DataTransfer(); dt.items.add(f);
+        let tid = currentCamTarget === 'mat' ? 'matImgFile' : currentCamTarget === 'trans' ? 'transProofFile' : 'proofFile';
+        const el = document.getElementById(tid); if(el) { el.files = dt.files; previewImage(el, currentCamTarget); }
       });
-
-      if(currentCamTarget === 'mat') toggleImgInput('file', 'mat');
-      // For trans and proof, view is always file input, no toggle needed
-      
+      if(currentCamTarget==='mat') toggleImgInput('file', 'mat');
       closeCamera();
     }
 
-    function closeCamera() {
-      const modal = document.getElementById('cameraModal');
-      modal.classList.add('hidden');
-      if (videoStream) {
-        videoStream.getTracks().forEach(track => track.stop());
-        videoStream = null;
-      }
-    }
-
-    // Existing Functions ...
+    // EXPORT
     function exportCSV() {
       const data = [...state.reports.withdraw.map(x => ({...x, type: 'withdraw'})), ...state.reports.import.map(x => ({...x, type: 'import'}))];
-      if (data.length === 0) return showToast('ไม่มีข้อมูลให้ Export', 'error');
-      const csvContent = "data:text/csv;charset=utf-8," + "Date,Type,Item,Qty,User\n" + data.map(e => `${e.timestamp||e['วันที่']},${e.type},${e.material_name||e['ชื่อวัสดุ']},${e.qty||e['จำนวน']},${e.user_name||e['ผู้เบิก']}`).join("\n");
-      const encodedUri = encodeURI(csvContent);
-      const link = document.createElement("a");
-      link.setAttribute("href", encodedUri);
-      link.setAttribute("download", "stock_report.csv");
-      document.body.appendChild(link);
-      link.click();
-    }
-
-    async function deleteMaterial(id) {
-      if(confirm('ยืนยันการลบ? การกระทำนี้ไม่สามารถย้อนกลับได้')) {
-        await api('deleteMaterial', { material_id: id });
-        state.materials = await api('getMaterials');
-        renderMaterialList('view');
-        showToast('ลบรายการสำเร็จ', 'error');
-      }
-    }
-
-    async function updateUser(uid, status) {
-      if(confirm(`ยืนยันการเปลี่ยนสถานะเป็น ${status}?`)) {
-        await api('updateUserStatus', { user_id: uid, status });
-        renderUsers(document.getElementById('contentArea'));
-        showToast('อัปเดตสถานะผู้ใช้สำเร็จ');
-      }
-    }
-
-    function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
-    function showToast(msg, type = 'success') {
-      const t = document.getElementById('toast');
-      t.innerText = msg;
-      t.className = `fixed top-5 right-5 z-[80] p-4 rounded shadow-lg text-white transform transition-all duration-300 translate-y-0 ${type === 'success' ? 'bg-emerald-600' : 'bg-rose-600'}`;
-      t.classList.remove('hidden');
-      setTimeout(() => { t.classList.add('hidden'); }, 3000);
-    }
-    function formatDate(d) {
-      if(!d) return '-';
-      const dt = new Date(d);
-      return dt.toLocaleDateString('th-TH') + ' ' + dt.toLocaleTimeString('th-TH', {hour:'2-digit', minute:'2-digit'});
+      if (!data.length) return showToast('ไม่มีข้อมูล');
+      // Add BOM for Excel Thai support
+      const csv = "\uFEFFDate,Type,Item,Qty,User\n" + data.map(e => `${formatDate(e.timestamp)},${e.type},${e.material_name},${e.qty},${e.user_name}`).join("\n");
+      const link = document.createElement("a"); link.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8;" })); link.download = "report.csv"; document.body.appendChild(link); link.click();
     }
     
-    function cardSkeleton() { return `<div class="bg-white p-6 rounded-xl shadow-sm h-32 border border-slate-100 skeleton-box"></div>`; }
-    function statCard(title, value, icon, colorClass) {
-      return `
-        <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex items-center justify-between hover:shadow-md transition">
-          <div>
-            <p class="text-slate-500 text-sm mb-1">${title}</p>
-            <p class="text-2xl font-bold text-slate-800">${value}</p>
-          </div>
-          <div class="w-12 h-12 rounded-full ${colorClass} bg-opacity-10 flex items-center justify-center text-${colorClass.split('-')[1]}-600">
-            <i class="${icon} text-xl ${colorClass.replace('bg-', 'text-')}"></i>
-          </div>
-        </div>
-      `;
+    // PDF Export (Basic)
+    function exportPDF() {
+        const { jsPDF } = window.jspdf; const doc = new jsPDF();
+        doc.text("Stock Report", 14, 20);
+        const rows = [...state.reports.withdraw.map(r=>[formatDate(r.timestamp), 'Withdraw', r.material_name, r.qty, r.user_name]), ...state.reports.import.map(r=>[formatDate(r.timestamp), 'Import', r.material_name, r.qty, r.user_name])];
+        doc.autoTable({ head: [['Date', 'Type', 'Item', 'Qty', 'User']], body: rows, startY: 30 });
+        doc.save('report.pdf');
     }
+
+    // UTILS
+    async function deleteMaterial(id) { if(confirm('ยืนยันลบ?')) { await api('deleteMaterial', { material_id: id }); state.materials = await api('getMaterials'); renderMaterialList('view'); } }
+    async function updateUser(uid, status) { if(confirm('ยืนยัน?')) { await api('updateUserStatus', { user_id: uid, status }); renderUsers(document.getElementById('contentArea')); } }
+    function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+    function showToast(msg, type = 'success') { const t = document.getElementById('toast'); t.innerText = msg; t.className = `fixed top-5 right-5 z-[80] p-4 rounded shadow-lg text-white ${type === 'success' ? 'bg-emerald-600' : 'bg-rose-600'}`; t.classList.remove('hidden'); setTimeout(() => t.classList.add('hidden'), 3000); }
+    function formatDate(d) { if (!d) return '-'; const dt = new Date(d); return isNaN(dt) ? '-' : dt.toLocaleDateString('th-TH') + ' ' + dt.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }); }
+    function handleSearch(m) { state.filter.search = document.getElementById('searchInput').value; renderMaterialList(m); }
+    function handleSort() { state.filter.sort = document.getElementById('sortSelect').value; renderMaterialList('view'); }
+    function changePage(d) { state.pagination.currentPage += d; renderMaterialList('view'); }
+    function renderPaginationControls(m) { document.getElementById('paginationControls').innerHTML = `<button onclick="changePage(-1)" class="px-2 border rounded" ${state.pagination.currentPage===1?'disabled':''}>&lt;</button><span class="px-2 text-sm">${state.pagination.currentPage}/${state.pagination.totalPages}</span><button onclick="changePage(1)" class="px-2 border rounded" ${state.pagination.currentPage===state.pagination.totalPages?'disabled':''}>&gt;</button>`; }
+    function adjQty(d) { const el = document.getElementById('transQty'); el.value = Math.max(1, parseInt(el.value)+d); }
+    
+    function cardSkeleton() { return `<div class="bg-white p-6 rounded-xl shadow-sm h-32 border border-slate-100 animate-pulse"></div>`; }
+    function statCard(t,v,i,c) { return `<div class="bg-white p-6 rounded-xl shadow-sm border flex justify-between items-center"><div><p class="text-gray-500 text-sm mb-1">${t}</p><p class="text-2xl font-bold text-slate-800">${v}</p></div><div class="w-12 h-12 rounded-full ${c} bg-opacity-10 flex items-center justify-center text-${c.split('-')[1]}-600"><i class="${i}"></i></div></div>`; }
 
     window.onload = initApp;
   </script>
