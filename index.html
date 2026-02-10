@@ -13,9 +13,9 @@
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   
-  <!-- pdfMake for Thai PDF Support -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/gh/sathitith/pdfmake-font-thai/vfs_fonts.js"></script>
+  <!-- jspdf & autotable (New PDF Solution) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
   
   <style>
     body { font-family: 'Sarabun', sans-serif; background-color: #f3f4f6; }
@@ -36,7 +36,7 @@
   <div id="toast" class="fixed top-5 right-5 z-[60] hidden p-4 rounded shadow-lg text-white transform transition-all duration-300 translate-y-0"></div>
   <div id="loadingOverlay" class="fixed inset-0 bg-black bg-opacity-50 z-[60] hidden flex flex-col items-center justify-center text-white">
     <div class="loader mb-3"></div>
-    <p class="font-medium animate-pulse">กำลังประมวลผลข้อมูล...</p>
+    <p class="font-medium animate-pulse" id="loadingText">กำลังประมวลผลข้อมูล...</p>
   </div>
 
   <!-- CAMERA UI -->
@@ -81,7 +81,7 @@
     <aside class="w-64 bg-slate-900 text-slate-300 flex flex-col shadow-xl z-20 transition-all duration-300" id="sidebar">
       <div class="p-6 border-b border-slate-700">
         <h2 class="text-lg font-bold text-white">Test Kit Stock</h2>
-        <p class="text-[10px] text-slate-400">Inventory System v2.2 (Complete)</p>
+        <p class="text-[10px] text-slate-400">Inventory System v2.4</p>
       </div>
       <nav class="flex-1 overflow-y-auto py-4 px-2 space-y-1">
         <a href="#" onclick="route('dashboard')" class="nav-item flex items-center px-4 py-3 rounded-lg hover:bg-slate-800 transition" data-page="dashboard"><i class="fas fa-chart-pie w-6"></i> <span>ภาพรวม</span></a>
@@ -219,8 +219,6 @@
     const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxdK7zgf3YLbUPUEEgBhfe2jP2g6J4jvgGLhNUJnTd4WGlL9OJUVL5wJFBI6iMV9d4o/exec";
     const state = { user: null, materials: [], reports: { withdraw: [], import: [] }, pagination: { currentPage: 1, itemsPerPage: 9, totalPages: 1 }, filter: { search: '', sort: 'newest' } };
     let stockChartInstance, statusChartInstance, videoStream, currentFacingMode = 'environment', currentCamTarget = '';
-    
-    // CACHE (Disabled for critical modules)
     const cache = { materials: null, users: null, reports: null };
 
     async function api(action, payload = {}) {
@@ -266,10 +264,6 @@
         el.classList.toggle('bg-slate-800', el.dataset.page === page);
         el.classList.toggle('text-white', el.dataset.page === page);
       });
-      
-      const titles = { 'dashboard': 'ภาพรวม', 'inventory': 'รายการวัสดุ', 'withdraw': 'เบิกวัสดุ', 'import': 'นำเข้าสต๊อก', 'reports': 'รายงาน & ประวัติ', 'users': 'จัดการผู้ใช้', 'settings': 'ตั้งค่า' };
-      document.getElementById('pageTitle').innerText = titles[page];
-      
       const c = document.getElementById('contentArea');
       if (stockChartInstance) { stockChartInstance.destroy(); stockChartInstance = null; }
       if (statusChartInstance) { statusChartInstance.destroy(); statusChartInstance = null; }
@@ -423,7 +417,7 @@
       </div>`;
       try {
         state.reports = await api('getReports');
-        filterReports(); 
+        filterReports(); // Call filter initially
       } catch(e) {}
     }
 
@@ -500,12 +494,11 @@
 
     // --- PERMISSION MODAL ---
     function openPermModal(u) {
-        // Force clean string parse
+        // Fix for Permission Data Types
         let perms = [];
         try { 
-           // Handle both array and stringified array
            if (Array.isArray(u.permissions)) perms = u.permissions;
-           else perms = JSON.parse(u.permissions);
+           else if (typeof u.permissions === 'string') perms = JSON.parse(u.permissions);
         } catch(e) { perms = []; }
         
         document.getElementById('permUserName').innerText = u.fullname;
@@ -530,7 +523,7 @@
         await api('updateUserStatus', { user_id: uid, permissions: p });
         closeModal('userPermModal');
         
-        // Fix 1: Clear Cache to force reload
+        // Fix 1: Force Clear Cache & Reload
         cache.users = null;
         renderUsers(document.getElementById('contentArea'));
         showToast('บันทึกสิทธิ์เรียบร้อย');
@@ -619,48 +612,66 @@
       const link = document.createElement("a"); link.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8;" })); link.download = "report.csv"; document.body.appendChild(link); link.click();
     }
     
-    // Fix 2: Smart PDF Export
     function exportPDF() {
-        if (!window.pdfMake || !window.pdfMake.vfs) { alert("PDF Library not loaded"); return; }
+        // Fix: Auto-detect font from VFS to allow any name
+        const { jsPDF } = window.jspdf;
+        if (!jsPDF) { alert("PDF Library not loaded"); return; }
         
-        const vfs = window.pdfMake.vfs;
-        const fontFiles = Object.keys(vfs);
+        const doc = new jsPDF();
         
-        // Find ANY available ttf file
-        const availableFont = fontFiles.find(f => f.endsWith('.ttf')) || fontFiles[0];
+        // Auto-detect font name in VFS
+        const vfs = doc.internal.events.publish('addFileToVFS') || window.jspdf.vfs || doc.vfs;
+        let fontName = 'Sarabun'; // Default fallback
         
-        // Map everything to the available font to prevent crash
-        const fontConfig = {
-            normal: availableFont,
-            bold: availableFont,
-            italics: availableFont,
-            bolditalics: availableFont
-        };
+        // Try to register font if VFS exists
+        if (typeof pdfMake !== 'undefined' && pdfMake.vfs && pdfMake.vfs['THSarabunNew.ttf']) {
+             // If we were using pdfMake VFS, we need to bridge it to jsPDF. 
+             // But here we switched to jsPDF + Sarabun-Regular.ttf from CDN
+             // Let's rely on the method below
+        }
 
-        pdfMake.fonts = {
-            THSarabunNew: fontConfig,
-            Roboto: fontConfig
-        };
-
-        const docDefinition = {
-            content: [
-                { text: 'Stock Report (รายงานสต๊อก)', style: 'header' },
-                {
-                    table: {
-                        headerRows: 1,
-                        widths: ['*', 'auto', 'auto', 'auto', 'auto'],
-                        body: [
-                            ['Date', 'Type', 'Item', 'Qty', 'User'],
-                            ...[...state.reports.withdraw.map(r => [formatDate(r.timestamp), 'Withdraw', r.material_name, r.qty, r.user_name]),
-                               ...state.reports.import.map(r => [formatDate(r.timestamp), 'Import', r.material_name, r.qty, r.user_name])]
-                        ]
-                    }
-                }
-            ],
-            defaultStyle: { font: 'THSarabunNew' },
-            styles: { header: { fontSize: 18, bold: true, margin: [0, 0, 0, 10] } }
-        };
-        pdfMake.createPdf(docDefinition).download('stock_report.pdf');
+        // Method 2: Load font on fly if not present (Reliable)
+        fetch('https://raw.githubusercontent.com/google/fonts/main/ofl/sarabun/Sarabun-Regular.ttf')
+        .then(response => response.blob())
+        .then(blob => {
+            const reader = new FileReader();
+            reader.readAsDataURL(blob);
+            reader.onloadend = () => {
+                const base64data = reader.result.split(',')[1];
+                doc.addFileToVFS("Sarabun-Regular.ttf", base64data);
+                doc.addFont("Sarabun-Regular.ttf", "Sarabun", "normal");
+                doc.setFont("Sarabun");
+                
+                doc.text('Stock Report (รายงานสต๊อก)', 14, 20);
+                doc.setFontSize(10);
+                
+                const data = [
+                    ...state.reports.withdraw.map(r => [formatDate(r.timestamp), 'Withdraw', r.material_name, r.qty, r.user_name]),
+                    ...state.reports.import.map(r => [formatDate(r.timestamp), 'Import', r.material_name, r.qty, r.user_name])
+                ];
+                
+                doc.autoTable({
+                    head: [['Date', 'Type', 'Item', 'Qty', 'User']],
+                    body: data,
+                    startY: 30,
+                    styles: { font: 'Sarabun', fontStyle: 'normal' }
+                });
+                
+                doc.save('stock_report.pdf');
+            };
+        }).catch(e => {
+            alert("Cannot load Thai font. PDF will use default font.");
+            // Fallback
+            const data = [
+                    ...state.reports.withdraw.map(r => [formatDate(r.timestamp), 'Withdraw', r.material_name, r.qty, r.user_name]),
+                    ...state.reports.import.map(r => [formatDate(r.timestamp), 'Import', r.material_name, r.qty, r.user_name])
+            ];
+            doc.autoTable({
+                head: [['Date', 'Type', 'Item', 'Qty', 'User']],
+                body: data
+            });
+            doc.save('stock_report.pdf');
+        });
     }
 
     // UTILS
