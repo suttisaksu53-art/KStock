@@ -5,702 +5,1579 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ระบบจัดการสต๊อกวัสดุ Test Kit - กลุ่มวิจัยเคมีดิน</title>
   
-  <!-- Libraries -->
+  <!-- ================= LIBRARIES ================= -->
+  <!-- CSS Framework: Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Icons: FontAwesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Font: Sarabun (Thai) -->
   <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   
-  <!-- jspdf & autotable (New PDF Solution) -->
+  <!-- PDF Export: jsPDF & AutoTable -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
   
+  <!-- ================= STYLES ================= -->
   <style>
-    body { font-family: 'Sarabun', sans-serif; background-color: #f3f4f6; }
+    body { 
+      font-family: 'Sarabun', sans-serif; 
+      background-color: #f3f4f6; 
+      color: #1f2937;
+    }
+    
     .hidden { display: none !important; }
-    .loader { border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
-    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    ::-webkit-scrollbar { width: 6px; height: 6px; }
-    ::-webkit-scrollbar-track { background: #f1f1f1; }
-    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+    
+    /* Loading Spinner */
+    .loader { 
+      border: 4px solid #f3f3f3; 
+      border-top: 4px solid #3b82f6; 
+      border-radius: 50%; 
+      width: 48px; 
+      height: 48px; 
+      animation: spin 1s linear infinite; 
+    }
+    @keyframes spin { 
+      0% { transform: rotate(0deg); } 
+      100% { transform: rotate(360deg); } 
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
     ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-    .fade-in { animation: fadeIn 0.3s ease-in-out; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    
+    /* Animation */
+    .fade-in { animation: fadeIn 0.25s ease-in-out; }
+    @keyframes fadeIn { 
+      from { opacity: 0; transform: translateY(10px); } 
+      to { opacity: 1; transform: translateY(0); } 
+    }
+
+    /* Navigation Active State */
+    .nav-item {
+        display: flex;
+        align-items: center;
+        padding: 12px 16px;
+        border-radius: 0.5rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        color: #94a3b8; /* Slate-400 */
+        font-weight: 500;
+        margin-bottom: 4px;
+    }
+    .nav-item:hover {
+        background-color: #334155; /* Slate-700 */
+        color: #f8fafc; /* Slate-50 */
+    }
+    .nav-item.active {
+        background-color: #1e293b; /* Slate-800 */
+        color: #ffffff;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+    }
+    .nav-item.active i {
+        color: #38bdf8; /* Sky-400 */
+    }
+
+    /* Toggle Switch (Slide Bar) */
+    .toggle-checkbox:checked {
+        right: 0;
+        border-color: #10b981; /* Emerald-500 */
+    }
+    .toggle-checkbox:checked + .toggle-label {
+        background-color: #10b981;
+    }
+
+    /* Input File Overlay */
+    .file-input-wrapper { position: relative; overflow: hidden; }
+    .file-input-overlay { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; z-index: 20; }
   </style>
 </head>
-<body class="text-gray-800 h-screen flex flex-col overflow-hidden">
+<body class="h-screen flex flex-col overflow-hidden">
 
-  <!-- NOTIFICATIONS & OVERLAYS -->
-  <div id="toast" class="fixed top-5 right-5 z-[60] hidden p-4 rounded shadow-lg text-white transform transition-all duration-300 translate-y-0"></div>
-  <div id="loadingOverlay" class="fixed inset-0 bg-black bg-opacity-50 z-[60] hidden flex flex-col items-center justify-center text-white">
+  <!-- ================= TOAST NOTIFICATION ================= -->
+  <div id="toast" class="fixed top-5 right-5 z-[100] hidden px-6 py-4 rounded-xl shadow-2xl text-white transform transition-all duration-300 translate-y-0 font-medium flex items-center gap-3"></div>
+  
+  <!-- ================= LOADING OVERLAY ================= -->
+  <div id="loadingOverlay" class="fixed inset-0 bg-black/50 z-[90] hidden flex flex-col items-center justify-center text-white backdrop-blur-sm transition-opacity">
     <div class="loader mb-3"></div>
-    <p class="font-medium animate-pulse" id="loadingText">กำลังประมวลผลข้อมูล...</p>
+    <p class="font-medium animate-pulse text-lg" id="loadingText">กำลังประมวลผลข้อมูล...</p>
   </div>
 
-  <!-- CAMERA UI -->
-  <div id="cameraModal" class="fixed inset-0 bg-black z-[90] hidden flex flex-col">
+  <!-- ================= CAMERA MODAL ================= -->
+  <div id="cameraModal" class="fixed inset-0 bg-black z-[110] hidden flex flex-col">
     <div class="relative flex-1 bg-black flex items-center justify-center overflow-hidden">
       <video id="cameraVideo" autoplay playsinline class="absolute inset-0 w-full h-full object-cover"></video>
       <canvas id="cameraCanvas" class="hidden"></canvas>
     </div>
-    <div class="h-32 bg-black/80 flex items-center justify-around px-8 pb-6 pt-4">
-      <button onclick="closeCamera()" class="p-4 rounded-full bg-gray-800/80 text-white hover:bg-gray-700 transition"><i class="fas fa-times text-xl"></i></button>
+    <div class="h-32 bg-black/90 flex items-center justify-around px-8 pb-6 pt-4">
+      <button onclick="closeCamera()" class="p-4 rounded-full bg-gray-800 text-white hover:bg-gray-700 transition"><i class="fas fa-times text-xl"></i></button>
       <button onclick="capturePhoto()" class="w-20 h-20 rounded-full border-4 border-white flex items-center justify-center hover:bg-gray-800 transition active:scale-95"><div class="w-16 h-16 bg-white rounded-full"></div></button>
-      <button onclick="switchCamera()" class="p-4 rounded-full bg-gray-800/80 text-white hover:bg-gray-700 transition"><i class="fas fa-sync-alt text-xl"></i></button>
+      <button onclick="switchCamera()" class="p-4 rounded-full bg-gray-800 text-white hover:bg-gray-700 transition"><i class="fas fa-sync-alt text-xl"></i></button>
     </div>
   </div>
 
-  <!-- AUTHENTICATION -->
-  <div id="authPage" class="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-900 to-slate-800 p-4 absolute inset-0 z-50 overflow-y-auto">
-    <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md border-t-4 border-indigo-500">
+  <!-- ================= AUTHENTICATION PAGE ================= -->
+  <div id="authPage" class="fixed inset-0 z-50 bg-gray-100 flex items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-md border-t-4 border-blue-600">
       <div class="text-center mb-8">
-        <h1 class="text-2xl font-bold text-slate-800">กลุ่มวิจัยเคมีดิน</h1>
-        <p class="text-slate-500 text-sm mt-1">ระบบบริหารจัดการวัสดุ Test Kit</p>
+        <div class="w-20 h-20 bg-gradient-to-tr from-blue-600 to-cyan-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg text-white transform rotate-3">
+            <i class="fas fa-cubes-stacked text-4xl"></i>
+        </div>
+        <h1 class="text-2xl font-bold text-gray-800">Inventory System</h1>
+        <p class="text-gray-500 mt-1 font-medium">กลุ่มวิจัยเคมีดิน</p>
       </div>
-      <form id="loginForm" class="space-y-4">
-        <input type="text" id="loginUser" class="w-full border p-2 rounded-lg" placeholder="Username" required>
-        <input type="password" id="loginPass" class="w-full border p-2 rounded-lg" placeholder="Password" required>
-        <button type="submit" class="w-full bg-indigo-600 text-white p-2.5 rounded-lg hover:bg-indigo-700 font-bold">เข้าสู่ระบบ</button>
-        <div class="text-center mt-4 text-sm text-indigo-600 cursor-pointer" onclick="toggleAuth('register')">ลงทะเบียนใช้งาน</div>
+      
+      <!-- Login Form -->
+      <form id="loginForm" class="space-y-5">
+        <div>
+          <label class="block text-sm font-bold text-gray-700 mb-1">ชื่อผู้ใช้งาน</label>
+          <div class="relative">
+            <i class="fas fa-user absolute left-4 top-3.5 text-gray-400"></i>
+            <input type="text" id="loginUser" class="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition" placeholder="Username" required>
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-bold text-gray-700 mb-1">รหัสผ่าน</label>
+          <div class="relative">
+            <i class="fas fa-lock absolute left-4 top-3.5 text-gray-400"></i>
+            <input type="password" id="loginPass" class="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition" placeholder="Password" required>
+          </div>
+        </div>
+        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl shadow-lg transition transform active:scale-95 text-lg">เข้าสู่ระบบ</button>
+        <div class="text-center pt-4 border-t mt-4">
+          <button type="button" onclick="toggleAuth('register')" class="text-sm text-blue-600 hover:underline font-bold">ลงทะเบียนผู้ใช้งานใหม่</button>
+        </div>
       </form>
-      <form id="registerForm" class="hidden space-y-3">
-        <input type="text" id="regUser" class="w-full border p-2 rounded-lg" placeholder="Username" required>
-        <input type="password" id="regPass" class="w-full border p-2 rounded-lg" placeholder="Password" required>
-        <input type="text" id="regName" class="w-full border p-2 rounded-lg" placeholder="ชื่อ-นามสกุล" required>
-        <input type="text" id="regGroup" class="w-full border p-2 rounded-lg" placeholder="กลุ่มงาน" required>
-        <button type="submit" class="w-full bg-emerald-600 text-white p-2.5 rounded-lg hover:bg-emerald-700 font-bold">สมัครสมาชิก</button>
-        <div class="text-center mt-3 text-sm text-slate-500 cursor-pointer" onclick="toggleAuth('login')">กลับไปหน้าเข้าสู่ระบบ</div>
+      
+      <!-- Register Form -->
+      <form id="registerForm" class="hidden space-y-4">
+        <h2 class="text-xl font-bold text-center text-gray-800 mb-4">สมัครสมาชิก</h2>
+        <div>
+           <label class="block text-xs font-bold text-gray-700 mb-1">Username</label>
+           <input type="text" id="regUser" class="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-emerald-500" placeholder="ตั้งชื่อผู้ใช้งาน" required>
+        </div>
+        <div>
+           <label class="block text-xs font-bold text-gray-700 mb-1">Password</label>
+           <input type="password" id="regPass" class="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-emerald-500" placeholder="ตั้งรหัสผ่าน" required>
+        </div>
+        <div>
+           <label class="block text-xs font-bold text-gray-700 mb-1">ชื่อ-นามสกุล</label>
+           <input type="text" id="regName" class="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-emerald-500" placeholder="ชื่อจริง นามสกุลจริง" required>
+        </div>
+        <div>
+           <label class="block text-xs font-bold text-gray-700 mb-1">กลุ่มงาน</label>
+           <input type="text" id="regGroup" class="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-emerald-500" placeholder="ระบุกลุ่มงานที่สังกัด" required>
+        </div>
+        <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl shadow-md transition mt-2">ยืนยันการสมัคร</button>
+        <div class="text-center mt-3">
+          <button type="button" onclick="toggleAuth('login')" class="text-sm text-gray-500 hover:text-gray-700 font-medium">กลับไปหน้าเข้าสู่ระบบ</button>
+        </div>
       </form>
     </div>
   </div>
 
-  <!-- MAIN APP -->
-  <div id="mainApp" class="hidden flex h-full">
-    <aside class="w-64 bg-slate-900 text-slate-300 flex flex-col shadow-xl z-20 transition-all duration-300" id="sidebar">
-      <div class="p-6 border-b border-slate-700">
-        <h2 class="text-lg font-bold text-white">Test Kit Stock</h2>
-        <p class="text-[10px] text-slate-400">Inventory System v2.4</p>
+  <!-- ================= MAIN APPLICATION LAYOUT ================= -->
+  <div id="mainApp" class="hidden w-full h-full flex bg-gray-50">
+    
+    <!-- UNIFIED SIDEBAR (For both Mobile & Desktop) -->
+    <aside id="sidebar" class="fixed inset-y-0 left-0 z-40 w-72 bg-slate-900 text-slate-300 shadow-2xl flex flex-col transition-transform duration-300 transform -translate-x-full md:translate-x-0 border-r border-slate-800">
+      
+      <!-- Sidebar Header & Logo -->
+      <div class="h-16 flex items-center justify-between px-6 border-b border-slate-800 bg-slate-950 shrink-0">
+         <div class="flex items-center gap-3">
+            <div class="w-9 h-9 bg-blue-600 rounded-lg flex items-center justify-center text-white shadow-md">
+                <i class="fas fa-flask"></i>
+            </div>
+            <div>
+              <h2 class="font-bold text-white text-lg leading-tight tracking-wide">StockPro</h2>
+              <p class="text-[10px] text-slate-400 font-medium uppercase tracking-widest">Inventory System</p>
+            </div>
+         </div>
+         <!-- Close button for Mobile -->
+         <button class="md:hidden text-slate-400 hover:text-white" onclick="toggleSidebar(false)">
+             <i class="fas fa-times text-xl"></i>
+         </button>
       </div>
-      <nav class="flex-1 overflow-y-auto py-4 px-2 space-y-1">
-        <a href="#" onclick="route('dashboard')" class="nav-item flex items-center px-4 py-3 rounded-lg hover:bg-slate-800 transition" data-page="dashboard"><i class="fas fa-chart-pie w-6"></i> <span>ภาพรวม</span></a>
-        <a href="#" onclick="route('inventory')" class="nav-item flex items-center px-4 py-3 rounded-lg hover:bg-slate-800 transition" data-page="inventory"><i class="fas fa-boxes w-6"></i> <span>รายการวัสดุ</span></a>
-        <a href="#" onclick="route('withdraw')" class="nav-item flex items-center px-4 py-3 rounded-lg hover:bg-slate-800 transition" data-page="withdraw"><i class="fas fa-hand-holding-box w-6"></i> <span>เบิกวัสดุ</span></a>
-        <a href="#" onclick="route('import')" class="nav-item flex items-center px-4 py-3 rounded-lg hover:bg-slate-800 transition" data-page="import"><i class="fas fa-truck-loading w-6"></i> <span>นำเข้าสต๊อก</span></a>
-        <a href="#" onclick="route('reports')" class="nav-item flex items-center px-4 py-3 rounded-lg hover:bg-slate-800 transition" data-page="reports"><i class="fas fa-file-alt w-6"></i> <span>รายงาน & ประวัติ</span></a>
+      
+      <!-- Menus -->
+      <nav class="flex-1 overflow-y-auto p-4 space-y-1">
+        <p class="px-3 text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 mt-2">Main Menu</p>
+        <a onclick="route('dashboard')" class="nav-item" data-page="dashboard">
+          <i class="fas fa-chart-pie w-8 text-center text-lg"></i> <span>ภาพรวม (Dashboard)</span>
+        </a>
+        <a onclick="route('inventory')" class="nav-item" data-page="inventory">
+          <i class="fas fa-boxes-stacked w-8 text-center text-lg"></i> <span>รายการวัสดุ (Inventory)</span>
+        </a>
+        
+        <p class="px-3 text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 mt-6">Transactions</p>
+        <a onclick="route('withdraw')" class="nav-item" data-page="withdraw">
+          <i class="fas fa-hand-holding w-8 text-center text-lg"></i> <span>เบิกวัสดุ (Withdraw)</span>
+        </a>
+        <a onclick="route('import')" class="nav-item" data-page="import">
+          <i class="fas fa-truck-loading w-8 text-center text-lg"></i> <span>นำเข้าสต๊อก (Import)</span>
+        </a>
+        
+        <p class="px-3 text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 mt-6">Analytics</p>
+        <a onclick="route('reports')" class="nav-item" data-page="reports">
+          <i class="fas fa-file-contract w-8 text-center text-lg"></i> <span>รายงาน & ประวัติ</span>
+        </a>
+        
+        <!-- Admin Menu -->
         <div id="adminMenuSection" class="hidden">
-          <a href="#" onclick="route('users')" class="nav-item flex items-center px-4 py-3 rounded-lg hover:bg-slate-800 transition" data-page="users"><i class="fas fa-users-cog w-6"></i> <span>จัดการผู้ใช้</span></a>
+           <div class="my-4 border-t border-slate-800"></div>
+           <p class="px-3 text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Administration</p>
+           <a onclick="route('users')" class="nav-item" data-page="users">
+             <i class="fas fa-users-cog w-8 text-center text-lg"></i> <span>จัดการผู้ใช้งาน</span>
+           </a>
         </div>
       </nav>
-      <div class="p-4 border-t border-slate-700 bg-slate-950/50 flex items-center gap-3">
-        <div class="w-10 h-10 rounded-full bg-indigo-500 flex items-center justify-center text-white font-bold" id="avatarInitials">U</div>
-        <div class="flex-1 min-w-0"><p class="text-sm font-medium text-white truncate" id="sidebarName">Name</p><p class="text-xs text-slate-400" id="sidebarRole">Role</p></div>
-        <button onclick="logout()" class="text-slate-400 hover:text-red-400"><i class="fas fa-sign-out-alt"></i></button>
+      
+      <!-- Profile Section (Bottom) -->
+      <div class="p-4 border-t border-slate-800 bg-slate-950">
+        <div class="flex items-center gap-3 cursor-pointer hover:opacity-80 transition" onclick="logout()">
+          <div class="w-10 h-10 rounded-full bg-gradient-to-r from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold shadow-md" id="avatarInitials">U</div>
+          <div class="flex-1 min-w-0">
+            <p class="text-sm font-bold text-white truncate" id="sidebarName">Username</p>
+            <p class="text-xs text-slate-400 truncate uppercase" id="sidebarRole">Role</p>
+          </div>
+          <i class="fas fa-sign-out-alt text-slate-500 hover:text-red-400 transition" title="ออกจากระบบ"></i>
+        </div>
       </div>
     </aside>
 
-    <div class="flex-1 flex flex-col min-w-0 bg-gray-50">
-      <header class="bg-white shadow-sm h-16 flex items-center justify-between px-6 z-10">
-        <button class="md:hidden" onclick="document.getElementById('sidebar').classList.toggle('-translate-x-full'); document.getElementById('sidebar').classList.toggle('absolute'); document.getElementById('sidebar').classList.toggle('h-full');"><i class="fas fa-bars"></i></button>
-        <h2 class="text-xl font-bold text-slate-800" id="pageTitle">ภาพรวม</h2>
-        <div class="flex items-center gap-2"><span class="text-sm text-slate-600 hidden md:block" id="headerGroupName">กลุ่มงาน</span></div>
-      </header>
-      <main class="flex-1 overflow-y-auto p-6 relative" id="contentArea"></main>
-    </div>
-  </div>
+    <!-- Overlay for Mobile Sidebar -->
+    <div id="sidebarOverlay" class="fixed inset-0 bg-black/60 z-30 hidden md:hidden backdrop-blur-sm transition-opacity" onclick="toggleSidebar(false)"></div>
 
-  <!-- MODAL: ADD MATERIAL -->
-  <div id="materialModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden z-[70] flex items-center justify-center p-4">
-    <div class="bg-white rounded-xl w-full max-w-lg shadow-2xl">
-      <div class="p-5 border-b flex justify-between"><h3 class="text-lg font-bold">จัดการวัสดุ</h3><button onclick="closeModal('materialModal')"><i class="fas fa-times"></i></button></div>
-      <form id="materialForm" class="p-5">
-        <input type="hidden" id="matId">
-        <div class="mb-4"><label class="block text-sm font-medium mb-1">ชื่อวัสดุ</label><input type="text" id="matName" class="w-full border p-2 rounded-lg" required></div>
-        <div class="mb-4">
-          <label class="block text-sm font-medium mb-2">รูปภาพ</label>
-          <div class="flex gap-2 mb-2">
-            <button type="button" onclick="toggleImgInput('file', 'mat')" class="px-3 py-1 bg-gray-200 rounded text-xs">ไฟล์</button>
-            <button type="button" onclick="toggleImgInput('url', 'mat')" class="px-3 py-1 bg-gray-200 rounded text-xs">Link</button>
-            <button type="button" onclick="openCamera('mat')" class="px-3 py-1 bg-indigo-100 text-indigo-700 rounded text-xs"><i class="fas fa-camera"></i> ถ่ายรูป</button>
-          </div>
-          <div id="matInputFile" class="border-2 border-dashed rounded-lg p-4 text-center cursor-pointer relative h-32 flex items-center justify-center">
-            <input type="file" id="matImgFile" accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" onchange="previewImage(this, 'mat')">
-            <div id="matPreview" class="hidden absolute inset-0 bg-contain bg-center bg-no-repeat bg-white"></div>
-            <div id="matPlaceholder" class="text-gray-400 text-sm">คลิกเพื่อเลือกไฟล์</div>
-          </div>
-          <input type="url" id="matImgUrl" class="hidden w-full border p-2 rounded-lg" placeholder="https://...">
-        </div>
-        <div class="flex justify-end gap-2"><button type="button" onclick="closeModal('materialModal')" class="px-4 py-2 bg-gray-100 rounded">ยกเลิก</button><button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded">บันทึก</button></div>
-      </form>
-    </div>
-  </div>
-
-  <!-- MODAL: TRANSACTION -->
-  <div id="transModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden z-[70] flex items-center justify-center p-4">
-    <div class="bg-white rounded-xl w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto">
-      <div class="p-5 border-b bg-gray-50 flex justify-between"><h3 id="transModalTitle" class="text-lg font-bold">ทำรายการ</h3><button onclick="closeModal('transModal')"><i class="fas fa-times"></i></button></div>
-      <form id="transForm" class="p-6">
-        <input type="hidden" id="transType"><input type="hidden" id="transMatId"><input type="hidden" id="transMatName">
-        <div class="flex items-center gap-3 mb-4">
-          <img id="transImgPreview" class="w-16 h-16 object-cover rounded bg-gray-200">
-          <div><p class="font-bold text-lg line-clamp-1" id="transMatNameDisplay">Material</p><p class="text-sm text-gray-500">คงเหลือ: <span id="transCurrentQty">0</span></p></div>
-        </div>
-        <div class="mb-4">
-          <label class="block text-sm font-medium mb-1">จำนวน</label>
-          <div class="flex items-center"><button type="button" onclick="adjQty(-1)" class="w-10 h-10 border rounded-l">-</button><input type="number" id="transQty" class="w-full h-10 border-y text-center" min="1" value="1" required><button type="button" onclick="adjQty(1)" class="w-10 h-10 border rounded-r">+</button></div>
-        </div>
-        <div id="importFields" class="hidden mb-4 space-y-3 p-3 bg-blue-50 rounded border border-blue-100">
-          <div><label class="block text-sm font-medium text-blue-800">วันที่ (ย้อนหลังได้)</label><input type="date" id="transDate" class="w-full border p-2 rounded"></div>
-          <div><label class="block text-sm font-medium text-blue-800">อ้างอิงเอกสาร</label><input type="text" id="transRef" class="w-full border p-2 rounded"></div>
+    <!-- Main Content Wrapper -->
+    <div class="flex-1 flex flex-col min-w-0 h-full md:ml-72 transition-all duration-300 relative">
+      
+      <!-- Top Header -->
+      <header class="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 md:px-8 z-20 shrink-0 sticky top-0 shadow-sm">
+        <div class="flex items-center gap-4">
+          <!-- Hamburger Button (Mobile Only) -->
+          <button class="md:hidden text-gray-500 hover:text-blue-600 hover:bg-gray-100 p-2 rounded-lg transition" onclick="toggleSidebar(true)">
+            <i class="fas fa-bars text-xl"></i>
+          </button>
+          <h2 class="text-xl font-black text-gray-800 tracking-tight" id="pageTitle">ภาพรวมระบบ</h2>
         </div>
         
-        <!-- Transaction Photo Proof -->
-        <div class="mb-4">
-          <label class="block text-sm font-medium mb-2 text-gray-700">รูปภาพยืนยัน (ไม่บังคับ)</label>
-          <div class="flex gap-2 mb-2">
-            <button type="button" onclick="toggleImgInput('file', 'trans')" class="px-3 py-1 bg-gray-200 rounded text-xs">ไฟล์</button>
-            <button type="button" onclick="openCamera('trans')" class="px-3 py-1 bg-indigo-100 text-indigo-700 rounded text-xs"><i class="fas fa-camera"></i> ถ่ายรูป</button>
-          </div>
-          <div id="transInputFile" class="border-2 border-dashed rounded-lg p-2 text-center cursor-pointer relative h-24 flex items-center justify-center bg-gray-50">
-            <input type="file" id="transProofFile" accept="image/*" class="absolute inset-0 w-full h-full opacity-0" onchange="previewImage(this, 'trans')">
-            <div id="transPreview" class="hidden absolute inset-0 bg-contain bg-center bg-no-repeat bg-white"></div>
-            <div id="transPlaceholder" class="text-gray-400 text-xs">คลิกเพื่อแนบรูป</div>
+        <div class="flex items-center gap-3">
+          <div class="hidden sm:flex items-center px-4 py-1.5 bg-blue-50 border border-blue-100 rounded-full">
+            <i class="fas fa-building text-blue-400 text-xs mr-2"></i>
+            <span class="text-sm font-bold text-blue-700" id="headerGroupName">กลุ่มงาน</span>
           </div>
         </div>
+      </header>
+      
+      <!-- Scrollable Content Area -->
+      <main class="flex-1 overflow-y-auto p-4 md:p-8" id="contentArea">
+         <!-- Content will be dynamically injected here -->
+      </main>
+    </div>
+  </div>
 
-        <button type="submit" id="btnTransSubmit" class="w-full py-3 rounded-lg font-bold text-white shadow-md">ยืนยัน</button>
+  <!-- ================= MODALS ================= -->
+
+  <!-- 1. ADD/EDIT MATERIAL MODAL -->
+  <div id="materialModal" class="fixed inset-0 bg-black/60 z-[70] hidden flex items-center justify-center p-4 backdrop-blur-sm">
+    <div class="bg-white rounded-2xl w-full max-w-lg shadow-2xl flex flex-col max-h-[90vh]">
+      <div class="p-5 border-b flex justify-between items-center bg-gray-50 rounded-t-2xl">
+        <h3 class="text-lg font-bold text-gray-800"><i class="fas fa-box text-blue-500 mr-2"></i> จัดการข้อมูลวัสดุ</h3>
+        <button type="button" onclick="closeModal('materialModal')" class="text-gray-400 hover:text-gray-600 transition"><i class="fas fa-times text-xl"></i></button>
+      </div>
+      <form id="materialForm" class="p-6 space-y-5 overflow-y-auto">
+        <input type="hidden" id="matId">
+        <div>
+          <label class="block text-sm font-bold text-gray-700 mb-1">ชื่อวัสดุ <span class="text-red-500">*</span></label>
+          <input type="text" id="matName" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition" placeholder="ระบุชื่อวัสดุ / อุปกรณ์" required>
+        </div>
+        <div>
+          <label class="block text-sm font-bold text-gray-700 mb-2">รูปภาพประกอบ</label>
+          <div class="flex gap-2 mb-3">
+            <button type="button" onclick="toggleImgInput('file', 'mat')" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 border border-gray-200 rounded-xl text-xs font-bold text-gray-700 transition">อัปโหลดไฟล์</button>
+            <button type="button" onclick="toggleImgInput('url', 'mat')" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 border border-gray-200 rounded-xl text-xs font-bold text-gray-700 transition">ใช้ลิงก์ URL</button>
+            <button type="button" onclick="openCamera('mat')" class="px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-xl text-xs font-bold transition flex items-center gap-2"><i class="fas fa-camera"></i> ถ่ายรูป</button>
+          </div>
+          
+          <div id="matInputFile" class="file-input-wrapper border-2 border-dashed border-gray-300 rounded-xl p-4 h-40 flex flex-col items-center justify-center bg-gray-50 hover:bg-gray-100 transition relative">
+            <input type="file" id="matImgFile" accept="image/*" class="file-input-overlay" onchange="previewImage(this, 'mat')">
+            <div id="matPreview" class="absolute inset-0 bg-contain bg-center bg-no-repeat rounded-xl hidden z-10 bg-white"></div>
+            <div id="matPlaceholder" class="text-center pointer-events-none z-0">
+                <i class="fas fa-cloud-upload-alt text-4xl text-blue-400 mb-2"></i>
+                <p class="text-sm font-bold text-gray-600">คลิกเพื่อเลือกไฟล์รูปภาพ</p>
+                <p class="text-xs text-gray-400 mt-1">รองรับ JPG, PNG</p>
+            </div>
+          </div>
+          <input type="url" id="matImgUrl" class="hidden w-full px-4 py-2 border border-gray-300 rounded-xl mt-2 outline-none focus:ring-2 focus:ring-blue-500" placeholder="https://example.com/image.jpg">
+        </div>
+        
+        <div class="pt-4 border-t border-gray-100">
+            <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl shadow-lg transition transform active:scale-95 text-lg">บันทึกข้อมูล</button>
+        </div>
       </form>
     </div>
   </div>
 
-  <!-- MODAL: UPLOAD PROOF LATER -->
-  <div id="proofModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden z-[80] flex items-center justify-center p-4">
-    <div class="bg-white rounded-xl w-full max-w-sm shadow-2xl">
-      <div class="p-4 border-b flex justify-between"><h3 class="font-bold">แนบรูปย้อนหลัง</h3><button onclick="closeModal('proofModal')"><i class="fas fa-times"></i></button></div>
-      <form id="proofForm" class="p-4">
-        <input type="hidden" id="proofTxId"><input type="hidden" id="proofType">
-        <div class="mb-4">
-          <div class="flex gap-2 mb-2 justify-center"><button type="button" onclick="openCamera('proof')" class="px-4 py-2 bg-indigo-600 text-white rounded-full shadow"><i class="fas fa-camera"></i> ถ่ายรูป</button></div>
-          <div class="border-2 border-dashed rounded-lg p-2 relative h-40 flex items-center justify-center bg-gray-50">
-            <input type="file" id="proofFile" accept="image/*" class="absolute inset-0 w-full h-full opacity-0" onchange="previewImage(this, 'proof')">
-            <div id="proofPreview" class="hidden absolute inset-0 bg-contain bg-center bg-no-repeat bg-white"></div>
-            <div id="proofPlaceholder" class="text-gray-400 text-sm">หรือคลิกเลือกไฟล์</div>
+  <!-- 2. TRANSACTION MODAL -->
+  <div id="transModal" class="fixed inset-0 bg-black/60 z-[70] hidden flex items-center justify-center p-4 backdrop-blur-sm">
+    <div class="bg-white rounded-2xl w-full max-w-md shadow-2xl flex flex-col max-h-[90vh]">
+      <div class="p-5 border-b flex justify-between items-center bg-gray-50 rounded-t-2xl">
+        <h3 id="transModalTitle" class="text-lg font-bold text-gray-800">ทำรายการ</h3>
+        <button type="button" onclick="closeModal('transModal')" class="text-gray-400 hover:text-gray-600 transition"><i class="fas fa-times text-xl"></i></button>
+      </div>
+      <form id="transForm" class="p-6 space-y-6 overflow-y-auto">
+        <input type="hidden" id="transType">
+        <input type="hidden" id="transMatId">
+        <input type="hidden" id="transMatName">
+        
+        <div class="flex items-center gap-4 bg-gray-50 p-4 rounded-xl border border-gray-200 shadow-inner">
+          <img id="transImgPreview" class="w-16 h-16 object-contain p-1 rounded-lg bg-white border border-gray-200 shadow-sm">
+          <div class="flex-1">
+             <p class="font-bold text-gray-800 line-clamp-2 text-md leading-tight mb-1" id="transMatNameDisplay">Material Name</p>
+             <p class="text-sm text-gray-500 font-medium">คงเหลือปัจจุบัน: <span id="transCurrentQty" class="font-black text-blue-600 text-lg">0</span></p>
           </div>
         </div>
-        <button type="submit" class="w-full bg-indigo-600 text-white py-2 rounded font-bold">อัปโหลด</button>
+
+        <div>
+          <label class="block text-sm font-bold text-gray-700 mb-3 text-center">ระบุจำนวนที่ต้องการ</label>
+          <div class="flex items-center justify-center gap-4">
+             <button type="button" onclick="adjQty(-1)" class="w-14 h-14 rounded-full bg-white hover:bg-gray-100 border-2 border-gray-200 text-gray-600 font-black text-2xl transition shadow-sm">-</button>
+             <input type="number" id="transQty" class="w-24 text-center text-5xl font-black bg-transparent border-none outline-none text-gray-800 focus:ring-0" min="1" value="1" required>
+             <button type="button" onclick="adjQty(1)" class="w-14 h-14 rounded-full bg-white hover:bg-gray-100 border-2 border-gray-200 text-gray-600 font-black text-2xl transition shadow-sm">+</button>
+          </div>
+        </div>
+
+        <div id="importFields" class="hidden space-y-4 p-5 bg-blue-50 rounded-xl border border-blue-100">
+          <div>
+            <label class="block text-xs font-bold text-blue-800 uppercase tracking-wide mb-1">วันที่ทำรายการ (ย้อนหลังได้)</label>
+            <input type="date" id="transDate" class="w-full px-4 py-2 border border-blue-200 rounded-xl text-sm bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-blue-800 uppercase tracking-wide mb-1">อ้างอิงเอกสาร / หมายเหตุ</label>
+            <input type="text" id="transRef" class="w-full px-4 py-2 border border-blue-200 rounded-xl text-sm bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition" placeholder="ระบุเลขที่หนังสือ หรือที่มา">
+          </div>
+        </div>
+
+        <div class="pt-2">
+            <button type="submit" id="btnTransSubmit" class="w-full py-4 rounded-xl font-bold text-white shadow-lg transition transform active:scale-95 text-lg">ยืนยันทำรายการ</button>
+        </div>
       </form>
     </div>
   </div>
 
-  <!-- MODAL: USER PERMISSIONS -->
-  <div id="userPermModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden z-[80] flex items-center justify-center p-4">
-    <div class="bg-white rounded-xl w-full max-w-md shadow-2xl">
-      <div class="p-4 border-b flex justify-between items-center"><h3 class="font-bold text-lg">กำหนดสิทธิ์ผู้ใช้งาน</h3><button onclick="closeModal('userPermModal')"><i class="fas fa-times"></i></button></div>
-      <div class="p-6">
-        <div class="flex items-center gap-3 mb-4 p-3 bg-blue-50 rounded-lg">
-          <div class="w-10 h-10 bg-blue-200 rounded-full flex items-center justify-center text-blue-700 font-bold" id="permUserInitials">U</div>
-          <div><h4 class="font-bold text-gray-800" id="permUserName">User</h4><p class="text-xs text-gray-500" id="permUserGroup">Group</p></div>
+  <!-- 3. USER PERMISSIONS MODAL -->
+  <div id="userPermModal" class="fixed inset-0 bg-black/60 z-[80] hidden flex items-center justify-center p-4 backdrop-blur-sm">
+    <div class="bg-white rounded-2xl w-full max-w-md shadow-2xl flex flex-col max-h-[90vh]">
+      <div class="p-5 border-b flex justify-between items-center bg-gray-50 rounded-t-2xl">
+        <h3 class="text-lg font-bold text-gray-800"><i class="fas fa-shield-alt text-purple-500 mr-2"></i> กำหนดสิทธิ์ผู้ใช้งาน</h3>
+        <button type="button" onclick="closeModal('userPermModal')" class="text-gray-400 hover:text-gray-600 transition"><i class="fas fa-times text-xl"></i></button>
+      </div>
+      <div class="p-6 overflow-y-auto">
+        <div class="flex items-center gap-4 mb-6 p-4 bg-indigo-50 rounded-xl border border-indigo-100">
+           <div class="w-12 h-12 bg-indigo-600 text-white rounded-full flex items-center justify-center font-bold text-xl shadow-md" id="permUserInitials">U</div>
+           <div>
+              <h4 class="font-bold text-gray-800 text-lg" id="permUserName">User Name</h4>
+              <p class="text-xs text-indigo-500 font-bold uppercase tracking-wider" id="permUserGroup">Group Name</p>
+           </div>
         </div>
+        
         <input type="hidden" id="permUserId">
-        <div class="space-y-2">
-          <label class="flex items-center justify-between p-3 border rounded hover:bg-gray-50 cursor-pointer"><span class="text-sm font-medium">ดูข้อมูล (View)</span><input type="checkbox" id="perm_view_stock" checked disabled class="accent-blue-600 w-5 h-5"></label>
-          <label class="flex items-center justify-between p-3 border rounded hover:bg-gray-50 cursor-pointer"><span class="text-sm font-medium">เบิกวัสดุ (Withdraw)</span><input type="checkbox" id="perm_withdraw_material" class="accent-blue-600 w-5 h-5"></label>
-          <label class="flex items-center justify-between p-3 border rounded hover:bg-gray-50 cursor-pointer"><span class="text-sm font-medium">นำเข้าสต๊อก (Import)</span><input type="checkbox" id="perm_import_material" class="accent-blue-600 w-5 h-5"></label>
-          <label class="flex items-center justify-between p-3 border rounded hover:bg-gray-50 cursor-pointer"><span class="text-sm font-medium">จัดการรายการ (Manage)</span><input type="checkbox" id="perm_manage_material" class="accent-blue-600 w-5 h-5"></label>
+        <div class="space-y-4">
+           <!-- View Stock (Default) -->
+           <label class="flex items-center justify-between p-4 border border-gray-200 rounded-xl bg-gray-50 cursor-not-allowed">
+              <div class="flex items-center gap-3">
+                  <i class="fas fa-eye text-gray-400 text-lg"></i>
+                  <span class="text-sm font-bold text-gray-600">ดูข้อมูล (View Only)</span>
+              </div>
+              <div class="relative inline-flex items-center">
+                <input type="checkbox" id="perm_view_stock" class="sr-only peer toggle-checkbox" checked disabled>
+                <div class="w-11 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500 toggle-label"></div>
+              </div>
+           </label>
+           
+           <!-- Withdraw -->
+           <label class="flex items-center justify-between p-4 border border-gray-200 rounded-xl hover:bg-rose-50 hover:border-rose-200 cursor-pointer transition group">
+              <div class="flex items-center gap-3">
+                  <i class="fas fa-hand-holding text-rose-400 group-hover:text-rose-600 text-lg transition"></i>
+                  <span class="text-sm font-bold text-gray-700">สิทธิ์เบิกวัสดุ (Withdraw)</span>
+              </div>
+              <div class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" id="perm_withdraw_material" class="sr-only peer toggle-checkbox">
+                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500 toggle-label shadow-inner"></div>
+              </div>
+           </label>
+
+           <!-- Import -->
+           <label class="flex items-center justify-between p-4 border border-gray-200 rounded-xl hover:bg-emerald-50 hover:border-emerald-200 cursor-pointer transition group">
+              <div class="flex items-center gap-3">
+                  <i class="fas fa-truck-loading text-emerald-400 group-hover:text-emerald-600 text-lg transition"></i>
+                  <span class="text-sm font-bold text-gray-700">สิทธิ์นำเข้าสต๊อก (Import)</span>
+              </div>
+              <div class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" id="perm_import_material" class="sr-only peer toggle-checkbox">
+                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500 toggle-label shadow-inner"></div>
+              </div>
+           </label>
+
+           <!-- Manage -->
+           <label class="flex items-center justify-between p-4 border border-gray-200 rounded-xl hover:bg-amber-50 hover:border-amber-200 cursor-pointer transition group">
+              <div class="flex items-center gap-3">
+                  <i class="fas fa-edit text-amber-400 group-hover:text-amber-600 text-lg transition"></i>
+                  <span class="text-sm font-bold text-gray-700">จัดการรายการวัสดุ (Add/Edit)</span>
+              </div>
+              <div class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" id="perm_manage_material" class="sr-only peer toggle-checkbox">
+                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500 toggle-label shadow-inner"></div>
+              </div>
+           </label>
         </div>
-        <button onclick="savePermissions()" class="w-full bg-blue-600 text-white py-2.5 rounded-lg font-bold mt-4 hover:bg-blue-700 shadow">บันทึกสิทธิ์</button>
+
+        <div class="pt-6 border-t border-gray-100 mt-6">
+            <button onclick="savePermissions()" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-3.5 rounded-xl font-bold shadow-lg transition transform active:scale-95 text-lg">
+                บันทึกการตั้งค่าสิทธิ์
+            </button>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- JS LOGIC -->
+  <!-- ================= JAVASCRIPT LOGIC ================= -->
   <script>
+    // --- 1. CONFIGURATION ---
+    // Make sure to replace this URL if you redeploy the Apps Script
     const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxdK7zgf3YLbUPUEEgBhfe2jP2g6J4jvgGLhNUJnTd4WGlL9OJUVL5wJFBI6iMV9d4o/exec";
-    const state = { user: null, materials: [], reports: { withdraw: [], import: [] }, pagination: { currentPage: 1, itemsPerPage: 9, totalPages: 1 }, filter: { search: '', sort: 'newest' } };
-    let stockChartInstance, statusChartInstance, videoStream, currentFacingMode = 'environment', currentCamTarget = '';
-    const cache = { materials: null, users: null, reports: null };
-
-    async function api(action, payload = {}) {
-      const showOverlay = !['getMaterials', 'getReports'].includes(action); 
-      if(showOverlay) document.getElementById('loadingOverlay').classList.remove('hidden');
-      try {
-        let result;
-        if (typeof google !== 'undefined' && google.script) {
-          result = await new Promise((resolve, reject) => google.script.run.withSuccessHandler(res => res.success ? resolve(res.data) : reject(new Error(res.error))).withFailureHandler(reject).apiHandler({ action, payload }));
-        } else {
-          const res = await fetch(WEB_APP_URL, { method: 'POST', redirect: 'follow', headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ action, payload }) });
-          const json = await res.json();
-          if(!json.success) throw new Error(json.error);
-          result = json.data;
-        }
-        if(showOverlay) document.getElementById('loadingOverlay').classList.add('hidden');
-        return result;
-      } catch (err) {
-        if(showOverlay) document.getElementById('loadingOverlay').classList.add('hidden');
-        showToast(err.message, 'error');
-        throw err;
-      }
-    }
-
-    // AUTH
-    function initApp() { 
-      const u = localStorage.getItem('user_session'); 
-      if (u) { state.user = JSON.parse(u); setupUI(); route('dashboard'); } else { document.getElementById('authPage').classList.remove('hidden'); } 
-    }
-    function setupUI() {
-      document.getElementById('authPage').classList.add('hidden'); document.getElementById('mainApp').classList.remove('hidden');
-      document.getElementById('sidebarName').innerText = state.user.fullname.split(' ')[0]; document.getElementById('sidebarRole').innerText = state.user.role.toUpperCase();
-      document.getElementById('avatarInitials').innerText = state.user.fullname.charAt(0);
-      document.getElementById('adminMenuSection').classList.toggle('hidden', state.user.role !== 'admin');
-    }
-    document.getElementById('loginForm').onsubmit = async (e) => { e.preventDefault(); try { state.user = await api('login', { username: document.getElementById('loginUser').value, password: document.getElementById('loginPass').value }); localStorage.setItem('user_session', JSON.stringify(state.user)); setupUI(); route('dashboard'); } catch(e) {} };
-    function logout() { localStorage.removeItem('user_session'); localStorage.removeItem('local_materials'); location.reload(); }
-    function toggleAuth(mode) { document.getElementById('loginForm').classList.toggle('hidden', mode === 'register'); document.getElementById('registerForm').classList.toggle('hidden', mode !== 'register'); }
-
-    // ROUTING
-    async function route(page) {
-      document.querySelectorAll('.nav-item').forEach(el => {
-        el.classList.toggle('bg-slate-800', el.dataset.page === page);
-        el.classList.toggle('text-white', el.dataset.page === page);
-      });
-      const c = document.getElementById('contentArea');
-      if (stockChartInstance) { stockChartInstance.destroy(); stockChartInstance = null; }
-      if (statusChartInstance) { statusChartInstance.destroy(); statusChartInstance = null; }
-
-      switch(page) {
-        case 'dashboard': renderDashboard(c); break;
-        case 'inventory': renderInventory(c, 'view'); break;
-        case 'withdraw': renderInventory(c, 'withdraw'); break;
-        case 'import': renderInventory(c, 'import'); break;
-        case 'reports': renderReports(c); break;
-        case 'users': renderUsers(c); break;
-      }
-    }
-
-    // DASHBOARD
-    async function renderDashboard(c) {
-      if(!c) return;
-      c.innerHTML = `<div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">${cardSkeleton().repeat(4)}</div><div class="grid grid-cols-1 lg:grid-cols-3 gap-6"><div class="lg:col-span-2 h-64 bg-white rounded-xl shadow-sm border"></div><div class="h-64 bg-white rounded-xl shadow-sm border"></div></div>`;
-      
-      const cachedMat = localStorage.getItem('local_materials');
-      if(cachedMat) { state.materials = JSON.parse(cachedMat); updateDashboardUI(c); }
-      
-      try {
-        const freshData = await api('getMaterials');
-        state.materials = freshData;
-        localStorage.setItem('local_materials', JSON.stringify(freshData));
-        updateDashboardUI(c);
-      } catch(e) {}
-    }
     
-    function updateDashboardUI(c) {
-        if(!c || !document.contains(c)) return;
+    // --- 2. GLOBAL STATE & CACHE ---
+    let currentViewID = ''; // Unique ID to prevent Race Conditions during fast switching
+    
+    const state = { 
+        user: null, 
+        materials: [], 
+        reports: { withdraw: [], import: [] }, 
+        pagination: { currentPage: 1, itemsPerPage: 12 }, 
+        filter: { search: '', sort: 'newest' } 
+    };
+    
+    const cache = { materials: null, users: null, reports: null };
+    let stockChartInstance, statusChartInstance, videoStream, currentFacingMode = 'environment', currentCamTarget = '';
 
-        const total = state.materials.length, stock = state.materials.reduce((s, m) => s + parseInt(m.qty||0), 0), low = state.materials.filter(m => parseInt(m.qty||0)<5).length;
-        const last = state.materials.length ? formatDate(state.materials[state.materials.length-1].last_import_date).split(' ')[0] : '-';
+    // --- 3. API HANDLER (Robust Fetch) ---
+    async function api(action, payload = {}) {
+        const showOverlay = !['getMaterials', 'getReports'].includes(action);
+        if(showOverlay) document.getElementById('loadingOverlay').classList.remove('hidden');
         
-        c.innerHTML = `
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 fade-in">
-            ${statCard('ทั้งหมด', total, 'fas fa-box', 'bg-blue-500')} ${statCard('คงเหลือรวม', stock, 'fas fa-layer-group', 'bg-emerald-500')}
-            ${statCard('ใกล้หมด', low, 'fas fa-exclamation-triangle', 'bg-amber-500')} ${statCard('อัปเดตล่าสุด', last, 'fas fa-clock', 'bg-purple-500')}
-          </div>
-          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 fade-in">
-            <div class="bg-white p-6 rounded-xl shadow-sm lg:col-span-2 border"><h3 class="font-bold mb-4">Top 10</h3><div class="relative h-64 w-full"><canvas id="stockChart"></canvas></div></div>
-            <div class="bg-white p-6 rounded-xl shadow-sm border"><h3 class="font-bold mb-4">สถานะ</h3><div class="relative h-48 w-full"><canvas id="statusChart"></canvas></div></div>
-          </div>`;
-        const top = [...state.materials].sort((a,b)=>b.qty-a.qty).slice(0,10);
-        
-        if(stockChartInstance) stockChartInstance.destroy();
-        if(statusChartInstance) statusChartInstance.destroy();
-        
-        const ctx1 = document.getElementById('stockChart');
-        if(ctx1) {
-          stockChartInstance = new Chart(ctx1, { type: 'bar', data: { labels: top.map(m=>m.name.substring(0,10)), datasets: [{ label: 'Qty', data: top.map(m=>m.qty), backgroundColor: '#6366f1' }] }, options: { responsive: true, maintainAspectRatio: false } });
-        }
-        
-        const ctx2 = document.getElementById('statusChart');
-        if(ctx2) {
-          statusChartInstance = new Chart(ctx2, { type: 'doughnut', data: { labels: ['ปกติ', 'ต่ำ', 'หมด'], datasets: [{ data: [total-low-state.materials.filter(m=>m.qty==0).length, low, state.materials.filter(m=>m.qty==0).length], backgroundColor: ['#10b981', '#f59e0b', '#ef4444'] }] }, options: { responsive: true, maintainAspectRatio: false } });
+        try {
+            let result;
+            if (typeof google !== 'undefined' && google.script) {
+                // Production: running inside Google Apps Script iframe
+                result = await new Promise((resolve, reject) => {
+                    google.script.run
+                        .withSuccessHandler(res => res.success ? resolve(res.data) : reject(new Error(res.error)))
+                        .withFailureHandler(err => reject(err))
+                        .apiHandler({ action, payload });
+                });
+            } else {
+                // Development: running via standard fetch
+                const res = await fetch(WEB_APP_URL, {
+                    method: 'POST',
+                    redirect: 'follow',
+                    headers: { "Content-Type": "text/plain;charset=utf-8" },
+                    // Important: Wrap action and payload correctly
+                    body: JSON.stringify({ action: action, payload: payload })
+                });
+                
+                const json = await res.json();
+                if (!json.success) throw new Error(json.error);
+                result = json.data;
+            }
+            
+            if (showOverlay) document.getElementById('loadingOverlay').classList.add('hidden');
+            return result;
+            
+        } catch (err) {
+            if (showOverlay) document.getElementById('loadingOverlay').classList.add('hidden');
+            showToast(err.message, 'error');
+            throw err;
         }
     }
 
-    // INVENTORY
-    async function renderInventory(c, mode) {
-      if(!c) return;
-      const perms = state.user.permissions || [];
-      const isAdmin = state.user.role === 'admin';
-      
-      if (mode === 'withdraw' && !isAdmin && !perms.includes('withdraw_material')) return c.innerHTML = '<div class="p-10 text-center text-gray-400">คุณไม่มีสิทธิ์เข้าถึงเมนูนี้</div>';
-      if (mode === 'import' && !isAdmin && !perms.includes('import_material')) return c.innerHTML = '<div class="p-10 text-center text-gray-400">คุณไม่มีสิทธิ์เข้าถึงเมนูนี้</div>';
-      const canManage = isAdmin || perms.includes('manage_material');
+    // --- 4. AUTHENTICATION & INIT ---
+    function initApp() {
+        const savedUserStr = localStorage.getItem('user_session');
+        if (savedUserStr) {
+            try {
+                state.user = JSON.parse(savedUserStr);
+                // Basic validation of user object
+                if(state.user && state.user.fullname) {
+                    setupUI();
+                    const lastView = localStorage.getItem('last_view') || 'dashboard';
+                    route(lastView);
+                } else {
+                    throw new Error("Invalid session data");
+                }
+            } catch(e) {
+                // If parsing fails or data is bad, force login
+                localStorage.removeItem('user_session');
+                document.getElementById('authPage').classList.remove('hidden');
+            }
+        } else {
+            document.getElementById('authPage').classList.remove('hidden');
+        }
+    }
 
-      c.innerHTML = `<div class="bg-white rounded-xl shadow-sm border flex flex-col h-full fade-in">
-        <div class="p-4 border-b flex flex-col md:flex-row gap-4 justify-between items-center">
-          <input type="text" id="searchInput" placeholder="ค้นหา..." class="w-full md:w-96 border p-2 rounded-lg" onkeyup="handleSearch('${mode}')">
-          <div class="flex gap-2">
-            ${mode==='view'&&canManage?`<button onclick="openMaterialModal()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg">+ เพิ่ม</button>`:''}
-            <select id="sortSelect" onchange="renderMaterialList('${mode}')" class="border p-2 rounded-lg"><option value="newest">ใหม่สุด</option><option value="qty_asc">น้อย-มาก</option></select>
-          </div>
-        </div>
-        <div id="inventoryContainer" class="p-6 overflow-y-auto flex-1 bg-slate-50 min-h-[400px]"></div>
-        <div class="p-4 border-t flex justify-between"><span id="pageInfo"></span><div id="paginationControls" class="flex gap-1"></div></div>
-      </div>`;
-      
-      const cachedMat = localStorage.getItem('local_materials');
-      if(cachedMat) {
-         state.materials = JSON.parse(cachedMat);
-         renderMaterialList(mode);
-      }
-      
-      const freshData = await api('getMaterials');
-      state.materials = freshData;
-      localStorage.setItem('local_materials', JSON.stringify(freshData));
-      renderMaterialList(mode);
+    function setupUI() {
+        document.getElementById('authPage').classList.add('hidden');
+        document.getElementById('mainApp').classList.remove('hidden');
+        
+        // Safety check to prevent errors
+        if(!state.user || !state.user.fullname) return;
+
+        // Apply User Data to Sidebar UI
+        document.getElementById('sidebarName').innerText = state.user.fullname.split(' ')[0];
+        document.getElementById('sidebarRole').innerText = (state.user.role || 'user').toUpperCase();
+        document.getElementById('avatarInitials').innerText = state.user.fullname.charAt(0).toUpperCase();
+        document.getElementById('headerGroupName').innerText = state.user.group || 'ฝ่ายบริหารทั่วไป';
+        
+        // Display Admin Menu if Role is Admin
+        const isAdmin = (state.user.role || '').toLowerCase() === 'admin';
+        if (isAdmin) {
+            document.getElementById('adminMenuSection').classList.remove('hidden');
+            const mobileAdminMenu = document.getElementById('mobileAdminMenu');
+            if(mobileAdminMenu) mobileAdminMenu.classList.remove('hidden');
+        }
+    }
+
+    document.getElementById('loginForm').onsubmit = async (e) => {
+        e.preventDefault();
+        try {
+            const user = await api('login', {
+                username: document.getElementById('loginUser').value,
+                password: document.getElementById('loginPass').value
+            });
+            state.user = user;
+            localStorage.setItem('user_session', JSON.stringify(state.user));
+            setupUI();
+            route('dashboard');
+            showToast(`ยินดีต้อนรับเข้าสู่ระบบ, ${user.fullname.split(' ')[0]}`, 'success');
+        } catch (e) {
+            // Error is handled and toasted inside api()
+        }
+    };
+
+    function logout() {
+        localStorage.clear();
+        location.reload();
+    }
+
+    function toggleAuth(mode) {
+        const lf = document.getElementById('loginForm');
+        const rf = document.getElementById('registerForm');
+        if(mode === 'register') {
+            lf.classList.add('hidden');
+            rf.classList.remove('hidden');
+            rf.classList.add('fade-in');
+        } else {
+            rf.classList.add('hidden');
+            lf.classList.remove('hidden');
+            lf.classList.add('fade-in');
+        }
+    }
+
+    // --- 5. ROUTING & NAVIGATION ---
+    
+    // Toggle Sidebar for Mobile (Robust implementation)
+    function toggleSidebar(forceOpen) {
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('sidebarOverlay');
+        
+        if (!sidebar || !overlay) return;
+
+        if (typeof forceOpen === 'boolean') {
+             if (forceOpen) { 
+                 sidebar.classList.remove('-translate-x-full'); 
+                 overlay.classList.remove('hidden'); 
+             } else { 
+                 sidebar.classList.add('-translate-x-full'); 
+                 overlay.classList.add('hidden'); 
+             }
+        } else {
+             sidebar.classList.toggle('-translate-x-full');
+             overlay.classList.toggle('hidden');
+        }
+    }
+
+    async function route(page) {
+        // Fix Race Condition: Generate a unique ID for this specific route request
+        currentViewID = Date.now().toString();
+        const viewID = currentViewID;
+        
+        // Remember last view
+        localStorage.setItem('last_view', page);
+
+        // Update Navigation Active Styling
+        document.querySelectorAll('.nav-item').forEach(el => {
+            const isActive = el.dataset.page === page;
+            el.classList.toggle('active', isActive);
+            if (isActive) {
+                el.classList.add('bg-slate-800', 'text-white');
+                el.classList.remove('text-slate-400'); // Ensure inactive color is removed
+            } else {
+                el.classList.remove('bg-slate-800', 'text-white');
+                el.classList.add('text-slate-400');
+            }
+        });
+
+        // Set Page Title
+        const titles = { 
+            'dashboard': 'ภาพรวมระบบ (Dashboard)', 'inventory': 'รายการวัสดุ (Inventory)', 
+            'withdraw': 'เบิกวัสดุ (Withdraw)', 'import': 'นำเข้าสต๊อก (Import)', 
+            'reports': 'รายงานและประวัติ (Reports)', 'users': 'จัดการผู้ใช้งาน (Users)' 
+        };
+        const titleEl = document.getElementById('pageTitle');
+        if(titleEl) titleEl.innerText = titles[page] || 'Inventory System';
+        
+        // Automatically hide mobile sidebar when navigating
+        toggleSidebar(false);
+
+        // Clean up memory from Chart instances to prevent overlaps
+        if (stockChartInstance) { stockChartInstance.destroy(); stockChartInstance = null; }
+        if (statusChartInstance) { statusChartInstance.destroy(); statusChartInstance = null; }
+
+        const container = document.getElementById('contentArea');
+        if (!container) return;
+
+        // Render appropriate view
+        switch (page) {
+            case 'dashboard': await renderDashboard(container, viewID); break;
+            case 'inventory': await renderInventory(container, 'view', viewID); break;
+            case 'withdraw': await renderInventory(container, 'withdraw', viewID); break;
+            case 'import': await renderInventory(container, 'import', viewID); break;
+            case 'reports': await renderReports(container, viewID); break;
+            case 'users': await renderUsers(container, viewID); break;
+            default: await renderDashboard(container, viewID); break;
+        }
+    }
+
+    // --- 6. VIEW: DASHBOARD ---
+    async function renderDashboard(c, viewID) {
+        // Show skeleton loader immediately
+        c.innerHTML = `
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8">
+                ${cardSkeleton().repeat(4)}
+            </div>
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="lg:col-span-2 h-80 bg-white rounded-2xl shadow-sm border border-gray-100 flex items-center justify-center"><div class="loader"></div></div>
+                <div class="h-80 bg-white rounded-2xl shadow-sm border border-gray-100 flex items-center justify-center"><div class="loader"></div></div>
+            </div>`;
+        
+        // If we have cached data, display it immediately for a fast UX
+        if (cache.materials) { 
+            state.materials = JSON.parse(cache.materials); 
+            updateDashboardUI(c, viewID); 
+        }
+        
+        try {
+            // Fetch fresh data in the background
+            const data = await api('getMaterials');
+            
+            // CRITICAL: If user changed pages while fetching, DO NOT render
+            if (currentViewID !== viewID) return; 
+            
+            state.materials = data;
+            cache.materials = JSON.stringify(data); // update cache
+            updateDashboardUI(c, viewID); // update UI with fresh data
+        } catch(e) {
+            // Silent catch to not disrupt UI if it fails in background
+        }
+    }
+
+    function updateDashboardUI(c, viewID) {
+         if(currentViewID !== viewID || !document.contains(c)) return;
+         
+         const total = state.materials.length;
+         const stock = state.materials.reduce((s, m) => s + parseInt(m.qty||0), 0);
+         const low = state.materials.filter(m => parseInt(m.qty||0) < 5).length;
+         const last = state.materials.length > 0 ? formatDate(state.materials[state.materials.length-1].last_import_date).split(' ')[0] : '-';
+         
+         c.innerHTML = `
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8 fade-in">
+                ${statCard('รายการวัสดุทั้งหมด', total, 'fas fa-box', 'bg-blue-100 text-blue-600')}
+                ${statCard('จำนวนของคงเหลือ', stock, 'fas fa-layer-group', 'bg-emerald-100 text-emerald-600')}
+                ${statCard('รายการใกล้หมด (<5)', low, 'fas fa-exclamation-triangle', 'bg-amber-100 text-amber-600')}
+                ${statCard('อัปเดตสต๊อกล่าสุด', last, 'fas fa-clock', 'bg-purple-100 text-purple-600')}
+            </div>
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 fade-in">
+                <div class="bg-white p-5 md:p-8 rounded-2xl shadow-sm border border-gray-100 lg:col-span-2">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="font-bold text-gray-800 text-lg"><i class="fas fa-chart-bar text-blue-500 mr-2"></i> วัสดุคงเหลือสูงสุด 10 อันดับ</h3>
+                    </div>
+                    <div class="relative h-64 w-full"><canvas id="stockChart"></canvas></div>
+                </div>
+                <div class="bg-white p-5 md:p-8 rounded-2xl shadow-sm border border-gray-100 flex flex-col">
+                    <h3 class="font-bold text-gray-800 text-lg mb-6"><i class="fas fa-chart-pie text-purple-500 mr-2"></i> สถานะความพร้อม</h3>
+                    <div class="relative flex-1 w-full flex items-center justify-center min-h-[200px]"><canvas id="statusChart"></canvas></div>
+                </div>
+            </div>`;
+            
+         // Initialize Chart.js
+         const top10 = [...state.materials].sort((a,b) => b.qty - a.qty).slice(0, 10);
+         
+         const ctx1 = document.getElementById('stockChart');
+         if(ctx1) {
+             stockChartInstance = new Chart(ctx1, { 
+                 type: 'bar', 
+                 data: { 
+                     labels: top10.map(m => m.name.length > 15 ? m.name.substring(0,15)+'...' : m.name), 
+                     datasets: [{ 
+                         label: 'จำนวนคงเหลือ', 
+                         data: top10.map(m => m.qty), 
+                         backgroundColor: '#3b82f6', 
+                         hoverBackgroundColor: '#2563eb',
+                         borderRadius: 6 
+                     }] 
+                 }, 
+                 options: { 
+                     maintainAspectRatio: false, 
+                     plugins: { legend: { display: false } }, 
+                     scales: { 
+                         y: { beginAtZero: true, grid: { borderDash: [4, 4] } }, 
+                         x: { grid: { display: false } } 
+                     } 
+                 } 
+             });
+         }
+         
+         const ctx2 = document.getElementById('statusChart');
+         if(ctx2) {
+             const outOfStock = state.materials.filter(m => m.qty == 0).length;
+             const normal = total - low - outOfStock;
+
+             statusChartInstance = new Chart(ctx2, { 
+                 type: 'doughnut', 
+                 data: { 
+                     labels: ['ปกติ', 'ใกล้หมด', 'หมด'], 
+                     datasets: [{ 
+                         data: [normal, low, outOfStock], 
+                         backgroundColor: ['#10b981', '#f59e0b', '#ef4444'], 
+                         borderWidth: 0,
+                         hoverOffset: 4
+                     }] 
+                 }, 
+                 options: { 
+                     maintainAspectRatio: false, 
+                     cutout: '75%', 
+                     plugins: { 
+                         legend: { position: 'bottom', labels: { padding: 20, usePointStyle: true } } 
+                     } 
+                 } 
+             });
+         }
+    }
+
+    // --- 7. VIEW: INVENTORY & OPERATIONS ---
+    async function renderInventory(c, mode, viewID) {
+        if(currentViewID !== viewID) return;
+        
+        const perms = state.user.permissions || [];
+        const isAdmin = (state.user.role || '').toLowerCase() === 'admin';
+        
+        // Security Check
+        if (mode === 'withdraw' && !isAdmin && !perms.includes('withdraw_material')) return c.innerHTML = permissionDeniedHTML();
+        if (mode === 'import' && !isAdmin && !perms.includes('import_material')) return c.innerHTML = permissionDeniedHTML();
+        const canManage = isAdmin || perms.includes('manage_material');
+        
+        const titles = { 'view': 'รายการวัสดุทั้งหมด', 'withdraw': 'เบิกวัสดุออกจากคลัง', 'import': 'นำเข้าวัสดุสู่คลัง' };
+        const icons = { 'view': 'box-open', 'withdraw': 'hand-holding', 'import': 'truck-loading' };
+        const colors = { 'view': 'blue', 'withdraw': 'rose', 'import': 'emerald' };
+
+        const title = titles[mode];
+        const icon = icons[mode];
+        const color = colors[mode];
+
+        c.innerHTML = `
+            <div class="flex flex-col h-full fade-in">
+                <!-- Toolbar -->
+                <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-200 flex flex-col md:flex-row justify-between items-center mb-6 gap-4 sticky top-0 z-10">
+                    <div class="flex items-center gap-4 w-full md:w-auto">
+                        <div class="w-12 h-12 rounded-xl bg-${color}-100 text-${color}-600 flex items-center justify-center shadow-sm">
+                            <i class="fas fa-${icon} text-2xl"></i>
+                        </div>
+                        <div>
+                            <h2 class="font-bold text-xl text-gray-800">${title}</h2>
+                            <p class="text-xs text-gray-500 font-medium">ค้นหาและทำรายการได้ที่นี่</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex flex-wrap justify-end gap-2 w-full md:w-auto mt-3 md:mt-0">
+                        <div class="relative w-full md:w-64">
+                            <i class="fas fa-search absolute left-4 top-3 text-gray-400"></i>
+                            <input type="text" id="searchInput" placeholder="พิมพ์ชื่อเพื่อค้นหา..." class="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-${color}-500 outline-none transition shadow-inner" onkeyup="renderMaterialList('${mode}')">
+                        </div>
+                        ${mode === 'view' ? `
+                        <button onclick="exportInventoryCSV()" class="bg-gray-800 hover:bg-gray-900 text-white px-3.5 py-2 rounded-xl text-sm font-bold shadow-md transition transform active:scale-95" title="Export CSV"><i class="fas fa-file-csv"></i></button>
+                        <button onclick="exportInventoryPDF()" class="bg-red-600 hover:bg-red-700 text-white px-3.5 py-2 rounded-xl text-sm font-bold shadow-md transition transform active:scale-95" title="Export PDF"><i class="fas fa-file-pdf"></i></button>
+                        ` : ''}
+                        ${mode === 'view' && canManage ? `
+                        <button onclick="openMaterialModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-md transition transform active:scale-95 whitespace-nowrap">
+                            <i class="fas fa-plus mr-1"></i> เพิ่มรายการ
+                        </button>` : ''}
+                        <button onclick="refreshMaterials('${mode}')" class="bg-white hover:bg-gray-50 border border-gray-200 text-gray-600 px-4 py-2 rounded-xl shadow-sm transition" title="รีเฟรชข้อมูล">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Grid Container -->
+                <div id="inventoryContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 md:gap-6 pb-24">
+                    ${cardSkeleton().repeat(8)}
+                </div>
+            </div>
+        `;
+        
+        // Fetch or Load Cache
+        if (!cache.materials) {
+            try {
+                const data = await api('getMaterials');
+                if (currentViewID !== viewID) return;
+                state.materials = data;
+                cache.materials = JSON.stringify(data);
+            } catch(e) {}
+        } else {
+            state.materials = JSON.parse(cache.materials);
+        }
+        
+        renderMaterialList(mode);
+    }
+
+    async function refreshMaterials(mode) {
+        cache.materials = null;
+        await renderInventory(document.getElementById('contentArea'), mode, currentViewID);
+        showToast('อัปเดตข้อมูลสำเร็จ', 'success');
     }
 
     function renderMaterialList(mode) {
-      const container = document.getElementById('inventoryContainer');
-      if (!container) return; 
+        const container = document.getElementById('inventoryContainer');
+        if (!container) return;
 
-      const searchInput = document.getElementById('searchInput');
-      const txt = searchInput ? searchInput.value.toLowerCase() : '';
-      const sortSelect = document.getElementById('sortSelect');
-      const sort = sortSelect ? sortSelect.value : 'newest';
-      
-      let list = state.materials.filter(m=>m.name.toLowerCase().includes(txt));
-      if(sort==='qty_asc') list.sort((a,b)=>a.qty-b.qty); else list.sort((a,b)=>b.material_id.localeCompare(a.material_id));
-      
-      const { currentPage, itemsPerPage } = state.pagination;
-      const start = (currentPage-1)*itemsPerPage;
-      const paginated = list.slice(start, start+itemsPerPage);
-      state.pagination.totalPages = Math.ceil(list.length/itemsPerPage);
-      
-      const pageInfo = document.getElementById('pageInfo');
-      if(pageInfo) pageInfo.innerText = `แสดง ${list.length?start+1:0}-${Math.min(start+itemsPerPage, list.length)} จาก ${list.length}`;
-      
-      const pagControls = document.getElementById('paginationControls');
-      if(pagControls) renderPaginationControls(mode);
-      
-      if(!paginated.length) { container.innerHTML = '<p class="text-center text-gray-400 py-10">ไม่พบข้อมูล</p>'; return; }
+        const searchInput = document.getElementById('searchInput');
+        const txt = searchInput ? searchInput.value.toLowerCase() : '';
+        
+        // Filter and Sort (Highest Qty First)
+        const filtered = state.materials
+            .filter(m => m.name.toLowerCase().includes(txt))
+            .sort((a,b) => b.qty - a.qty);
+        
+        if (filtered.length === 0) {
+            container.innerHTML = `
+                <div class="col-span-full py-20 flex flex-col items-center justify-center text-gray-400 bg-white rounded-2xl border border-gray-200 border-dashed">
+                    <i class="fas fa-box-open text-6xl mb-4 text-gray-300"></i>
+                    <p class="text-xl font-bold text-gray-500">ไม่พบรายการวัสดุ</p>
+                    <p class="text-sm mt-1">ลองเปลี่ยนคำค้นหา หรือเพิ่มวัสดุใหม่</p>
+                </div>`;
+            return;
+        }
 
-      const isAdmin = state.user.role === 'admin';
-      const perms = state.user.permissions || [];
-      const canManage = isAdmin || perms.includes('manage_material');
+        const isAdmin = (state.user.role||'').toLowerCase() === 'admin';
+        const perms = state.user.permissions || [];
+        const canManage = isAdmin || perms.includes('manage_material');
 
-      container.innerHTML = `<div class="grid grid-cols-1 md:grid-cols-3 gap-6">` + paginated.map(m => `
-        <div class="bg-white rounded-xl shadow-sm hover:shadow-md transition flex flex-col border overflow-hidden">
-          <div class="h-40 bg-gray-100 relative"><img src="${m.image_url||'https://via.placeholder.com/300'}" class="w-full h-full object-cover"></div>
-          <div class="p-4 flex-1"><h4 class="font-bold mb-1 line-clamp-1">${m.name}</h4><div class="flex justify-between items-end"><span class="text-xs text-gray-400">${formatDate(m.last_import_date||m.last_withdraw_date).split(' ')[0]}</span><span class="text-xl font-bold text-indigo-600">${m.qty}</span></div></div>
-          ${mode==='view'&&canManage?`<div class="border-t p-2 flex gap-2"><button onclick='openMaterialModal(${JSON.stringify(m)})' class="flex-1 py-1 text-xs border rounded hover:bg-gray-100">แก้ไข</button><button onclick="deleteMaterial('${m.material_id}')" class="flex-1 py-1 text-xs border rounded text-red-500 hover:bg-red-50">ลบ</button></div>`:
-            `<button onclick='openTransModal("${mode}",${JSON.stringify(m)})' class="w-full py-3 text-white font-bold ${mode==='import'?'bg-emerald-500':'bg-rose-500'}">${mode==='import'?'นำเข้า':'เบิกออก'}</button>`}
-        </div>`).join('') + `</div>`;
+        container.innerHTML = filtered.map(m => {
+            const isLow = parseInt(m.qty) < 5;
+            const isOut = parseInt(m.qty) === 0;
+            let statusBadge = '';
+            if (isOut) statusBadge = `<div class="absolute top-3 right-3 bg-red-600 text-white text-[10px] font-black px-3 py-1 rounded-full shadow-lg">หมด!</div>`;
+            else if (isLow) statusBadge = `<div class="absolute top-3 right-3 bg-amber-500 text-white text-[10px] font-black px-3 py-1 rounded-full shadow-lg">ใกล้หมด</div>`;
+
+            return `
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-xl transition-all duration-300 flex flex-col group relative">
+                <!-- Image Area -->
+                <div class="h-44 bg-white relative overflow-hidden border-b border-gray-100 p-2 flex items-center justify-center">
+                    <img src="${m.image_url || 'https://via.placeholder.com/400x300?text=No+Image'}" class="max-w-full max-h-full object-contain transition-transform duration-700 group-hover:scale-105" onerror="this.src='https://via.placeholder.com/400x300?text=Image+Error'">
+                    ${statusBadge}
+                </div>
+                
+                <!-- Content Area -->
+                <div class="p-5 flex-1 flex flex-col">
+                    <h4 class="font-bold text-gray-800 text-base line-clamp-2 mb-3 h-12 leading-tight" title="${m.name}">${m.name}</h4>
+                    <div class="mt-auto flex justify-between items-end">
+                        <div>
+                            <span class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Stock ID</span>
+                            <span class="text-xs font-mono font-medium bg-gray-100 text-gray-600 px-2 py-1 rounded-md border border-gray-200">#${m.material_id.slice(-5)}</span>
+                        </div>
+                        <div class="text-right">
+                            <span class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Quantity</span>
+                            <span class="text-3xl font-black ${isOut ? 'text-red-500' : 'text-blue-600'} leading-none">${m.qty}</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Action Area -->
+                <div class="p-4 border-t border-gray-100 bg-gray-50/50">
+                    ${mode === 'view' && canManage ? 
+                    `<div class="flex gap-3">
+                        <button onclick='openMaterialModal(${JSON.stringify(m)})' class="flex-1 py-2.5 text-xs bg-white border border-gray-300 rounded-xl text-gray-700 hover:text-blue-600 hover:border-blue-400 font-bold transition shadow-sm">แก้ไข</button>
+                        <button onclick="deleteMaterial('${m.material_id}')" class="flex-1 py-2.5 text-xs bg-white border border-gray-300 rounded-xl text-gray-700 hover:text-red-600 hover:border-red-400 font-bold transition shadow-sm">ลบ</button>
+                    </div>` : 
+                    `<button onclick='openTransModal("${mode}", ${JSON.stringify(m)})' class="w-full py-3 text-sm font-bold text-white rounded-xl shadow-md transition transform active:scale-95 ${mode==='import' ? 'bg-emerald-500 hover:bg-emerald-600' : 'bg-rose-500 hover:bg-rose-600'}">
+                        ${mode === 'import' ? '<i class="fas fa-plus-circle mr-2"></i> นำเข้าสต๊อก' : '<i class="fas fa-minus-circle mr-2"></i> เบิกใช้งาน'}
+                    </button>`}
+                </div>
+            </div>
+        `}).join('');
     }
 
-    // --- REPORTS ---
-    async function renderReports(c) {
-      if(!c) return;
-      c.innerHTML = `<div class="flex flex-col md:flex-row justify-between mb-6 fade-in gap-4">
-        <h2 class="text-2xl font-bold">รายงาน</h2>
-        <div class="flex gap-2 items-center">
-            <span class="text-sm font-bold">วันที่:</span>
-            <input type="date" id="filterStartDate" class="border p-1 rounded text-sm" onchange="filterReports()">
-            <span>-</span>
-            <input type="date" id="filterEndDate" class="border p-1 rounded text-sm" onchange="filterReports()">
-            <button onclick="exportCSV()" class="px-3 py-1 bg-slate-800 text-white rounded">CSV</button>
-            <button onclick="exportPDF()" class="px-3 py-1 bg-red-600 text-white rounded">PDF</button>
-        </div>
-      </div>
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 h-[calc(100vh-180px)]">
-        <div class="bg-white rounded-xl shadow-sm border flex flex-col"><div class="p-4 border-b bg-rose-50 font-bold text-rose-700">ประวัติการเบิก</div><div class="overflow-y-auto flex-1" id="withdrawLog"></div></div>
-        <div class="bg-white rounded-xl shadow-sm border flex flex-col"><div class="p-4 border-b bg-emerald-50 font-bold text-emerald-700">ประวัติการนำเข้า</div><div class="overflow-y-auto flex-1" id="importLog"></div></div>
-      </div>`;
-      try {
-        state.reports = await api('getReports');
-        filterReports(); // Call filter initially
-      } catch(e) {}
+    // --- 8. VIEW: REPORTS ---
+    async function renderReports(c, viewID) {
+        if(currentViewID !== viewID) return;
+        c.innerHTML = `
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4 fade-in">
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center shadow-sm">
+                        <i class="fas fa-file-invoice text-2xl"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-800">รายงานประวัติ</h2>
+                        <p class="text-xs text-gray-500 font-medium">ประวัติการนำเข้าและเบิกออกย้อนหลัง</p>
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap gap-3 items-center bg-white p-2.5 rounded-2xl shadow-sm border border-gray-200">
+                    <div class="flex items-center bg-gray-50 rounded-xl border border-gray-200 p-1">
+                        <span class="text-xs font-bold text-gray-500 px-2 hidden sm:inline"><i class="fas fa-calendar-alt mr-1"></i> ช่วงวันที่</span>
+                        <input type="date" id="filterStartDate" class="text-sm font-medium border-none bg-transparent outline-none focus:ring-0" onchange="filterReports()">
+                        <span class="text-gray-300 font-bold mx-1">-</span>
+                        <input type="date" id="filterEndDate" class="text-sm font-medium border-none bg-transparent outline-none focus:ring-0 pr-2" onchange="filterReports()">
+                    </div>
+                    <div class="h-8 w-px bg-gray-200 mx-1 hidden sm:block"></div>
+                    <button onclick="exportCSV()" class="px-4 py-2.5 bg-gray-800 hover:bg-gray-900 text-white rounded-xl text-xs font-bold shadow-md transition flex items-center gap-2 transform active:scale-95"><i class="fas fa-file-csv text-base"></i> CSV</button>
+                    <button onclick="exportPDF()" class="px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold shadow-md transition flex items-center gap-2 transform active:scale-95"><i class="fas fa-file-pdf text-base"></i> PDF</button>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 h-[calc(100vh-220px)] fade-in">
+                <!-- Withdraw Log -->
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-200 flex flex-col overflow-hidden">
+                    <div class="p-5 bg-rose-50 border-b border-rose-100 flex justify-between items-center">
+                        <span class="font-bold text-rose-700 text-lg flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-full bg-rose-200 flex items-center justify-center"><i class="fas fa-arrow-down"></i></div>
+                            ประวัติการเบิกออก
+                        </span>
+                        <span class="text-xs font-bold text-rose-500 bg-white border border-rose-200 px-3 py-1 rounded-full uppercase tracking-wider shadow-sm">Withdraw</span>
+                    </div>
+                    <div class="overflow-y-auto flex-1 p-0" id="withdrawLog"><div class="loader mx-auto mt-16"></div></div>
+                </div>
+                
+                <!-- Import Log -->
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-200 flex flex-col overflow-hidden">
+                    <div class="p-5 bg-emerald-50 border-b border-emerald-100 flex justify-between items-center">
+                        <span class="font-bold text-emerald-700 text-lg flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-full bg-emerald-200 flex items-center justify-center"><i class="fas fa-arrow-up"></i></div>
+                            ประวัติการนำเข้า
+                        </span>
+                        <span class="text-xs font-bold text-emerald-500 bg-white border border-emerald-200 px-3 py-1 rounded-full uppercase tracking-wider shadow-sm">Import</span>
+                    </div>
+                    <div class="overflow-y-auto flex-1 p-0" id="importLog"><div class="loader mx-auto mt-16"></div></div>
+                </div>
+            </div>
+        `;
+        
+        try {
+            const data = await api('getReports');
+            if (currentViewID !== viewID) return;
+            state.reports = data;
+            filterReports();
+        } catch(e) {}
     }
 
     function filterReports() {
-        const startEl = document.getElementById('filterStartDate');
-        const endEl = document.getElementById('filterEndDate');
-        if (!startEl || !endEl) return; 
+        const startStr = document.getElementById('filterStartDate')?.value;
+        const endStr = document.getElementById('filterEndDate')?.value;
+        const s = startStr ? new Date(startStr) : null;
+        const e = endStr ? new Date(endStr) : null;
+        if(e) e.setHours(23, 59, 59);
 
-        const startStr = startEl.value;
-        const endStr = endEl.value;
-        const startDate = startStr ? new Date(startStr) : null;
-        const endDate = endStr ? new Date(endStr) : null;
-        if(endDate) endDate.setHours(23, 59, 59);
-
-        const filterFn = (item) => {
-            if(!startDate && !endDate) return true;
-            const itemDate = new Date(item.timestamp);
-            if(startDate && itemDate < startDate) return false;
-            if(endDate && itemDate > endDate) return false;
+        const filterFn = (i) => {
+            if(!s && !e) return true;
+            const d = new Date(i.timestamp);
+            if(s && d < s) return false;
+            if(e && d > e) return false;
             return true;
         };
 
-        const renderLog = (data, type, color) => {
-          const filtered = data.filter(filterFn);
-          if(!filtered.length) return '<p class="p-4 text-center text-gray-400">ไม่มีข้อมูลในช่วงเวลานี้</p>';
-          return `<table class="w-full text-sm text-left"><thead class="bg-gray-50 sticky top-0"><tr><th class="p-3">เวลา</th><th class="p-3">รายการ</th><th class="p-3 text-right">จำนวน</th><th class="p-3 text-center">หลักฐาน</th></tr></thead><tbody>` +
-          filtered.map(r => {
-            const hasProof = r.proof_url && r.proof_url.length > 5;
-            const canUpload = r.user_name === state.user.fullname && r.transaction_id;
-            let proofBtn = '-';
-            if (hasProof) proofBtn = `<a href="${r.proof_url}" target="_blank" class="text-indigo-600 hover:underline">ดูรูป</a>`;
-            else if (canUpload) proofBtn = `<button onclick="openProofModal('${r.transaction_id}', '${type}')" class="text-xs bg-gray-100 px-2 py-1 rounded hover:bg-gray-200">แนบรูป</button>`;
-            return `<tr class="border-b hover:bg-gray-50"><td class="p-3 text-xs text-gray-500">${formatDate(r.timestamp)}<br>${r.user_name}</td><td class="p-3">${r.material_name}</td><td class="p-3 text-right font-bold ${color}">${r.qty}</td><td class="p-3">${proofBtn}</td></tr>`;
-          }).join('') + `</tbody></table>`;
+        const renderLog = (data, colorTextClass) => {
+            const filtered = data.filter(filterFn);
+            if (!filtered.length) return `
+                <div class="flex flex-col items-center justify-center h-full py-20 text-gray-400">
+                    <div class="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mb-4 border border-gray-100"><i class="fas fa-clipboard-list text-3xl opacity-50"></i></div>
+                    <p class="text-sm font-bold text-gray-500">ไม่มีข้อมูลประวัติในช่วงเวลานี้</p>
+                </div>`;
+            
+            return `<table class="w-full text-sm text-left">
+                <thead class="bg-gray-50 text-gray-500 font-bold sticky top-0 border-b border-gray-200 text-xs uppercase tracking-wider shadow-sm z-10">
+                    <tr>
+                        <th class="p-4 pl-6">วันที่ทำรายการ</th>
+                        <th class="p-4">รายการวัสดุ</th>
+                        <th class="p-4 text-right pr-6">จำนวน</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">` +
+                filtered.map(r => `
+                    <tr class="hover:bg-gray-50 transition group">
+                        <td class="p-4 pl-6">
+                            <div class="font-bold text-gray-800 text-sm mb-1">${formatDate(r.timestamp).split(' ')[0]} <span class="text-[10px] text-gray-400 font-medium ml-1 bg-gray-100 px-1.5 py-0.5 rounded">${formatDate(r.timestamp).split(' ')[1]}</span></div>
+                            <div class="text-xs text-gray-500 font-medium flex items-center gap-1.5"><i class="fas fa-user-circle text-gray-400 text-sm"></i> ${r.user_name}</div>
+                        </td>
+                        <td class="p-4">
+                            <span class="text-sm text-gray-700 font-bold bg-white border border-gray-200 px-3 py-1.5 rounded-lg shadow-sm">${r.material_name}</span>
+                        </td>
+                        <td class="p-4 pr-6 text-right">
+                            <span class="font-black ${colorTextClass} text-xl bg-white px-3 py-1 rounded-lg shadow-sm border border-gray-100">${r.qty}</span>
+                        </td>
+                    </tr>
+                `).join('') + `</tbody></table>`;
         };
+
+        if(document.getElementById('withdrawLog')) document.getElementById('withdrawLog').innerHTML = renderLog(state.reports.withdraw, 'text-rose-600');
+        if(document.getElementById('importLog')) document.getElementById('importLog').innerHTML = renderLog(state.reports.import, 'text-emerald-600');
+    }
+
+    // --- 9. VIEW: USERS (ADMIN ONLY) ---
+    async function renderUsers(c, viewID) {
+        if ((state.user.role||'').toLowerCase() !== 'admin') return c.innerHTML = permissionDeniedHTML();
+        if (currentViewID !== viewID) return;
         
-        const wLog = document.getElementById('withdrawLog');
-        if(wLog) wLog.innerHTML = renderLog(state.reports.withdraw, 'withdraw', 'text-rose-600');
-        const iLog = document.getElementById('importLog');
-        if(iLog) iLog.innerHTML = renderLog(state.reports.import, 'import', 'text-emerald-600');
+        c.innerHTML = `
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden fade-in flex flex-col h-full">
+                <div class="p-5 border-b bg-gray-50 flex flex-col sm:flex-row justify-between items-center gap-4">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center shadow-sm"><i class="fas fa-users-cog text-2xl"></i></div>
+                        <div>
+                            <h3 class="font-bold text-gray-800 text-xl leading-tight">จัดการผู้ใช้งานระบบ</h3>
+                            <p class="text-xs text-gray-500 font-medium">อนุมัติและกำหนดสิทธิ์ผู้ใช้งาน</p>
+                        </div>
+                    </div>
+                    <button onclick="renderUsers(document.getElementById('contentArea'), '${viewID}')" class="text-gray-600 hover:text-indigo-600 transition bg-white border border-gray-300 px-4 py-2.5 rounded-xl text-sm font-bold shadow-sm flex items-center gap-2 transform active:scale-95"><i class="fas fa-sync-alt"></i> โหลดข้อมูลใหม่</button>
+                </div>
+                <div class="overflow-x-auto flex-1">
+                    <table class="w-full text-left text-sm">
+                        <thead class="bg-white text-gray-500 font-bold border-b border-gray-200 text-xs uppercase tracking-wider sticky top-0 shadow-sm z-10">
+                            <tr><th class="p-4 pl-6">บัญชีผู้ใช้งาน</th><th class="p-4">กลุ่มงาน</th><th class="p-4 text-center">สิทธิ์เข้าใช้งาน</th><th class="p-4 text-center">ระดับผู้ใช้</th><th class="p-4 text-right pr-6">การตั้งค่า</th></tr>
+                        </thead>
+                        <tbody id="userTableBody" class="divide-y divide-gray-100">
+                            <tr><td colspan="5" class="p-20 text-center"><div class="loader mx-auto"></div></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>`;
+        
+        try {
+            const users = await api('getUsers');
+            if (currentViewID !== viewID) return;
+            cache.users = users; 
+            
+            const tbody = document.getElementById('userTableBody');
+            if(!tbody) return;
+            
+            tbody.innerHTML = users.map(u => {
+                const isApproved = u.status === 'approved';
+                return `
+                <tr class="hover:bg-blue-50/30 transition group">
+                    <td class="p-4 pl-6">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center font-bold shadow-inner border border-gray-200">${u.fullname.charAt(0)}</div>
+                            <div>
+                                <div class="font-bold text-gray-800 text-base">${u.fullname}</div>
+                                <div class="text-xs text-gray-500 font-mono mt-0.5"><i class="fas fa-at text-[10px]"></i>${u.username}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="p-4">
+                        <span class="bg-gray-100 text-gray-600 border border-gray-200 px-3 py-1 rounded-lg text-xs font-bold shadow-sm">${u.group}</span>
+                    </td>
+                    <td class="p-4 text-center">
+                        <div class="flex flex-col items-center justify-center">
+                            <label class="relative inline-flex items-center cursor-pointer group/switch">
+                              <input type="checkbox" class="sr-only peer toggle-checkbox" ${isApproved ? 'checked' : ''} onchange="toggleUserStatus('${u.user_id}', this.checked)">
+                              <div class="w-12 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all toggle-label shadow-inner group-hover/switch:shadow-md"></div>
+                            </label>
+                            <span class="text-[10px] mt-1.5 font-black uppercase tracking-wider ${isApproved ? 'text-emerald-600' : 'text-amber-500'}">${isApproved ? 'อนุญาตแล้ว' : 'รอตรวจสอบ'}</span>
+                        </div>
+                    </td>
+                    <td class="p-4 text-center"><span class="px-3 py-1.5 rounded-lg text-[10px] font-black ${u.role==='admin'?'bg-purple-100 text-purple-700 border border-purple-200':'bg-blue-100 text-blue-700 border border-blue-200'} uppercase tracking-widest shadow-sm">${u.role}</span></td>
+                    <td class="p-4 text-right pr-6">
+                        <button onclick='openPermModal(${JSON.stringify(u)})' class="text-indigo-600 bg-white border border-indigo-200 hover:bg-indigo-50 hover:border-indigo-400 px-4 py-2 rounded-xl text-xs font-bold shadow-sm transition transform active:scale-95"><i class="fas fa-user-shield mr-1"></i> กำหนดสิทธิ์</button>
+                    </td>
+                </tr>`;
+            }).join('');
+        } catch(e) {}
     }
 
-    // --- USERS ---
-    async function renderUsers(c) {
-      if(!c) return;
-      if (state.user.role !== 'admin') return c.innerHTML = '<div class="p-10 text-center text-gray-400">Access Denied</div>';
-      c.innerHTML = `
-        <div class="bg-white rounded-xl shadow-sm border overflow-hidden fade-in">
-            <table class="w-full text-left text-sm">
-                <thead class="bg-gray-50 border-b"><tr><th class="p-4">User</th><th class="p-4">Name</th><th class="p-4">Status</th><th class="p-4">Role</th><th class="p-4">Action</th></tr></thead>
-                <tbody id="userTableBody"></tbody>
-            </table>
-        </div>`;
-      
-      const users = await api('getUsers');
-      cache.users = users; // Update local cache
-      
-      const tbody = document.getElementById('userTableBody');
-      if (!tbody) return; 
-
-      tbody.innerHTML = users.map(u => `
-        <tr class="border-b hover:bg-gray-50">
-            <td class="p-4 font-bold">${u.username}</td>
-            <td class="p-4">${u.fullname}<br><span class="text-xs text-gray-400">${u.group}</span></td>
-            <td class="p-4"><span class="px-2 py-1 rounded text-xs ${u.status==='approved'?'bg-green-100 text-green-800':u.status==='pending'?'bg-yellow-100':'bg-red-100'}">${u.status}</span></td>
-            <td class="p-4 uppercase text-xs font-bold">${u.role}</td>
-            <td class="p-4">
-                ${u.status === 'pending' ? 
-                `<button onclick="updateUser('${u.user_id}', 'approved')" class="text-green-600 mr-2">อนุมัติ</button><button onclick="updateUser('${u.user_id}', 'rejected')" class="text-red-600">ปฏิเสธ</button>` : 
-                `<button onclick='openPermModal(${JSON.stringify(u)})' class="text-blue-600 bg-blue-50 px-3 py-1 rounded text-xs font-bold shadow-sm">กำหนดสิทธิ์</button>`}
-            </td>
-        </tr>`).join('');
+    async function toggleUserStatus(uid, isChecked) {
+        const status = isChecked ? 'approved' : 'pending';
+        try {
+            await api('updateUserStatus', { user_id: uid, status: status });
+            showToast(`เปลี่ยนสถานะเป็น: ${status === 'approved' ? 'อนุมัติแล้ว' : 'รอตรวจสอบ'}`, 'success');
+        } catch(e) {
+            renderUsers(document.getElementById('contentArea'), currentViewID); // Refresh to revert visual toggle on error
+        }
     }
 
-    // --- PERMISSION MODAL ---
+    // --- 10. MODAL LOGIC & FORMS ---
+    function clearModal(prefix) {
+        const fileInput = document.getElementById(prefix + 'ImgFile');
+        if (fileInput) fileInput.value = '';
+        const preview = document.getElementById(prefix + 'Preview');
+        if (preview) { preview.style.backgroundImage = ''; preview.classList.add('hidden'); }
+        const placeholder = document.getElementById(prefix + 'Placeholder');
+        if (placeholder) placeholder.classList.remove('hidden');
+    }
+
+    function openMaterialModal(m) {
+        document.getElementById('materialForm').reset();
+        clearModal('mat');
+        toggleImgInput('file', 'mat'); // default to file upload UI
+        
+        if (m) {
+            document.getElementById('matId').value = m.material_id;
+            document.getElementById('matName').value = m.name;
+            // Optionally set image preview if m.image_url exists
+        } else {
+            document.getElementById('matId').value = '';
+        }
+        document.getElementById('materialModal').classList.remove('hidden');
+    }
+
+    function openTransModal(type, m) {
+        document.getElementById('transForm').reset();
+        document.getElementById('transType').value = type;
+        document.getElementById('transMatId').value = m.material_id;
+        document.getElementById('transMatName').value = m.name;
+        
+        document.getElementById('transMatNameDisplay').innerText = m.name;
+        document.getElementById('transCurrentQty').innerText = m.qty;
+        document.getElementById('transImgPreview').src = m.image_url || 'https://via.placeholder.com/150?text=No+Image';
+        document.getElementById('transDate').valueAsDate = new Date();
+        
+        const isImport = type === 'import';
+        document.getElementById('transModalTitle').innerHTML = isImport ? '<i class="fas fa-truck-loading text-emerald-500 mr-2"></i> นำเข้าสต๊อก' : '<i class="fas fa-hand-holding text-rose-500 mr-2"></i> เบิกวัสดุ';
+        
+        const btn = document.getElementById('btnTransSubmit');
+        btn.className = `w-full py-4 rounded-xl font-bold text-white shadow-lg transition transform active:scale-95 text-lg ${isImport ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-rose-600 hover:bg-rose-700'}`;
+        btn.innerHTML = isImport ? '<i class="fas fa-check-circle mr-2"></i> ยืนยันการนำเข้า' : '<i class="fas fa-check-circle mr-2"></i> ยืนยันการเบิก';
+        
+        document.getElementById('importFields').classList.toggle('hidden', !isImport);
+        document.getElementById('transModal').classList.remove('hidden');
+    }
+
     function openPermModal(u) {
-        // Fix for Permission Data Types
         let perms = [];
         try { 
-           if (Array.isArray(u.permissions)) perms = u.permissions;
-           else if (typeof u.permissions === 'string') perms = JSON.parse(u.permissions);
+            if(Array.isArray(u.permissions)) perms = u.permissions;
+            else if(typeof u.permissions === 'string') perms = JSON.parse(u.permissions);
         } catch(e) { perms = []; }
         
         document.getElementById('permUserName').innerText = u.fullname;
         document.getElementById('permUserInitials').innerText = u.fullname.charAt(0);
         document.getElementById('permUserId').value = u.user_id;
         
-        document.getElementById('perm_view_stock').checked = true; 
+        document.getElementById('perm_view_stock').checked = true;
         document.getElementById('perm_withdraw_material').checked = perms.includes('withdraw_material');
         document.getElementById('perm_import_material').checked = perms.includes('import_material');
         document.getElementById('perm_manage_material').checked = perms.includes('manage_material');
         
         document.getElementById('userPermModal').classList.remove('hidden');
     }
-    
+
     async function savePermissions() {
         const uid = document.getElementById('permUserId').value;
-        const p = ['view_stock'];
+        const p = ['view_stock']; // Default base permission
         if(document.getElementById('perm_withdraw_material').checked) p.push('withdraw_material');
         if(document.getElementById('perm_import_material').checked) p.push('import_material');
         if(document.getElementById('perm_manage_material').checked) p.push('manage_material');
         
-        await api('updateUserStatus', { user_id: uid, permissions: p });
-        closeModal('userPermModal');
-        
-        // Fix 1: Force Clear Cache & Reload
-        cache.users = null;
-        renderUsers(document.getElementById('contentArea'));
-        showToast('บันทึกสิทธิ์เรียบร้อย');
+        try {
+            await api('updateUserStatus', { user_id: uid, permissions: p });
+            closeModal('userPermModal');
+            showToast('บันทึกการตั้งค่าสิทธิ์ผู้ใช้งานเรียบร้อย', 'success');
+            // Background refresh without blocking UI
+            api('getUsers').then(u => cache.users = u);
+        } catch(e){}
     }
 
-    function openMaterialModal(m){ document.getElementById('materialForm').reset(); toggleImgInput('file', 'mat'); if(m){document.getElementById('matId').value=m.material_id;document.getElementById('matName').value=m.name;document.getElementById('matImgUrl').value=m.image_url;}else{document.getElementById('matId').value='';} document.getElementById('materialModal').classList.remove('hidden'); }
-    function openTransModal(type, m){ 
-      document.getElementById('transForm').reset(); 
-      document.getElementById('transType').value=type; document.getElementById('transMatId').value=m.material_id; 
-      document.getElementById('transMatName').value=m.name; document.getElementById('transMatNameDisplay').innerText=m.name; 
-      document.getElementById('transCurrentQty').innerText=m.qty; document.getElementById('transImgPreview').src=m.image_url;
-      document.getElementById('transDate').valueAsDate = new Date(); 
-      const isImport = type==='import';
-      document.getElementById('transModalTitle').innerText = isImport?'นำเข้าสต๊อก':'เบิกวัสดุ';
-      document.getElementById('btnTransSubmit').className = `w-full py-3 rounded-lg font-bold text-white shadow-md ${isImport?'bg-emerald-600':'bg-rose-600'}`;
-      document.getElementById('importFields').classList.toggle('hidden', !isImport);
-      document.getElementById('transModal').classList.remove('hidden'); 
-    }
-    function openProofModal(txId, type) { document.getElementById('proofForm').reset(); document.getElementById('proofTxId').value = txId; document.getElementById('proofType').value = type; document.getElementById('proofModal').classList.remove('hidden'); }
-
-    // --- FORM SUBMITS ---
+    // --- FORM SUBMIT ACTIONS ---
     document.getElementById('materialForm').onsubmit = async (e) => {
-      e.preventDefault(); const id = document.getElementById('matId').value; const fileInput = document.getElementById('matImgFile');
-      let payload = { name: document.getElementById('matName').value, image_url: document.getElementById('matImgUrl').value };
-      if (fileInput.files.length > 0) { const r = new FileReader(); payload.image_data = await new Promise(res => { r.onload = evt => res(evt.target.result); r.readAsDataURL(fileInput.files[0]); }); }
-      try { await api(id ? 'updateMaterial' : 'addMaterial', { ...payload, material_id: id }); closeModal('materialModal'); state.materials = await api('getMaterials'); renderMaterialList('view'); showToast('บันทึกสำเร็จ'); } catch(e) {}
+        e.preventDefault();
+        const id = document.getElementById('matId').value;
+        const fileInput = document.getElementById('matImgFile');
+        
+        let payload = { 
+            name: document.getElementById('matName').value, 
+            image_url: document.getElementById('matImgUrl').value 
+        };
+        
+        if (fileInput && fileInput.files.length > 0) {
+            payload.image_data = await compressImage(fileInput.files[0]);
+        }
+        
+        try {
+            await api(id ? 'updateMaterial' : 'addMaterial', { ...payload, material_id: id });
+            closeModal('materialModal');
+            cache.materials = null; // Clear cache to force refresh
+            renderInventory(document.getElementById('contentArea'), 'view', currentViewID);
+            showToast('บันทึกข้อมูลวัสดุสำเร็จ', 'success');
+        } catch(e) {}
     };
 
     document.getElementById('transForm').onsubmit = async (e) => {
-      e.preventDefault(); const type = document.getElementById('transType').value;
-      const dateStr = document.getElementById('transDate').value; const rawRef = document.getElementById('transRef').value;
-      const combinedRef = (type === 'import' && dateStr) ? `[Date: ${dateStr}] ${rawRef}` : rawRef;
-      const fileInput = document.getElementById('transProofFile'); let imageData = null;
-      if (fileInput.files.length > 0) { const r = new FileReader(); imageData = await new Promise(res => { r.onload = evt => res(evt.target.result); r.readAsDataURL(fileInput.files[0]); }); }
-      try {
-        await api(type === 'import' ? 'importMaterial' : 'withdrawMaterial', {
-          material_id: document.getElementById('transMatId').value, material_name: document.getElementById('transMatName').value,
-          qty: document.getElementById('transQty').value, user_name: state.user.fullname, ref_doc: combinedRef, image_data: imageData
-        });
-        closeModal('transModal'); state.materials = await api('getMaterials'); renderMaterialList(type); showToast('ทำรายการสำเร็จ');
-      } catch(e) {}
-    };
-    
-    document.getElementById('proofForm').onsubmit = async (e) => {
-      e.preventDefault(); const fileInput = document.getElementById('proofFile');
-      if (fileInput.files.length > 0) {
-        const r = new FileReader(); const imageData = await new Promise(res => { r.onload = evt => res(evt.target.result); r.readAsDataURL(fileInput.files[0]); });
-        try {
-            await api('uploadProof', { transaction_id: document.getElementById('proofTxId').value, type: document.getElementById('proofType').value, user_name: state.user.fullname, image_data: imageData });
-            closeModal('proofModal'); state.reports = await api('getReports'); renderReports(document.getElementById('contentArea')); showToast('อัปโหลดสำเร็จ');
-        } catch(e) {}
-      } else showToast('เลือกรูปก่อน', 'error');
-    };
-
-    // --- UTILS ---
-    function toggleImgInput(type, prefix) {
-      const f=document.getElementById(prefix+'InputFile'), u=document.getElementById(prefix+'ImgUrl');
-      if(f && u) { if(type==='file'){ f.classList.remove('hidden'); u.classList.add('hidden'); } else { f.classList.add('hidden'); u.classList.remove('hidden'); } }
-    }
-    function previewImage(input, prefix) {
-      if (input.files[0]) { const r = new FileReader(); r.onload = e => { document.getElementById(prefix+'Preview').style.backgroundImage = `url(${e.target.result})`; document.getElementById(prefix+'Preview').classList.remove('hidden'); const ph=document.getElementById(prefix+'Placeholder'); if(ph)ph.classList.add('hidden'); }; r.readAsDataURL(input.files[0]); }
-    }
-    
-    // CAMERA
-    async function openCamera(target) { currentCamTarget = target; document.getElementById('cameraModal').classList.remove('hidden'); try { videoStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: currentFacingMode } }); document.getElementById('cameraVideo').srcObject = videoStream; } catch (e) { alert('Camera Error'); closeCamera(); } }
-    function switchCamera() { if (videoStream) videoStream.getTracks().forEach(t => t.stop()); currentFacingMode = currentFacingMode === 'environment' ? 'user' : 'environment'; openCamera(currentCamTarget); }
-    function closeCamera() { document.getElementById('cameraModal').classList.add('hidden'); if (videoStream) { videoStream.getTracks().forEach(t => t.stop()); videoStream = null; } }
-    function capturePhoto() {
-      const v = document.getElementById('cameraVideo'), c = document.getElementById('cameraCanvas');
-      c.width = 800; c.height = v.videoHeight * (800 / v.videoWidth); c.getContext('2d').drawImage(v, 0, 0, c.width, c.height);
-      const dataUrl = c.toDataURL('image/jpeg', 0.7);
-      fetch(dataUrl).then(r => r.blob()).then(blob => {
-        const f = new File([blob], "cam.jpg", { type: "image/jpeg" }); const dt = new DataTransfer(); dt.items.add(f);
-        let tid = currentCamTarget === 'mat' ? 'matImgFile' : currentCamTarget === 'trans' ? 'transProofFile' : 'proofFile';
-        const el = document.getElementById(tid); if(el) { el.files = dt.files; previewImage(el, currentCamTarget); }
-      });
-      if(currentCamTarget==='mat') toggleImgInput('file', 'mat');
-      closeCamera();
-    }
-
-    // EXPORT
-    function exportCSV() {
-      const data = [...state.reports.withdraw.map(x => ({...x, type: 'withdraw'})), ...state.reports.import.map(x => ({...x, type: 'import'}))];
-      if (data.length === 0) return showToast('ไม่มีข้อมูล');
-      const csv = "\uFEFFDate,Type,Item,Qty,User\n" + data.map(e => `${formatDate(e.timestamp)},${e.type},${e.material_name},${e.qty},${e.user_name}`).join("\n");
-      const link = document.createElement("a"); link.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8;" })); link.download = "report.csv"; document.body.appendChild(link); link.click();
-    }
-    
-    function exportPDF() {
-        // Fix: Auto-detect font from VFS to allow any name
-        const { jsPDF } = window.jspdf;
-        if (!jsPDF) { alert("PDF Library not loaded"); return; }
+        e.preventDefault();
+        const type = document.getElementById('transType').value;
+        const dateStr = document.getElementById('transDate').value;
+        const rawRef = document.getElementById('transRef').value;
+        // Merge date into reference if it's an import transaction
+        const combinedRef = (type === 'import' && dateStr) ? `[Date: ${dateStr}] ${rawRef}` : rawRef;
         
+        try {
+            await api(type === 'import' ? 'importMaterial' : 'withdrawMaterial', {
+                material_id: document.getElementById('transMatId').value,
+                material_name: document.getElementById('transMatName').value,
+                qty: parseInt(document.getElementById('transQty').value),
+                user_name: state.user.fullname,
+                ref_doc: combinedRef
+            });
+            closeModal('transModal');
+            cache.materials = null; // Invalidate caches
+            cache.reports = null; 
+            renderInventory(document.getElementById('contentArea'), type === 'import' ? 'import' : 'withdraw', currentViewID);
+            showToast('ทำรายการเสร็จสมบูรณ์', 'success');
+        } catch(e) {}
+    };
+
+    // --- PDF EXPORT (Corrected TrueType Font Solution) ---
+    function exportPDF() {
+        if (!window.jspdf) { alert("PDF Library not loaded"); return; }
+        const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
         
-        // Auto-detect font name in VFS
-        const vfs = doc.internal.events.publish('addFileToVFS') || window.jspdf.vfs || doc.vfs;
-        let fontName = 'Sarabun'; // Default fallback
+        showToast('กำลังประมวลผลไฟล์ PDF กรุณารอสักครู่...', 'success');
         
-        // Try to register font if VFS exists
-        if (typeof pdfMake !== 'undefined' && pdfMake.vfs && pdfMake.vfs['THSarabunNew.ttf']) {
-             // If we were using pdfMake VFS, we need to bridge it to jsPDF. 
-             // But here we switched to jsPDF + Sarabun-Regular.ttf from CDN
-             // Let's rely on the method below
-        }
-
-        // Method 2: Load font on fly if not present (Reliable)
-        fetch('https://raw.githubusercontent.com/google/fonts/main/ofl/sarabun/Sarabun-Regular.ttf')
-        .then(response => response.blob())
+        // Correct TrueType Font (.ttf) URL required by jsPDF to process Thai unicode
+        const fontUrl = 'https://raw.githubusercontent.com/google/fonts/main/ofl/sarabun/Sarabun-Regular.ttf';
+        
+        fetch(fontUrl)
+        .then(res => {
+            if (!res.ok) throw new Error("Network response was not ok");
+            return res.blob();
+        })
         .then(blob => {
             const reader = new FileReader();
             reader.readAsDataURL(blob);
             reader.onloadend = () => {
-                const base64data = reader.result.split(',')[1];
-                doc.addFileToVFS("Sarabun-Regular.ttf", base64data);
-                doc.addFont("Sarabun-Regular.ttf", "Sarabun", "normal");
-                doc.setFont("Sarabun");
-                
-                doc.text('Stock Report (รายงานสต๊อก)', 14, 20);
-                doc.setFontSize(10);
-                
-                const data = [
-                    ...state.reports.withdraw.map(r => [formatDate(r.timestamp), 'Withdraw', r.material_name, r.qty, r.user_name]),
-                    ...state.reports.import.map(r => [formatDate(r.timestamp), 'Import', r.material_name, r.qty, r.user_name])
-                ];
-                
-                doc.autoTable({
-                    head: [['Date', 'Type', 'Item', 'Qty', 'User']],
-                    body: data,
-                    startY: 30,
-                    styles: { font: 'Sarabun', fontStyle: 'normal' }
-                });
-                
-                doc.save('stock_report.pdf');
+                try {
+                    // Extract Base64 string from Data URL
+                    const base64 = reader.result.split(',')[1];
+                    
+                    // Inject Font to jsPDF Virtual File System (VFS)
+                    doc.addFileToVFS('Sarabun-Regular.ttf', base64);
+                    doc.addFont('Sarabun-Regular.ttf', 'Sarabun', 'normal');
+                    doc.setFont('Sarabun');
+                    
+                    // Generate Content
+                    doc.setFontSize(16);
+                    doc.text('รายงานประวัติทำรายการ (Stock Report)', 14, 20);
+                    doc.setFontSize(10);
+                    doc.text(`ข้อมูลออกเมื่อ: ${formatDate(new Date())}`, 14, 30);
+                    
+                    const data = [
+                        ...state.reports.withdraw.map(r => [formatDate(r.timestamp).split(' ')[0], 'เบิกออก', r.material_name, r.qty, r.user_name]),
+                        ...state.reports.import.map(r => [formatDate(r.timestamp).split(' ')[0], 'นำเข้า', r.material_name, r.qty, r.user_name])
+                    ];
+                    
+                    doc.autoTable({
+                        head: [['วันที่', 'ประเภท', 'รายการ', 'จำนวน', 'ผู้ทำรายการ']],
+                        body: data,
+                        startY: 35,
+                        styles: { font: 'Sarabun', fontSize: 10 },
+                        headStyles: { fillColor: [79, 70, 229] } // Indigo 600 Color
+                    });
+                    
+                    doc.save('stock_report.pdf');
+                    showToast('ดาวน์โหลดไฟล์ PDF เรียบร้อยแล้ว', 'success');
+                } catch (err) {
+                    console.error("Font Parsing Error:", err);
+                    alert("เกิดข้อผิดพลาดในการใส่ฟอนต์ภาษาไทยลงใน PDF");
+                }
             };
-        }).catch(e => {
-            alert("Cannot load Thai font. PDF will use default font.");
-            // Fallback
+        })
+        .catch(err => {
+            console.error("Font Load Error:", err);
+            alert("ไม่สามารถโหลดฟอนต์ภาษาไทยจาก Server ได้ จะสร้าง PDF ด้วยฟอนต์มาตรฐานแทน (อาจอ่านภาษาไทยไม่ออก)");
+            
+            // Fallback Generation
+            doc.setFont("helvetica");
             const data = [
-                    ...state.reports.withdraw.map(r => [formatDate(r.timestamp), 'Withdraw', r.material_name, r.qty, r.user_name]),
-                    ...state.reports.import.map(r => [formatDate(r.timestamp), 'Import', r.material_name, r.qty, r.user_name])
+                ...state.reports.withdraw.map(r => [formatDate(r.timestamp).split(' ')[0], 'Withdraw', r.material_name, r.qty, r.user_name]),
+                ...state.reports.import.map(r => [formatDate(r.timestamp).split(' ')[0], 'Import', r.material_name, r.qty, r.user_name])
             ];
             doc.autoTable({
                 head: [['Date', 'Type', 'Item', 'Qty', 'User']],
-                body: data
+                body: data,
+                startY: 35
             });
-            doc.save('stock_report.pdf');
+            doc.save('stock_report_fallback.pdf');
         });
     }
 
-    // UTILS
-    async function deleteMaterial(id) { if(confirm('ยืนยันลบ?')) { await api('deleteMaterial', { material_id: id }); state.materials = await api('getMaterials'); renderMaterialList('view'); } }
-    async function updateUser(uid, status) { if(confirm('ยืนยัน?')) { await api('updateUserStatus', { user_id: uid, status }); renderUsers(document.getElementById('contentArea')); } }
-    function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
-    function showToast(msg, type = 'success') { const t = document.getElementById('toast'); t.innerText = msg; t.className = `fixed top-5 right-5 z-[80] p-4 rounded shadow-lg text-white transform transition-all duration-300 translate-y-0 ${type === 'success' ? 'bg-emerald-600' : 'bg-rose-600'}`; t.classList.remove('hidden'); setTimeout(() => t.classList.add('hidden'), 3000); }
-    function formatDate(d) { if (!d) return '-'; const dt = new Date(d); return isNaN(dt) ? '-' : dt.toLocaleDateString('th-TH') + ' ' + dt.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }); }
-    function handleSearch(m) { state.filter.search = document.getElementById('searchInput').value; renderMaterialList(m); }
-    function handleSort() { state.filter.sort = document.getElementById('sortSelect').value; renderMaterialList('view'); }
-    function changePage(d) { state.pagination.currentPage += d; renderMaterialList('view'); }
-    function renderPaginationControls(m) { const el = document.getElementById('paginationControls'); if(el) el.innerHTML = `<button onclick="changePage(-1)" class="px-2 border rounded" ${state.pagination.currentPage===1?'disabled':''}>&lt;</button><span class="px-2 text-sm">${state.pagination.currentPage}/${state.pagination.totalPages}</span><button onclick="changePage(1)" class="px-2 border rounded" ${state.pagination.currentPage===state.pagination.totalPages?'disabled':''}>&gt;</button>`; }
-    function adjQty(d) { const el = document.getElementById('transQty'); el.value = Math.max(1, parseInt(el.value)+d); }
-    
-    function cardSkeleton() { return `<div class="bg-white p-6 rounded-xl shadow-sm h-32 border border-slate-100 animate-pulse"></div>`; }
-    function statCard(title, value, icon, colorClass) {
-      return `
-        <div class="bg-white p-6 rounded-xl shadow-sm border flex items-center justify-between hover:shadow-md transition">
-          <div>
-            <p class="text-gray-500 text-sm mb-1">${title}</p>
-            <p class="text-2xl font-bold text-slate-800">${value}</p>
-          </div>
-          <div class="w-12 h-12 rounded-full ${colorClass} bg-opacity-10 flex items-center justify-center text-${colorClass.split('-')[1]}-600">
-            <i class="${icon} text-xl ${colorClass.replace('bg-', 'text-')}"></i>
-          </div>
-        </div>
-      `;
+    function exportCSV() {
+        const d = [...state.reports.withdraw.map(x=>({...x,type:'withdraw'})),...state.reports.import.map(x=>({...x,type:'import'}))];
+        if (!d.length) return showToast('ไม่มีข้อมูลที่จะส่งออก', 'error');
+        // Add BOM \uFEFF to make Excel read UTF-8 properly
+        const c = "\uFEFFDate,Type,Item,Qty,User\n" + d.map(e => `${formatDate(e.timestamp)},${e.type},${e.material_name},${e.qty},${e.user_name}`).join("\n");
+        const l = document.createElement("a");
+        l.href = URL.createObjectURL(new Blob([c], {type:"text/csv;charset=utf-8;"}));
+        l.download = "stock_report.csv";
+        document.body.appendChild(l); 
+        l.click();
     }
 
+    // --- PDF/CSV EXPORT FOR INVENTORY (ยอดคงเหลือ) ---
+    function exportInventoryPDF() {
+        if (!window.jspdf) { alert("PDF Library not loaded"); return; }
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        
+        showToast('กำลังเตรียมไฟล์ PDF ยอดคงเหลือ...', 'success');
+        
+        const fontUrl = 'https://raw.githubusercontent.com/google/fonts/main/ofl/sarabun/Sarabun-Regular.ttf';
+        
+        fetch(fontUrl)
+        .then(res => {
+            if (!res.ok) throw new Error("Network response was not ok");
+            return res.blob();
+        })
+        .then(blob => {
+            const reader = new FileReader();
+            reader.readAsDataURL(blob);
+            reader.onloadend = () => {
+                try {
+                    const base64 = reader.result.split(',')[1];
+                    doc.addFileToVFS('Sarabun-Regular.ttf', base64);
+                    doc.addFont('Sarabun-Regular.ttf', 'Sarabun', 'normal');
+                    doc.setFont('Sarabun');
+                    
+                    doc.setFontSize(16);
+                    doc.text('รายงานยอดคงเหลือวัสดุ (Inventory Report)', 14, 20);
+                    doc.setFontSize(10);
+                    doc.text(`ข้อมูลออกเมื่อ: ${formatDate(new Date())}`, 14, 30);
+                    
+                    const data = state.materials.map(m => [
+                        m.material_id.slice(-5), 
+                        m.name, 
+                        m.qty.toString(), 
+                        formatDate(m.last_import_date || m.last_withdraw_date).split(' ')[0]
+                    ]);
+                    
+                    doc.autoTable({
+                        head: [['รหัส (ID)', 'ชื่อวัสดุ (Material Name)', 'คงเหลือ (Qty)', 'อัปเดตล่าสุด']],
+                        body: data,
+                        startY: 35,
+                        styles: { font: 'Sarabun', fontSize: 10 },
+                        headStyles: { fillColor: [59, 130, 246] } // Blue-500
+                    });
+                    
+                    doc.save('inventory_report.pdf');
+                    showToast('ดาวน์โหลดไฟล์ PDF เรียบร้อยแล้ว', 'success');
+                } catch (err) {
+                    console.error("Font Parsing Error:", err);
+                    alert("เกิดข้อผิดพลาดในการใส่ฟอนต์ภาษาไทยลงใน PDF");
+                }
+            };
+        })
+        .catch(err => {
+            console.error("Font Load Error:", err);
+            alert("ไม่สามารถโหลดฟอนต์ภาษาไทยจาก Server ได้ จะสร้าง PDF ด้วยฟอนต์มาตรฐานแทน");
+            doc.setFont("helvetica");
+            const data = state.materials.map(m => [m.material_id.slice(-5), m.name, m.qty.toString(), formatDate(m.last_import_date || m.last_withdraw_date).split(' ')[0]]);
+            doc.autoTable({
+                head: [['ID', 'Material Name', 'Qty', 'Last Update']],
+                body: data,
+                startY: 35
+            });
+            doc.save('inventory_report_fallback.pdf');
+        });
+    }
+
+    function exportInventoryCSV() {
+        if (!state.materials || state.materials.length === 0) return showToast('ไม่มีข้อมูลที่จะส่งออก', 'error');
+        // Add BOM \uFEFF to make Excel read UTF-8 properly
+        const c = "\uFEFFStock ID,Material Name,Quantity,Last Update\n" + state.materials.map(m => `${m.material_id.slice(-5)},"${m.name}",${m.qty},${formatDate(m.last_import_date || m.last_withdraw_date).split(' ')[0]}`).join("\n");
+        const l = document.createElement("a");
+        l.href = URL.createObjectURL(new Blob([c], {type:"text/csv;charset=utf-8;"}));
+        l.download = "inventory_report.csv";
+        document.body.appendChild(l); 
+        l.click();
+    }
+
+    // --- UTILITIES ---
+    function toggleImgInput(type, prefix) {
+        const f = document.getElementById(prefix + 'InputFile');
+        const u = document.getElementById(prefix + 'ImgUrl');
+        if (f && u) {
+            if (type === 'file') { f.classList.remove('hidden'); u.classList.add('hidden'); } 
+            else { f.classList.add('hidden'); u.classList.remove('hidden'); }
+        }
+    }
+
+    function previewImage(input, prefix) {
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = e => {
+                const preview = document.getElementById(prefix+'Preview');
+                const placeholder = document.getElementById(prefix+'Placeholder');
+                if(preview) {
+                    preview.style.backgroundImage = `url(${e.target.result})`;
+                    preview.classList.remove('hidden');
+                }
+                if(placeholder) placeholder.classList.add('hidden');
+            };
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+
+    // Compress Image before upload to save bandwidth
+    async function compressImage(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = (event) => {
+                const img = new Image();
+                img.src = event.target.result;
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const maxWidth = 800;
+                    // Prevent upscaling small images
+                    const scaleSize = (img.width > maxWidth) ? (maxWidth / img.width) : 1; 
+                    canvas.width = img.width * scaleSize;
+                    canvas.height = img.height * scaleSize;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    resolve(canvas.toDataURL('image/jpeg', 0.7)); // 70% Quality
+                };
+                img.onerror = reject;
+            };
+            reader.onerror = reject;
+        });
+    }
+
+    async function deleteMaterial(id) { 
+        if(!confirm('คุณแน่ใจหรือไม่ที่จะลบรายการนี้อย่างถาวร?')) return; 
+        await api('deleteMaterial', { material_id: id }); 
+        cache.materials = null; 
+        renderInventory(document.getElementById('contentArea'), 'view', currentViewID); 
+        showToast('ลบรายการสำเร็จ');
+    }
+    
+    function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+    
+    function showToast(msg, type = 'success') { 
+        const t = document.getElementById('toast'); 
+        t.innerHTML = `<i class="fas fa-${type==='success'?'check-circle text-emerald-400':'exclamation-triangle text-rose-400'} text-2xl"></i> <span>${msg}</span>`; 
+        t.className = `fixed top-6 right-6 z-[120] px-6 py-4 rounded-2xl shadow-2xl text-white transform transition-all duration-500 font-bold flex items-center gap-4 ${type === 'success' ? 'bg-slate-800 border-b-4 border-emerald-500' : 'bg-slate-800 border-b-4 border-rose-500'}`; 
+        t.classList.remove('hidden'); 
+        setTimeout(() => { t.classList.add('translate-x-full', 'opacity-0'); setTimeout(()=> { t.classList.add('hidden'); t.classList.remove('translate-x-full', 'opacity-0'); }, 500); }, 3500); 
+    }
+
+    function formatDate(d) { 
+        if (!d) return '-'; 
+        const dt = new Date(d); 
+        return isNaN(dt) ? '-' : dt.toLocaleDateString('th-TH') + ' ' + dt.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }); 
+    }
+    
+    function handleSearch(m) { renderMaterialList(m); }
+    function changePage(d, m) { state.pagination.currentPage += d; renderMaterialList(m); }
+    function adjQty(d) { const el = document.getElementById('transQty'); el.value = Math.max(1, parseInt(el.value)+d); }
+    
+    function cardSkeleton() { 
+        return `<div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 h-32 animate-pulse flex flex-col justify-between"><div class="h-4 bg-gray-200 rounded w-1/2"></div><div class="h-8 bg-gray-200 rounded w-1/3"></div></div>`; 
+    }
+    
+    function statCard(title, value, icon, colorClass) { 
+        return `
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between hover:shadow-md transition">
+            <div>
+                <p class="text-gray-500 text-xs font-bold uppercase tracking-wider mb-2">${title}</p>
+                <p class="text-3xl font-black text-gray-800">${value}</p>
+            </div>
+            <div class="w-14 h-14 rounded-2xl ${colorClass.split(' ')[0]} bg-opacity-20 flex items-center justify-center text-${colorClass.split(' ')[1].split('-')[1]}-600 shadow-sm">
+                <i class="${icon} text-2xl"></i>
+            </div>
+        </div>`; 
+    }
+    
+    function permissionDeniedHTML() { 
+        return `
+        <div class="flex flex-col items-center justify-center h-full text-gray-400 py-20">
+            <div class="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-6 shadow-inner border border-gray-200">
+                <i class="fas fa-lock text-5xl text-gray-300"></i>
+            </div>
+            <h3 class="text-xl font-bold text-gray-700">ไม่มีสิทธิ์เข้าถึงหน้านี้</h3>
+            <p class="text-sm mt-2 text-gray-500">กรุณาติดต่อผู้ดูแลระบบ (Admin) เพื่อขอสิทธิ์</p>
+        </div>`; 
+    }
+
+    // --- CAMERA FUNCS ---
+    async function openCamera(target) { 
+        currentCamTarget = target; 
+        document.getElementById('cameraModal').classList.remove('hidden'); 
+        try { 
+            videoStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: currentFacingMode } }); 
+            document.getElementById('cameraVideo').srcObject = videoStream; 
+        } catch (e) { 
+            alert('ไม่สามารถเข้าถึงกล้องถ่ายรูปได้ โปรดตรวจสอบการอนุญาตของเบราว์เซอร์'); 
+            closeCamera(); 
+        } 
+    }
+    
+    function switchCamera() { 
+        if (videoStream) videoStream.getTracks().forEach(t => t.stop()); 
+        currentFacingMode = currentFacingMode === 'environment' ? 'user' : 'environment'; 
+        openCamera(currentCamTarget); 
+    }
+    
+    function closeCamera() { 
+        document.getElementById('cameraModal').classList.add('hidden'); 
+        if (videoStream) { videoStream.getTracks().forEach(t => t.stop()); videoStream = null; } 
+    }
+    
+    function capturePhoto() { 
+        const v = document.getElementById('cameraVideo');
+        const c = document.getElementById('cameraCanvas'); 
+        const w = 800; 
+        const s = w / v.videoWidth; 
+        const h = v.videoHeight * s; 
+        
+        c.width = w; 
+        c.height = h; 
+        c.getContext('2d').drawImage(v, 0, 0, w, h); 
+        
+        const url = c.toDataURL('image/jpeg', 0.7); 
+        fetch(url).then(r => r.blob()).then(b => {
+            const f = new File([b], "cam.jpg", { type: "image/jpeg" }); 
+            const dt = new DataTransfer(); 
+            dt.items.add(f); 
+            if(document.getElementById('matImgFile')) { 
+                document.getElementById('matImgFile').files = dt.files; 
+                previewImage(document.getElementById('matImgFile'), 'mat'); 
+            }
+        }); 
+        toggleImgInput('file', 'mat'); 
+        closeCamera(); 
+    }
+
+    // Run Initialization
     window.onload = initApp;
   </script>
 </body>
