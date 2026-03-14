@@ -359,9 +359,9 @@
         <div>
           <label class="block text-sm font-bold text-gray-700 mb-3 text-center">ระบุจำนวนที่ต้องการ</label>
           <div class="flex items-center justify-center gap-4">
-             <button type="button" onclick="adjQty(-1)" class="w-14 h-14 rounded-full bg-white hover:bg-gray-100 border-2 border-gray-200 text-gray-600 font-black text-2xl transition shadow-sm">-</button>
-             <input type="number" id="transQty" class="w-24 text-center text-5xl font-black bg-transparent border-none outline-none text-gray-800 focus:ring-0" min="1" value="1" required>
-             <button type="button" onclick="adjQty(1)" class="w-14 h-14 rounded-full bg-white hover:bg-gray-100 border-2 border-gray-200 text-gray-600 font-black text-2xl transition shadow-sm">+</button>
+             <button type="button" onclick="adjQty(-1)" class="w-14 h-14 rounded-full bg-white hover:bg-gray-100 border-2 border-gray-200 text-gray-600 font-black text-2xl transition shadow-sm shrink-0">-</button>
+             <input type="number" id="transQty" class="w-32 text-center text-3xl font-black bg-transparent border-none outline-none text-gray-800 focus:ring-0" min="1" value="1" required>
+             <button type="button" onclick="adjQty(1)" class="w-14 h-14 rounded-full bg-white hover:bg-gray-100 border-2 border-gray-200 text-gray-600 font-black text-2xl transition shadow-sm shrink-0">+</button>
           </div>
         </div>
 
@@ -780,9 +780,9 @@
          
          const total = state.materials.length;
          
-         // Fix Math: outOfStock and low are mutually exclusive now
-         const outOfStock = state.materials.filter(m => parseInt(m.qty||0) === 0).length;
-         const low = state.materials.filter(m => parseInt(m.qty||0) > 0 && parseInt(m.qty||0) < 5).length;
+         // คำนวณจำนวนตามสถานะ
+         const outOfStock = state.materials.filter(m => parseInt(m.qty || 0) === 0).length;
+         const low = state.materials.filter(m => parseInt(m.qty || 0) > 0 && parseInt(m.qty || 0) < 5).length;
          const normal = total - low - outOfStock;
 
          // Calculate True Last Update by finding maximum date
@@ -797,37 +797,44 @@
          
          c.innerHTML = `
             <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6 mb-8 fade-in">
-                ${statCard('รายการทั้งหมด', total, 'fas fa-box', 'bg-blue-100 text-blue-600')}
-                ${statCard('รายการปกติ', normal, 'fas fa-check-circle', 'bg-emerald-100 text-emerald-600')}
-                ${statCard('ใกล้หมด (<150)', low, 'fas fa-exclamation-triangle', 'bg-amber-100 text-amber-600')}
-                ${statCard('หมด ', outOfStock, 'fas fa-times-circle', 'bg-red-100 text-red-600')}
-                ${statCard('อัปเดตล่าสุด', last, 'fas fa-clck', 'bg-purple-100 text-purple-600')}
+                ${statCard('ทั้งหมด', total, 'fas fa-boxes', 'bg-blue-100 text-blue-600')}
+                ${statCard('ปกติ', normal, 'fas fa-check-circle', 'bg-emerald-100 text-emerald-600')}
+                ${statCard('ใกล้หมด', low, 'fas fa-exclamation-triangle', 'bg-amber-100 text-amber-600')}
+                ${statCard('หมด', outOfStock, 'fas fa-times-circle', 'bg-red-100 text-red-600')}
+                ${statCard('อัปเดตล่าสุด', last, 'fas fa-clock', 'bg-purple-100 text-purple-600')}
             </div>
+            
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 fade-in mb-8">
-                <div class="bg-white p-5 md:p-8 rounded-2xl shadow-sm border border-gray-100 lg:col-span-2">
-                    <div class="flex justify-between items-center mb-6">
-                        <h3 class="font-bold text-gray-800 text-lg"><i class="fas fa-arrow-up text-emerald-500 mr-2"></i> วัสดุคงเหลือสูงสุด 5 อันดับ</h3>
+                <!-- TOP 5 Chart -->
+                <div class="bg-white p-5 md:p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-bold text-gray-800 text-base"><i class="fas fa-arrow-up text-emerald-500 mr-2"></i> คงเหลือสูงสุด 5 อันดับ</h3>
                     </div>
-                    <div class="relative h-64 w-full"><canvas id="stockChart"></canvas></div>
+                    <div class="relative flex-1 min-h-[240px] w-full"><canvas id="stockChart"></canvas></div>
                 </div>
-                <div class="bg-white p-5 md:p-8 rounded-2xl shadow-sm border border-gray-100 flex flex-col">
-                    <h3 class="font-bold text-gray-800 text-lg mb-6"><i class="fas fa-chart-pie text-purple-500 mr-2"></i> สถานะความพร้อมสต๊อก</h3>
-                    <div class="relative flex-1 w-full flex items-center justify-center min-h-[200px]"><canvas id="statusChart"></canvas></div>
-                </div>
-            </div>
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 fade-in pb-10">
-                 <div class="bg-white p-5 md:p-8 rounded-2xl shadow-sm border border-gray-100 lg:col-span-2">
-                    <div class="flex justify-between items-center mb-6">
-                        <h3 class="font-bold text-gray-800 text-lg"><i class="fas fa-arrow-down text-rose-500 mr-2"></i> วัสดุคงเหลือน้อยสุด 5 อันดับ</h3>
+                
+                <!-- BOTTOM 5 Chart -->
+                 <div class="bg-white p-5 md:p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-bold text-gray-800 text-base"><i class="fas fa-arrow-down text-rose-500 mr-2"></i> คงเหลือน้อยสุด 5 อันดับ</h3>
                     </div>
-                    <div class="relative h-64 w-full"><canvas id="bottomStockChart"></canvas></div>
+                    <div class="relative flex-1 min-h-[240px] w-full"><canvas id="bottomStockChart"></canvas></div>
+                </div>
+                
+                <!-- STATUS Doughnut -->
+                <div class="bg-white p-5 md:p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col">
+                    <h3 class="font-bold text-gray-800 text-base mb-4"><i class="fas fa-chart-pie text-purple-500 mr-2"></i> สถานะความพร้อมสต๊อก</h3>
+                    <div class="relative flex-1 min-h-[240px] w-full flex items-center justify-center"><canvas id="statusChart"></canvas></div>
                 </div>
             </div>
         `;
             
-         // Initialize Chart.js
-         const top5 = [...state.materials].sort((a,b) => b.qty - a.qty).slice(0, 5);
-         const bottom5 = [...state.materials].sort((a,b) => a.qty - b.qty).slice(0, 5);
+         // จัดเรียงข้อมูลตามจำนวน
+         const sortedByQtyDesc = [...state.materials].sort((a,b) => parseInt(b.qty || 0) - parseInt(a.qty || 0));
+         const sortedByQtyAsc = [...state.materials].sort((a,b) => parseInt(a.qty || 0) - parseInt(b.qty || 0));
+         
+         const top5 = sortedByQtyDesc.slice(0, 5);
+         const bottom5 = sortedByQtyAsc.slice(0, 5);
          
          // TOP 5 Chart
          const ctx1 = document.getElementById('stockChart');
@@ -835,12 +842,12 @@
              stockChartInstance = new Chart(ctx1, { 
                  type: 'bar', 
                  data: { 
-                     labels: top5.map(m => m.name.length > 15 ? m.name.substring(0,15)+'...' : m.name), 
+                     labels: top5.map(m => String(m.name || '').length > 15 ? String(m.name || '').substring(0,15)+'...' : String(m.name || '')), 
                      datasets: [{ 
                          label: 'จำนวนคงเหลือ', 
-                         data: top5.map(m => m.qty), 
-                         backgroundColor: '#3b82f6', 
-                         hoverBackgroundColor: '#2563eb',
+                         data: top5.map(m => parseInt(m.qty || 0)), 
+                         backgroundColor: '#10b981', 
+                         hoverBackgroundColor: '#059669',
                          borderRadius: 6 
                      }] 
                  }, 
@@ -861,10 +868,10 @@
              bottomChartInstance = new Chart(ctxBottom, { 
                  type: 'bar', 
                  data: { 
-                     labels: bottom5.map(m => m.name.length > 15 ? m.name.substring(0,15)+'...' : m.name), 
+                     labels: bottom5.map(m => String(m.name || '').length > 15 ? String(m.name || '').substring(0,15)+'...' : String(m.name || '')), 
                      datasets: [{ 
                          label: 'จำนวนคงเหลือ', 
-                         data: bottom5.map(m => m.qty), 
+                         data: bottom5.map(m => parseInt(m.qty || 0)), 
                          backgroundColor: '#f43f5e', // Rose-500
                          hoverBackgroundColor: '#e11d48',
                          borderRadius: 6 
@@ -1018,7 +1025,8 @@
         
         // Filter
         let filtered = state.materials.filter(m => {
-            const matchName = m.name.toLowerCase().includes(txt);
+            const safeName = String(m.name || '');
+            const matchName = safeName.toLowerCase().includes(txt);
             const q = parseInt(m.qty || 0);
             let matchStatus = true;
             if (status === 'low') matchStatus = q > 0 && q < 5;
@@ -1045,7 +1053,7 @@
         }
 
         container.innerHTML = filtered.map(m => {
-            const isLow = parseInt(m.qty) > 0 && parseInt(m.qty) < 150;
+            const isLow = parseInt(m.qty) > 0 && parseInt(m.qty) < 5;
             const isOut = parseInt(m.qty) === 0;
             let statusBadge = '';
             if (isOut) statusBadge = `<div class="absolute top-3 right-3 bg-red-600 text-white text-[10px] font-black px-3 py-1 rounded-full shadow-lg">หมด!</div>`;
@@ -1214,11 +1222,11 @@
                 filtered.map(r => `
                     <tr class="hover:bg-gray-50 transition group">
                         <td class="p-4 pl-6 align-top">
-                            <div class="font-bold text-gray-800 text-sm mb-1">${formatDate(r.timestamp).split(' ')[0]} <span class="text-[10px] text-gray-400 font-medium ml-1 bg-gray-100 px-1.5 py-0.5 rounded inline-block mt-1 lg:mt-0">${formatDate(r.timestamp).split(' ')[1]}</span></div>
+                            <div class="font-bold text-gray-800 text-sm mb-1">${formatDate(r.timestamp).split(' ')[0]} <span class="text-[10px] text-gray-400 font-medium ml-1 bg-gray-100 px-1.5 py-0.5 rounded inline-block mt-1 lg:mt-0">${formatDate(r.timestamp).split(' ')[1] || ''}</span></div>
                             <div class="text-xs text-gray-500 font-medium flex items-center gap-1.5 truncate"><i class="fas fa-user-circle text-gray-400 text-sm"></i> ${r.user_name}</div>
                         </td>
                         <td class="p-4 align-top">
-                            <div class="text-sm text-gray-700 font-bold bg-white border border-gray-200 px-3 py-1.5 rounded-lg shadow-sm break-words whitespace-normal line-clamp-3 leading-snug">${r.material_name}</div>
+                            <div class="text-sm text-gray-700 font-bold bg-white border border-gray-200 px-3 py-1.5 rounded-lg shadow-sm break-words whitespace-normal leading-snug">${r.material_name}</div>
                         </td>
                         <td class="p-4 pr-6 text-right align-top">
                             <span class="font-black ${colorTextClass} text-xl bg-white px-3 py-1.5 rounded-lg shadow-sm border border-gray-100 inline-block">${r.qty}</span>
@@ -1760,13 +1768,13 @@
     
     function statCard(title, value, icon, colorClass) { 
         return `
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between hover:shadow-md transition">
-            <div>
-                <p class="text-gray-500 text-xs font-bold uppercase tracking-wider mb-2">${title}</p>
-                <p class="text-3xl font-black text-gray-800">${value}</p>
+        <div class="bg-white p-4 md:p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between hover:shadow-md transition">
+            <div class="truncate mr-2 overflow-hidden w-full">
+                <p class="text-gray-500 text-[10px] sm:text-xs font-bold uppercase tracking-wider mb-1 sm:mb-2 truncate">${title}</p>
+                <p class="text-lg sm:text-xl lg:text-2xl font-black text-gray-800 break-words">${value}</p>
             </div>
-            <div class="w-14 h-14 rounded-2xl ${colorClass.split(' ')[0]} bg-opacity-20 flex items-center justify-center text-${colorClass.split(' ')[1].split('-')[1]}-600 shadow-sm">
-                <i class="${icon} text-2xl"></i>
+            <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl ${colorClass.split(' ')[0]} bg-opacity-20 flex items-center justify-center text-${colorClass.split(' ')[1].split('-')[1]}-600 shadow-sm shrink-0">
+                <i class="${icon} text-lg sm:text-xl"></i>
             </div>
         </div>`; 
     }
