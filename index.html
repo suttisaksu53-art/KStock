@@ -238,14 +238,24 @@
       
       <!-- Profile Section (Bottom) -->
       <div class="p-4 border-t border-slate-800 bg-slate-950">
-        <div class="flex items-center gap-3 cursor-pointer hover:opacity-80 transition" onclick="logout()">
+        <div class="flex items-center gap-3 p-2 hover:bg-slate-800 rounded-lg transition cursor-default">
           <div class="w-10 h-10 rounded-full bg-gradient-to-r from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold shadow-md" id="avatarInitials">U</div>
           <div class="flex-1 min-w-0">
             <p class="text-sm font-bold text-white truncate" id="sidebarName">Username</p>
             <p class="text-xs text-slate-400 truncate uppercase" id="sidebarRole">Role</p>
           </div>
-          <i class="fas fa-sign-out-alt text-slate-500 hover:text-red-400 transition" title="ออกจากระบบ"></i>
+          <button onclick="openChangePasswordModal()" class="text-slate-400 hover:text-blue-400 transition p-1" title="เปลี่ยนรหัสผ่าน">
+             <i class="fas fa-key"></i>
+          </button>
+          <button onclick="logout()" class="text-slate-400 hover:text-red-400 transition p-1" title="ออกจากระบบ">
+             <i class="fas fa-sign-out-alt"></i>
+          </button>
         </div>
+      </div>
+      
+      <!-- Credit Footer -->
+      <div class="text-center py-2 bg-slate-950 border-t border-slate-800 pb-4">
+        <span class="text-[10px] text-slate-500 font-medium tracking-widest">Design by AAAMACKY</span>
       </div>
     </aside>
 
@@ -266,6 +276,10 @@
         </div>
         
         <div class="flex items-center gap-3">
+          <!-- Real-time Clock -->
+          <div id="topClock" class="hidden md:flex items-center px-3 py-1.5 bg-gray-100 rounded-full text-xs font-bold text-gray-600 border border-gray-200 shadow-inner">
+             <i class="far fa-clock text-blue-500 mr-2"></i> <span>กำลังโหลด...</span>
+          </div>
           <div class="hidden sm:flex items-center px-4 py-1.5 bg-blue-50 border border-blue-100 rounded-full">
             <i class="fas fa-building text-blue-400 text-xs mr-2"></i>
             <span class="text-sm font-bold text-blue-700" id="headerGroupName">กลุ่มงาน</span>
@@ -445,6 +459,33 @@
     </div>
   </div>
 
+  <!-- 4. CHANGE PASSWORD MODAL -->
+  <div id="changePasswordModal" class="fixed inset-0 bg-black/60 z-[80] hidden flex items-center justify-center p-4 backdrop-blur-sm">
+    <div class="bg-white rounded-2xl w-full max-w-sm shadow-2xl flex flex-col">
+      <div class="p-5 border-b flex justify-between items-center bg-gray-50 rounded-t-2xl">
+        <h3 class="text-lg font-bold text-gray-800"><i class="fas fa-key text-blue-500 mr-2"></i> เปลี่ยนรหัสผ่าน</h3>
+        <button type="button" onclick="closeModal('changePasswordModal')" class="text-gray-400 hover:text-gray-600 transition"><i class="fas fa-times text-xl"></i></button>
+      </div>
+      <form id="changePasswordForm" class="p-6 space-y-4">
+        <div>
+          <label class="block text-sm font-bold text-gray-700 mb-1">รหัสผ่านเดิม</label>
+          <input type="password" id="oldPassword" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition" required>
+        </div>
+        <div>
+          <label class="block text-sm font-bold text-gray-700 mb-1">รหัสผ่านใหม่</label>
+          <input type="password" id="newPassword" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition" required>
+        </div>
+        <div>
+          <label class="block text-sm font-bold text-gray-700 mb-1">ยืนยันรหัสผ่านใหม่</label>
+          <input type="password" id="confirmNewPassword" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition" required>
+        </div>
+        <div class="pt-4 border-t border-gray-100">
+            <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl shadow-lg transition transform active:scale-95">บันทึกรหัสผ่านใหม่</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- ================= JAVASCRIPT LOGIC ================= -->
   <script>
     // --- 1. CONFIGURATION ---
@@ -453,6 +494,7 @@
     
     // --- 2. GLOBAL STATE & CACHE ---
     let currentViewID = ''; // Unique ID to prevent Race Conditions during fast switching
+    let bottomChartInstance; // Added missing global variable
     
     const state = { 
         user: null, 
@@ -464,6 +506,18 @@
     
     const cache = { materials: null, users: null, reports: null };
     let stockChartInstance, statusChartInstance, videoStream, currentFacingMode = 'environment', currentCamTarget = '';
+
+    // --- REALTIME CLOCK ---
+    function updateClock() {
+        const now = new Date();
+        const clockEl = document.getElementById('topClock');
+        if (clockEl) {
+            const timeStr = now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            const dateStr = now.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' });
+            clockEl.innerHTML = `<i class="far fa-clock text-blue-500 mr-2 text-sm"></i> <span>${dateStr} | ${timeStr}</span>`;
+        }
+    }
+    setInterval(updateClock, 1000);
 
     // --- 3. API HANDLER (Robust Fetch) ---
     async function api(action, payload = {}) {
@@ -507,6 +561,8 @@
 
     // --- 4. AUTHENTICATION & INIT ---
     function initApp() {
+        updateClock(); // Init clock immediately
+        
         const savedUserStr = localStorage.getItem('user_session');
         if (savedUserStr) {
             try {
@@ -555,8 +611,8 @@
         e.preventDefault();
         try {
             const user = await api('login', {
-                username: document.getElementById('loginUser').value,
-                password: document.getElementById('loginPass').value
+                username: document.getElementById('loginUser').value.trim(),
+                password: document.getElementById('loginPass').value.trim()
             });
             state.user = user;
             localStorage.setItem('user_session', JSON.stringify(state.user));
@@ -567,18 +623,18 @@
             // Error is handled and toasted inside api()
         }
     };
-    
+
     document.getElementById('registerForm').onsubmit = async (e) => {
         e.preventDefault();
         try {
-            const res = await api('register', {
-                username: document.getElementById('regUser').value,
-                password: document.getElementById('regPass').value,
-                fullname: document.getElementById('regName').value,
-                group: document.getElementById('regGroup').value
+            const res = await api('register', { 
+                username: document.getElementById('regUser').value.trim(), 
+                password: document.getElementById('regPass').value.trim(), 
+                fullname: document.getElementById('regName').value.trim(), 
+                group: document.getElementById('regGroup').value.trim() 
             });
-            showToast(res.message || 'ลงทะเบียนสำเร็จ กรุณารอแอดมินอนุมัติ', 'success');
-            document.getElementById('registerForm').reset();
+            showToast(res.message || 'สมัครสำเร็จ รออนุมัติ', 'success'); 
+            document.getElementById('registerForm').reset(); 
             toggleAuth('login');
         } catch(e) {}
     };
@@ -661,6 +717,7 @@
         // Clean up memory from Chart instances to prevent overlaps
         if (stockChartInstance) { stockChartInstance.destroy(); stockChartInstance = null; }
         if (statusChartInstance) { statusChartInstance.destroy(); statusChartInstance = null; }
+        if (bottomChartInstance) { bottomChartInstance.destroy(); bottomChartInstance = null; }
 
         const container = document.getElementById('contentArea');
         if (!container) return;
@@ -714,42 +771,66 @@
          if(currentViewID !== viewID || !document.contains(c)) return;
          
          const total = state.materials.length;
-         const stock = state.materials.reduce((s, m) => s + parseInt(m.qty||0), 0);
-         const low = state.materials.filter(m => parseInt(m.qty||0) < 5).length;
-         const last = state.materials.length > 0 ? formatDate(state.materials[state.materials.length-1].last_import_date).split(' ')[0] : '-';
+         
+         // Fix Math: outOfStock and low are mutually exclusive now
+         const outOfStock = state.materials.filter(m => parseInt(m.qty||0) === 0).length;
+         const low = state.materials.filter(m => parseInt(m.qty||0) > 0 && parseInt(m.qty||0) < 5).length;
+         const normal = total - low - outOfStock;
+
+         // Calculate True Last Update by finding maximum date
+         let maxTime = 0;
+         state.materials.forEach(m => {
+             const iTime = m.last_import_date ? new Date(m.last_import_date).getTime() : 0;
+             const wTime = m.last_withdraw_date ? new Date(m.last_withdraw_date).getTime() : 0;
+             if (iTime > maxTime) maxTime = iTime;
+             if (wTime > maxTime) maxTime = wTime;
+         });
+         const last = maxTime > 0 ? formatDate(new Date(maxTime)).split(' ')[0] : 'ไม่มีข้อมูล';
          
          c.innerHTML = `
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8 fade-in">
-                ${statCard('รายการวัสดุทั้งหมด', total, 'fas fa-box', 'bg-blue-100 text-blue-600')}
-                ${statCard('จำนวนของคงเหลือ', stock, 'fas fa-layer-group', 'bg-emerald-100 text-emerald-600')}
-                ${statCard('รายการใกล้หมด (<100)', low, 'fas fa-exclamation-triangle', 'bg-amber-100 text-amber-600')}
-                ${statCard('อัปเดตสต๊อกล่าสุด', last, 'fas fa-clock', 'bg-purple-100 text-purple-600')}
+            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6 mb-8 fade-in">
+                ${statCard('รายการทั้งหมด', total, 'fas fa-box', 'bg-blue-100 text-blue-600')}
+                ${statCard('รายการปกติ', normal, 'fas fa-check-circle', 'bg-emerald-100 text-emerald-600')}
+                ${statCard('ใกล้หมด (<5)', low, 'fas fa-exclamation-triangle', 'bg-amber-100 text-amber-600')}
+                ${statCard('หมด ', outOfStock, 'fas fa-times-circle', 'bg-red-100 text-red-600')}
+                ${statCard('อัปเดตล่าสุด', last, 'fas fa-clock', 'bg-purple-100 text-purple-600')}
             </div>
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 fade-in">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 fade-in mb-8">
                 <div class="bg-white p-5 md:p-8 rounded-2xl shadow-sm border border-gray-100 lg:col-span-2">
                     <div class="flex justify-between items-center mb-6">
-                        <h3 class="font-bold text-gray-800 text-lg"><i class="fas fa-chart-bar text-blue-500 mr-2"></i> วัสดุคงเหลือสูงสุด 10 อันดับ</h3>
+                        <h3 class="font-bold text-gray-800 text-lg"><i class="fas fa-arrow-up text-emerald-500 mr-2"></i> วัสดุคงเหลือสูงสุด 5 อันดับ</h3>
                     </div>
                     <div class="relative h-64 w-full"><canvas id="stockChart"></canvas></div>
                 </div>
                 <div class="bg-white p-5 md:p-8 rounded-2xl shadow-sm border border-gray-100 flex flex-col">
-                    <h3 class="font-bold text-gray-800 text-lg mb-6"><i class="fas fa-chart-pie text-purple-500 mr-2"></i> สถานะความพร้อม</h3>
+                    <h3 class="font-bold text-gray-800 text-lg mb-6"><i class="fas fa-chart-pie text-purple-500 mr-2"></i> สถานะความพร้อมสต๊อก</h3>
                     <div class="relative flex-1 w-full flex items-center justify-center min-h-[200px]"><canvas id="statusChart"></canvas></div>
                 </div>
-            </div>`;
+            </div>
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 fade-in pb-10">
+                 <div class="bg-white p-5 md:p-8 rounded-2xl shadow-sm border border-gray-100 lg:col-span-2">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="font-bold text-gray-800 text-lg"><i class="fas fa-arrow-down text-rose-500 mr-2"></i> วัสดุคงเหลือน้อยสุด 5 อันดับ</h3>
+                    </div>
+                    <div class="relative h-64 w-full"><canvas id="bottomStockChart"></canvas></div>
+                </div>
+            </div>
+        `;
             
          // Initialize Chart.js
-         const top10 = [...state.materials].sort((a,b) => b.qty - a.qty).slice(0, 10);
+         const top5 = [...state.materials].sort((a,b) => b.qty - a.qty).slice(0, 5);
+         const bottom5 = [...state.materials].sort((a,b) => a.qty - b.qty).slice(0, 5);
          
+         // TOP 5 Chart
          const ctx1 = document.getElementById('stockChart');
          if(ctx1) {
              stockChartInstance = new Chart(ctx1, { 
                  type: 'bar', 
                  data: { 
-                     labels: top10.map(m => m.name.length > 15 ? m.name.substring(0,15)+'...' : m.name), 
+                     labels: top5.map(m => m.name.length > 15 ? m.name.substring(0,15)+'...' : m.name), 
                      datasets: [{ 
                          label: 'จำนวนคงเหลือ', 
-                         data: top10.map(m => m.qty), 
+                         data: top5.map(m => m.qty), 
                          backgroundColor: '#3b82f6', 
                          hoverBackgroundColor: '#2563eb',
                          borderRadius: 6 
@@ -766,11 +847,35 @@
              });
          }
          
+         // BOTTOM 5 Chart
+         const ctxBottom = document.getElementById('bottomStockChart');
+         if(ctxBottom) {
+             bottomChartInstance = new Chart(ctxBottom, { 
+                 type: 'bar', 
+                 data: { 
+                     labels: bottom5.map(m => m.name.length > 15 ? m.name.substring(0,15)+'...' : m.name), 
+                     datasets: [{ 
+                         label: 'จำนวนคงเหลือ', 
+                         data: bottom5.map(m => m.qty), 
+                         backgroundColor: '#f43f5e', // Rose-500
+                         hoverBackgroundColor: '#e11d48',
+                         borderRadius: 6 
+                     }] 
+                 }, 
+                 options: { 
+                     maintainAspectRatio: false, 
+                     plugins: { legend: { display: false } }, 
+                     scales: { 
+                         y: { beginAtZero: true, grid: { borderDash: [4, 4] } }, 
+                         x: { grid: { display: false } } 
+                     } 
+                 } 
+             });
+         }
+         
+         // STATUS Chart
          const ctx2 = document.getElementById('statusChart');
          if(ctx2) {
-             const outOfStock = state.materials.filter(m => m.qty == 0).length;
-             const normal = total - low - outOfStock;
-
              statusChartInstance = new Chart(ctx2, { 
                  type: 'doughnut', 
                  data: { 
@@ -800,10 +905,10 @@
         const perms = state.user.permissions || [];
         const isAdmin = (state.user.role || '').toLowerCase() === 'admin';
         
-        // Security Check
-        if (mode === 'withdraw' && !isAdmin && !perms.includes('withdraw_material')) return c.innerHTML = permissionDeniedHTML();
-        if (mode === 'import' && !isAdmin && !perms.includes('import_material')) return c.innerHTML = permissionDeniedHTML();
+        // Remove old early return so we still render the UI (cards), but we disable buttons instead
         const canManage = isAdmin || perms.includes('manage_material');
+        const canWithdraw = isAdmin || perms.includes('withdraw_material');
+        const canImport = isAdmin || perms.includes('import_material');
         
         const titles = { 'view': 'รายการวัสดุทั้งหมด', 'withdraw': 'เบิกวัสดุออกจากคลัง', 'import': 'นำเข้าวัสดุสู่คลัง' };
         const icons = { 'view': 'box-open', 'withdraw': 'hand-holding', 'import': 'truck-loading' };
@@ -813,10 +918,12 @@
         const icon = icons[mode];
         const color = colors[mode];
 
+        // FIXED Layout: Added missing </div> closing tags properly for flex containers
         c.innerHTML = `
             <div class="flex flex-col h-full fade-in">
                 <!-- Toolbar -->
                 <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-200 flex flex-col md:flex-row justify-between items-center mb-6 gap-4 sticky top-0 z-10">
+                    
                     <div class="flex items-center gap-4 w-full md:w-auto">
                         <div class="w-12 h-12 rounded-xl bg-${color}-100 text-${color}-600 flex items-center justify-center shadow-sm">
                             <i class="fas fa-${icon} text-2xl"></i>
@@ -827,11 +934,20 @@
                         </div>
                     </div>
                     
-                    <div class="flex gap-2 w-full md:w-auto mt-3 md:mt-0">
-                        <div class="relative w-full md:w-64">
+                    <div class="flex flex-wrap justify-start md:justify-end items-center gap-2 w-full md:w-auto mt-3 md:mt-0">
+                        <div class="relative flex-1 min-w-[150px]">
                             <i class="fas fa-search absolute left-4 top-3 text-gray-400"></i>
-                            <input type="text" id="searchInput" placeholder="พิมพ์ชื่อเพื่อค้นหา..." class="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-${color}-500 outline-none transition shadow-inner" onkeyup="renderMaterialList('${mode}')">
+                            <input type="text" id="searchInput" placeholder="ค้นหาชื่อ..." class="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-${color}-500 outline-none transition shadow-inner" onkeyup="renderMaterialList('${mode}')">
                         </div>
+                        <select id="filterStatus" onchange="renderMaterialList('${mode}')" class="py-2.5 px-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-${color}-500 outline-none transition shadow-inner text-gray-600">
+                            <option value="all">สถานะทั้งหมด</option>
+                            <option value="low">ใกล้หมด</option>
+                            <option value="out">หมด</option>
+                        </select>
+                        <select id="sortQty" onchange="renderMaterialList('${mode}')" class="py-2.5 px-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-${color}-500 outline-none transition shadow-inner text-gray-600">
+                            <option value="desc">มากไปน้อย</option>
+                            <option value="asc">น้อยไปมาก</option>
+                        </select>
                         ${mode === 'view' ? `
                         <button onclick="exportInventoryCSV()" class="bg-gray-800 hover:bg-gray-900 text-white px-3.5 py-2.5 rounded-xl text-sm font-bold shadow-md transition transform active:scale-95" title="Export CSV"><i class="fas fa-file-csv"></i></button>
                         <button onclick="exportInventoryPDF()" class="bg-red-600 hover:bg-red-700 text-white px-3.5 py-2.5 rounded-xl text-sm font-bold shadow-md transition transform active:scale-95" title="Export PDF"><i class="fas fa-file-pdf"></i></button>
@@ -846,8 +962,8 @@
                     </div>
                 </div>
                 
-                <!-- Grid Container -->
-                <div id="inventoryContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 md:gap-6 pb-24">
+                <!-- Grid Container: Use auto-fill instead of fixed columns to stop squishing -->
+                <div id="inventoryContainer" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1.5rem; width: 100%;" class="pb-24">
                     ${cardSkeleton().repeat(8)}
                 </div>
             </div>
@@ -879,37 +995,91 @@
         if (!container) return;
 
         const searchInput = document.getElementById('searchInput');
+        const filterStatus = document.getElementById('filterStatus');
+        const sortQty = document.getElementById('sortQty');
+
         const txt = searchInput ? searchInput.value.toLowerCase() : '';
+        const status = filterStatus ? filterStatus.value : 'all';
+        const sort = sortQty ? sortQty.value : 'desc';
+
+        const perms = state.user.permissions || [];
+        const isAdmin = (state.user.role||'').toLowerCase() === 'admin';
+        const canManage = isAdmin || perms.includes('manage_material');
+        const canWithdraw = isAdmin || perms.includes('withdraw_material');
+        const canImport = isAdmin || perms.includes('import_material');
         
-        // Filter and Sort (Highest Qty First)
-        const filtered = state.materials
-            .filter(m => m.name.toLowerCase().includes(txt))
-            .sort((a,b) => b.qty - a.qty);
+        // Filter
+        let filtered = state.materials.filter(m => {
+            const matchName = m.name.toLowerCase().includes(txt);
+            const q = parseInt(m.qty || 0);
+            let matchStatus = true;
+            if (status === 'low') matchStatus = q > 0 && q < 5;
+            if (status === 'out') matchStatus = q === 0;
+            return matchName && matchStatus;
+        });
+
+        // Sort
+        filtered.sort((a,b) => {
+            const qa = parseInt(a.qty || 0);
+            const qb = parseInt(b.qty || 0);
+            if (sort === 'desc') return qb - qa;
+            return qa - qb;
+        });
         
         if (filtered.length === 0) {
             container.innerHTML = `
-                <div class="col-span-full py-20 flex flex-col items-center justify-center text-gray-400 bg-white rounded-2xl border border-gray-200 border-dashed">
+                <div style="grid-column: 1 / -1;" class="py-20 flex flex-col items-center justify-center text-gray-400 bg-white rounded-2xl border border-gray-200 border-dashed">
                     <i class="fas fa-box-open text-6xl mb-4 text-gray-300"></i>
                     <p class="text-xl font-bold text-gray-500">ไม่พบรายการวัสดุ</p>
-                    <p class="text-sm mt-1">ลองเปลี่ยนคำค้นหา หรือเพิ่มวัสดุใหม่</p>
+                    <p class="text-sm mt-1">ลองเปลี่ยนคำค้นหา หรือเปลี่ยนตัวกรอง</p>
                 </div>`;
             return;
         }
 
-        const isAdmin = (state.user.role||'').toLowerCase() === 'admin';
-        const perms = state.user.permissions || [];
-        const canManage = isAdmin || perms.includes('manage_material');
-
         container.innerHTML = filtered.map(m => {
-            const isLow = parseInt(m.qty) < 100;
+            const isLow = parseInt(m.qty) > 0 && parseInt(m.qty) < 5;
             const isOut = parseInt(m.qty) === 0;
             let statusBadge = '';
             if (isOut) statusBadge = `<div class="absolute top-3 right-3 bg-red-600 text-white text-[10px] font-black px-3 py-1 rounded-full shadow-lg">หมด!</div>`;
             else if (isLow) statusBadge = `<div class="absolute top-3 right-3 bg-amber-500 text-white text-[10px] font-black px-3 py-1 rounded-full shadow-lg">ใกล้หมด</div>`;
 
+            // Setup buttons based on permissions
+            let actionButtons = '';
+            if (mode === 'view') {
+                if (canManage) {
+                    actionButtons = `
+                    <div class="flex gap-3">
+                        <button onclick='openMaterialModal(${JSON.stringify(m)})' class="flex-1 py-2.5 text-xs bg-white border border-gray-300 rounded-xl text-gray-700 hover:text-blue-600 hover:border-blue-400 font-bold transition shadow-sm">แก้ไข</button>
+                        <button onclick="deleteMaterial('${m.material_id}')" class="flex-1 py-2.5 text-xs bg-white border border-gray-300 rounded-xl text-gray-700 hover:text-red-600 hover:border-red-400 font-bold transition shadow-sm">ลบ</button>
+                    </div>`;
+                } else {
+                    actionButtons = `<button disabled class="w-full py-2.5 text-xs bg-gray-100 border border-gray-200 rounded-xl text-gray-400 font-bold cursor-not-allowed"><i class="fas fa-lock mr-1"></i> ไม่มีสิทธิ์จัดการข้อมูล</button>`;
+                }
+            } else if (mode === 'withdraw') {
+                if (canWithdraw) {
+                    actionButtons = `<button onclick='openTransModal("${mode}", ${JSON.stringify(m)})' class="w-full py-3 text-sm font-bold text-white rounded-xl shadow-md transition transform active:scale-95 bg-rose-500 hover:bg-rose-600">
+                        <i class="fas fa-minus-circle mr-2"></i> เบิกใช้งาน
+                    </button>`;
+                } else {
+                    actionButtons = `<button disabled class="w-full py-3 text-sm font-bold text-gray-400 bg-gray-200 border border-gray-300 rounded-xl cursor-not-allowed">
+                        <i class="fas fa-lock mr-2"></i> ไม่มีสิทธิ์เบิกวัสดุ
+                    </button>`;
+                }
+            } else if (mode === 'import') {
+                if (canImport) {
+                    actionButtons = `<button onclick='openTransModal("${mode}", ${JSON.stringify(m)})' class="w-full py-3 text-sm font-bold text-white rounded-xl shadow-md transition transform active:scale-95 bg-emerald-500 hover:bg-emerald-600">
+                        <i class="fas fa-plus-circle mr-2"></i> นำเข้าสต๊อก
+                    </button>`;
+                } else {
+                    actionButtons = `<button disabled class="w-full py-3 text-sm font-bold text-gray-400 bg-gray-200 border border-gray-300 rounded-xl cursor-not-allowed">
+                        <i class="fas fa-lock mr-2"></i> ไม่มีสิทธิ์นำเข้าวัสดุ
+                    </button>`;
+                }
+            }
+
             return `
             <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-xl transition-all duration-300 flex flex-col group relative">
-                <!-- Image Area -->
+                <!-- Image Area: Contain 100% -->
                 <div class="h-44 bg-white relative overflow-hidden border-b border-gray-100 p-2 flex items-center justify-center">
                     <img src="${m.image_url || 'https://via.placeholder.com/400x300?text=No+Image'}" class="max-w-full max-h-full object-contain transition-transform duration-700 group-hover:scale-105" onerror="this.src='https://via.placeholder.com/400x300?text=Image+Error'">
                     ${statusBadge}
@@ -932,14 +1102,7 @@
                 
                 <!-- Action Area -->
                 <div class="p-4 border-t border-gray-100 bg-gray-50/50">
-                    ${mode === 'view' && canManage ? 
-                    `<div class="flex gap-3">
-                        <button onclick='openMaterialModal(${JSON.stringify(m)})' class="flex-1 py-2.5 text-xs bg-white border border-gray-300 rounded-xl text-gray-700 hover:text-blue-600 hover:border-blue-400 font-bold transition shadow-sm">แก้ไข</button>
-                        <button onclick="deleteMaterial('${m.material_id}')" class="flex-1 py-2.5 text-xs bg-white border border-gray-300 rounded-xl text-gray-700 hover:text-red-600 hover:border-red-400 font-bold transition shadow-sm">ลบ</button>
-                    </div>` : 
-                    `<button onclick='openTransModal("${mode}", ${JSON.stringify(m)})' class="w-full py-3 text-sm font-bold text-white rounded-xl shadow-md transition transform active:scale-95 ${mode==='import' ? 'bg-emerald-500 hover:bg-emerald-600' : 'bg-rose-500 hover:bg-rose-600'}">
-                        ${mode === 'import' ? '<i class="fas fa-plus-circle mr-2"></i> นำเข้าสต๊อก' : '<i class="fas fa-minus-circle mr-2"></i> เบิกใช้งาน'}
-                    </button>`}
+                    ${actionButtons}
                 </div>
             </div>
         `}).join('');
@@ -1103,7 +1266,7 @@
                 <tr class="hover:bg-blue-50/30 transition group">
                     <td class="p-4 pl-6">
                         <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center font-bold shadow-inner border border-gray-200">${u.fullname.charAt(0)}</div>
+                            <div class="w-10 h-10 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center font-bold shadow-inner border border-gray-200">${u.fullname.charAt(0).toUpperCase()}</div>
                             <div>
                                 <div class="font-bold text-gray-800 text-base">${u.fullname}</div>
                                 <div class="text-xs text-gray-500 font-mono mt-0.5"><i class="fas fa-at text-[10px]"></i>${u.username}</div>
@@ -1159,7 +1322,6 @@
         if (m) {
             document.getElementById('matId').value = m.material_id;
             document.getElementById('matName').value = m.name;
-            // Optionally set image preview if m.image_url exists
         } else {
             document.getElementById('matId').value = '';
         }
@@ -1196,7 +1358,7 @@
         } catch(e) { perms = []; }
         
         document.getElementById('permUserName').innerText = u.fullname;
-        document.getElementById('permUserInitials').innerText = u.fullname.charAt(0);
+        document.getElementById('permUserInitials').innerText = u.fullname.charAt(0).toUpperCase();
         document.getElementById('permUserId').value = u.user_id;
         
         document.getElementById('perm_view_stock').checked = true;
@@ -1221,6 +1383,11 @@
             // Background refresh without blocking UI
             api('getUsers').then(u => cache.users = u);
         } catch(e){}
+    }
+
+    function openChangePasswordModal() {
+        document.getElementById('changePasswordForm').reset();
+        document.getElementById('changePasswordModal').classList.remove('hidden');
     }
 
     // --- FORM SUBMIT ACTIONS ---
@@ -1271,6 +1438,31 @@
         } catch(e) {}
     };
 
+    document.getElementById('changePasswordForm').onsubmit = async (e) => {
+        e.preventDefault();
+        const oldPassword = document.getElementById('oldPassword').value.trim();
+        const newPassword = document.getElementById('newPassword').value.trim();
+        const confirmNewPassword = document.getElementById('confirmNewPassword').value.trim();
+
+        if (newPassword !== confirmNewPassword) {
+            showToast('รหัสผ่านใหม่ไม่ตรงกัน', 'error');
+            return;
+        }
+
+        try {
+            await api('changePassword', {
+                username: state.user.username,
+                oldPassword: oldPassword,
+                newPassword: newPassword
+            });
+            closeModal('changePasswordModal');
+            showToast('เปลี่ยนรหัสผ่านสำเร็จ กรุณาเข้าสู่ระบบใหม่', 'success');
+            setTimeout(logout, 1500); // Logout after 1.5s
+        } catch (e) {
+            // Error toast is handled in api()
+        }
+    };
+
     // --- PDF EXPORT (Corrected TrueType Font Solution) ---
     function exportPDF() {
         if (!window.jspdf) { alert("PDF Library not loaded"); return; }
@@ -1306,13 +1498,23 @@
                     doc.setFontSize(10);
                     doc.text(`ข้อมูลออกเมื่อ: ${formatDate(new Date())}`, 14, 30);
                     
-                    const data = [
-                        ...state.reports.withdraw.map(r => [formatDate(r.timestamp).split(' ')[0], 'เบิกออก', r.material_name, r.qty, r.user_name]),
-                        ...state.reports.import.map(r => [formatDate(r.timestamp).split(' ')[0], 'นำเข้า', r.material_name, r.qty, r.user_name])
+                    const allReports = [
+                        ...state.reports.withdraw.map(r => ({...r, type: 'เบิกออก'})),
+                        ...state.reports.import.map(r => ({...r, type: 'นำเข้า'}))
                     ];
                     
+                    // เรียงลำดับจากเก่าไปใหม่ (Oldest to Newest)
+                    allReports.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+                    
+                    const data = allReports.map(r => {
+                        const dateStr = formatDate(r.timestamp);
+                        const datePart = dateStr.split(' ')[0];
+                        const timePart = dateStr.split(' ')[1] || '-';
+                        return [datePart, timePart, r.type, r.material_name, r.qty, r.user_name];
+                    });
+                    
                     doc.autoTable({
-                        head: [['วันที่', 'ประเภท', 'รายการ', 'จำนวน', 'ผู้ทำรายการ']],
+                        head: [['วันที่', 'เวลา', 'ประเภท', 'รายการ', 'จำนวน', 'ผู้ทำรายการ']],
                         body: data,
                         startY: 35,
                         styles: { font: 'Sarabun', fontSize: 10 },
@@ -1333,12 +1535,23 @@
             
             // Fallback Generation
             doc.setFont("helvetica");
-            const data = [
-                ...state.reports.withdraw.map(r => [formatDate(r.timestamp).split(' ')[0], 'Withdraw', r.material_name, r.qty, r.user_name]),
-                ...state.reports.import.map(r => [formatDate(r.timestamp).split(' ')[0], 'Import', r.material_name, r.qty, r.user_name])
+            const allReports = [
+                ...state.reports.withdraw.map(r => ({...r, type: 'Withdraw'})),
+                ...state.reports.import.map(r => ({...r, type: 'Import'}))
             ];
+            
+            // เรียงลำดับจากเก่าไปใหม่ (Oldest to Newest)
+            allReports.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+            
+            const data = allReports.map(r => {
+                const dateStr = formatDate(r.timestamp);
+                const datePart = dateStr.split(' ')[0];
+                const timePart = dateStr.split(' ')[1] || '-';
+                return [datePart, timePart, r.type, r.material_name, r.qty, r.user_name];
+            });
+            
             doc.autoTable({
-                head: [['Date', 'Type', 'Item', 'Qty', 'User']],
+                head: [['Date', 'Time', 'Type', 'Item', 'Qty', 'User']],
                 body: data,
                 startY: 35
             });
@@ -1347,10 +1560,23 @@
     }
 
     function exportCSV() {
-        const d = [...state.reports.withdraw.map(x=>({...x,type:'withdraw'})),...state.reports.import.map(x=>({...x,type:'import'}))];
+        const d = [
+            ...state.reports.withdraw.map(x=>({...x, type:'เบิกออก'})),
+            ...state.reports.import.map(x=>({...x, type:'นำเข้า'}))
+        ];
         if (!d.length) return showToast('ไม่มีข้อมูลที่จะส่งออก', 'error');
+        
+        // เรียงลำดับจากเก่าไปใหม่ (Oldest to Newest)
+        d.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+        
         // Add BOM \uFEFF to make Excel read UTF-8 properly
-        const c = "\uFEFFDate,Type,Item,Qty,User\n" + d.map(e => `${formatDate(e.timestamp)},${e.type},${e.material_name},${e.qty},${e.user_name}`).join("\n");
+        const c = "\uFEFFวันที่,เวลา,ประเภท,รายการ,จำนวน,ผู้ทำรายการ\n" + d.map(e => {
+            const dateStr = formatDate(e.timestamp);
+            const datePart = dateStr.split(' ')[0];
+            const timePart = dateStr.split(' ')[1] || '-';
+            return `${datePart},${timePart},${e.type},"${e.material_name}",${e.qty},"${e.user_name}"`;
+        }).join("\n");
+        
         const l = document.createElement("a");
         l.href = URL.createObjectURL(new Blob([c], {type:"text/csv;charset=utf-8;"}));
         l.download = "stock_report.csv";
@@ -1388,15 +1614,15 @@
                     doc.setFontSize(10);
                     doc.text(`ข้อมูลออกเมื่อ: ${formatDate(new Date())}`, 14, 30);
                     
-                    const data = state.materials.map(m => [
-                        m.material_id.slice(-5), 
+                    const data = state.materials.map((m, index) => [
+                        (index + 1).toString(), 
                         m.name, 
                         m.qty.toString(), 
                         formatDate(m.last_import_date || m.last_withdraw_date).split(' ')[0]
                     ]);
                     
                     doc.autoTable({
-                        head: [['รหัส (ID)', 'ชื่อวัสดุ (Material Name)', 'คงเหลือ (Qty)', 'อัปเดตล่าสุด']],
+                        head: [['ลำดับ (No.)', 'ชื่อวัสดุ (Material Name)', 'คงเหลือ (Qty)', 'อัปเดตล่าสุด']],
                         body: data,
                         startY: 35,
                         styles: { font: 'Sarabun', fontSize: 10 },
@@ -1415,9 +1641,9 @@
             console.error("Font Load Error:", err);
             alert("ไม่สามารถโหลดฟอนต์ภาษาไทยจาก Server ได้ จะสร้าง PDF ด้วยฟอนต์มาตรฐานแทน");
             doc.setFont("helvetica");
-            const data = state.materials.map(m => [m.material_id.slice(-5), m.name, m.qty.toString(), formatDate(m.last_import_date || m.last_withdraw_date).split(' ')[0]]);
+            const data = state.materials.map((m, index) => [(index + 1).toString(), m.name, m.qty.toString(), formatDate(m.last_import_date || m.last_withdraw_date).split(' ')[0]]);
             doc.autoTable({
-                head: [['ID', 'Material Name', 'Qty', 'Last Update']],
+                head: [['No.', 'Material Name', 'Qty', 'Last Update']],
                 body: data,
                 startY: 35
             });
@@ -1428,7 +1654,7 @@
     function exportInventoryCSV() {
         if (!state.materials || state.materials.length === 0) return showToast('ไม่มีข้อมูลที่จะส่งออก', 'error');
         // Add BOM \uFEFF to make Excel read UTF-8 properly
-        const c = "\uFEFFStock ID,Material Name,Quantity,Last Update\n" + state.materials.map(m => `${m.material_id.slice(-5)},"${m.name}",${m.qty},${formatDate(m.last_import_date || m.last_withdraw_date).split(' ')[0]}`).join("\n");
+        const c = "\uFEFFลำดับที่ (No.),Material Name,Quantity,Last Update\n" + state.materials.map((m, index) => `${index + 1},"${m.name}",${m.qty},${formatDate(m.last_import_date || m.last_withdraw_date).split(' ')[0]}`).join("\n");
         const l = document.createElement("a");
         l.href = URL.createObjectURL(new Blob([c], {type:"text/csv;charset=utf-8;"}));
         l.download = "inventory_report.csv";
