@@ -782,7 +782,7 @@
          
          // คำนวณจำนวนตามสถานะ
          const outOfStock = state.materials.filter(m => parseInt(m.qty || 0) === 0).length;
-         const low = state.materials.filter(m => parseInt(m.qty || 0) > 0 && parseInt(m.qty || 0) < 5).length;
+         const low = state.materials.filter(m => parseInt(m.qty || 0) > 0 && parseInt(m.qty || 0) < 150).length;
          const normal = total - low - outOfStock;
 
          // Calculate True Last Update by finding maximum date
@@ -1029,7 +1029,7 @@
             const matchName = safeName.toLowerCase().includes(txt);
             const q = parseInt(m.qty || 0);
             let matchStatus = true;
-            if (status === 'low') matchStatus = q > 0 && q < 5;
+            if (status === 'low') matchStatus = q > 0 && q < 150;
             if (status === 'out') matchStatus = q === 0;
             return matchName && matchStatus;
         });
@@ -1053,7 +1053,7 @@
         }
 
         container.innerHTML = filtered.map(m => {
-            const isLow = parseInt(m.qty) > 0 && parseInt(m.qty) < 5;
+            const isLow = parseInt(m.qty) > 0 && parseInt(m.qty) < 150;
             const isOut = parseInt(m.qty) === 0;
             let statusBadge = '';
             if (isOut) statusBadge = `<div class="absolute top-3 right-3 bg-red-600 text-white text-[10px] font-black px-3 py-1 rounded-full shadow-lg">หมด!</div>`;
