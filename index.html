@@ -901,7 +901,7 @@
         const canManage = isAdmin || perms.includes('manage_material');
 
         container.innerHTML = filtered.map(m => {
-            const isLow = parseInt(m.qty) < 5;
+            const isLow = parseInt(m.qty) < 100;
             const isOut = parseInt(m.qty) === 0;
             let statusBadge = '';
             if (isOut) statusBadge = `<div class="absolute top-3 right-3 bg-red-600 text-white text-[10px] font-black px-3 py-1 rounded-full shadow-lg">หมด!</div>`;
