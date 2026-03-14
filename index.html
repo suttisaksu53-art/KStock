@@ -486,6 +486,14 @@
     </div>
   </div>
 
+  <!-- 5. FULL IMAGE MODAL -->
+  <div id="imageModal" class="fixed inset-0 bg-black/90 z-[120] hidden flex items-center justify-center p-4 backdrop-blur-sm fade-in" onclick="closeModal('imageModal')">
+    <button class="absolute top-6 right-6 text-white hover:text-gray-300 transition text-4xl" onclick="closeModal('imageModal')">
+        <i class="fas fa-times"></i>
+    </button>
+    <img id="fullSizeImage" src="" class="max-w-full max-h-full object-contain rounded-lg shadow-2xl" onclick="event.stopPropagation();">
+  </div>
+
   <!-- ================= JAVASCRIPT LOGIC ================= -->
   <script>
     // --- 1. CONFIGURATION ---
@@ -1081,7 +1089,7 @@
             <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-xl transition-all duration-300 flex flex-col group relative">
                 <!-- Image Area: Contain 100% -->
                 <div class="h-44 bg-white relative overflow-hidden border-b border-gray-100 p-2 flex items-center justify-center">
-                    <img src="${m.image_url || 'https://via.placeholder.com/400x300?text=No+Image'}" class="max-w-full max-h-full object-contain transition-transform duration-700 group-hover:scale-105" onerror="this.src='https://via.placeholder.com/400x300?text=Image+Error'">
+                    <img src="${m.image_url || 'https://via.placeholder.com/400x300?text=No+Image'}" class="max-w-full max-h-full object-contain transition-transform duration-700 group-hover:scale-105 cursor-pointer" onerror="this.src='https://via.placeholder.com/400x300?text=Image+Error'" onclick="openImageModal('${m.image_url || 'https://via.placeholder.com/800x600?text=No+Image'}')">
                     ${statusBadge}
                 </div>
                 
@@ -1722,6 +1730,11 @@
     }
     
     function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+    function openImageModal(imgUrl) {
+        document.getElementById('fullSizeImage').src = imgUrl;
+        document.getElementById('imageModal').classList.remove('hidden');
+    }
     
     function showToast(msg, type = 'success') { 
         const t = document.getElementById('toast'); 
