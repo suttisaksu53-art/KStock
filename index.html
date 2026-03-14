@@ -791,9 +791,9 @@
             <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6 mb-8 fade-in">
                 ${statCard('รายการทั้งหมด', total, 'fas fa-box', 'bg-blue-100 text-blue-600')}
                 ${statCard('รายการปกติ', normal, 'fas fa-check-circle', 'bg-emerald-100 text-emerald-600')}
-                ${statCard('ใกล้หมด (<5)', low, 'fas fa-exclamation-triangle', 'bg-amber-100 text-amber-600')}
+                ${statCard('ใกล้หมด (<150)', low, 'fas fa-exclamation-triangle', 'bg-amber-100 text-amber-600')}
                 ${statCard('หมด ', outOfStock, 'fas fa-times-circle', 'bg-red-100 text-red-600')}
-                ${statCard('อัปเดตล่าสุด', last, 'fas fa-clock', 'bg-purple-100 text-purple-600')}
+                ${statCard('อัปเดตล่าสุด', last, 'fas fa-clck', 'bg-purple-100 text-purple-600')}
             </div>
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 fade-in mb-8">
                 <div class="bg-white p-5 md:p-8 rounded-2xl shadow-sm border border-gray-100 lg:col-span-2">
@@ -1037,7 +1037,7 @@
         }
 
         container.innerHTML = filtered.map(m => {
-            const isLow = parseInt(m.qty) > 0 && parseInt(m.qty) < 5;
+            const isLow = parseInt(m.qty) > 0 && parseInt(m.qty) < 150;
             const isOut = parseInt(m.qty) === 0;
             let statusBadge = '';
             if (isOut) statusBadge = `<div class="absolute top-3 right-3 bg-red-600 text-white text-[10px] font-black px-3 py-1 rounded-full shadow-lg">หมด!</div>`;
