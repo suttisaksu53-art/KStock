@@ -180,7 +180,12 @@
         </div>
         <div>
            <label class="block text-xs font-bold text-gray-700 mb-1">กลุ่มงาน</label>
-           <input type="text" id="regGroup" class="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-emerald-500" placeholder="ระบุกลุ่มงานที่สังกัด" required>
+           <select id="regGroup" class="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-emerald-500" required>
+              <option value="" disabled selected>-- เลือกกลุ่มงานที่สังกัด --</option>
+              <option value="กลุ่มวิจัยเคมีดิน">กลุ่มวิจัยเคมีดิน</option>
+              <option value="ฝ่ายบริหารทั่วไป">ฝ่ายบริหารทั่วไป</option>
+              <option value="อื่นๆ">อื่นๆ</option>
+           </select>
         </div>
         <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl shadow-md transition mt-2">ยืนยันการสมัคร</button>
         <div class="text-center mt-3">
@@ -370,25 +375,15 @@
         <!-- Form Inputs & Submit -->
         <form id="cartForm" class="p-4 sm:p-5 border-t border-gray-200 bg-white rounded-b-2xl">
             <div class="flex flex-col sm:flex-row gap-4 mb-5">
-    <div class="flex-1 min-w-0">
-        <label class="block text-[11px] sm:text-xs font-bold text-gray-700 mb-1">
-            วันที่ทำรายการ (ย้อนหลังได้)
-        </label>
-        <input type="date" id="cartDate"
-            class="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm 
-            focus:ring-2 focus:ring-indigo-500 outline-none transition">
-    </div>
-
-    <div class="flex-1 min-w-0">
-        <label class="block text-[11px] sm:text-xs font-bold text-gray-700 mb-1">
-            อ้างอิงเอกสาร / หมายเหตุ
-        </label>
-        <input type="text" id="cartRef"
-            class="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm 
-            focus:ring-2 focus:ring-indigo-500 outline-none transition"
-            placeholder="ระบุเลขที่เอกสาร หรือที่มา">
-    </div>
-</div>
+                <div class="w-full sm:w-1/2">
+                    <label class="block text-[11px] sm:text-xs font-bold text-gray-700 mb-1">วันที่ทำรายการ (ย้อนหลังได้)</label>
+                    <input type="date" id="cartDate" class="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition box-border">
+                </div>
+                <div class="w-full sm:w-1/2">
+                    <label id="cartRefLabel" class="block text-[11px] sm:text-xs font-bold text-gray-700 mb-1">อ้างอิงเอกสาร / หมายเหตุ</label>
+                    <input type="text" id="cartRef" class="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition box-border" placeholder="ระบุเลขที่เอกสาร หรือที่มา">
+                </div>
+            </div>
             <button type="submit" id="btnCartSubmit" class="w-full py-3.5 rounded-xl font-bold text-white shadow-lg transition transform active:scale-95 text-lg bg-indigo-600 hover:bg-indigo-700">
                 ยืนยันทำรายการทั้งหมด
             </button>
@@ -801,7 +796,7 @@
          
          // คำนวณจำนวนตามสถานะ
          const outOfStock = state.materials.filter(m => parseInt(m.qty || 0) === 0).length;
-         const low = state.materials.filter(m => parseInt(m.qty || 0) > 0 && parseInt(m.qty || 0) < 150).length;
+         const low = state.materials.filter(m => parseInt(m.qty || 0) > 0 && parseInt(m.qty || 0) < 5).length;
          const normal = total - low - outOfStock;
 
          // Calculate True Last Update by finding maximum date
@@ -1048,7 +1043,7 @@
             const matchName = safeName.toLowerCase().includes(txt);
             const q = parseInt(m.qty || 0);
             let matchStatus = true;
-            if (status === 'low') matchStatus = q > 0 && q < 150;
+            if (status === 'low') matchStatus = q > 0 && q < 5;
             if (status === 'out') matchStatus = q === 0;
             return matchName && matchStatus;
         });
@@ -1072,7 +1067,7 @@
         }
 
         container.innerHTML = filtered.map(m => {
-            const isLow = parseInt(m.qty) > 0 && parseInt(m.qty) < 150;
+            const isLow = parseInt(m.qty) > 0 && parseInt(m.qty) < 5;
             const isOut = parseInt(m.qty) === 0;
             let statusBadge = '';
             if (isOut) statusBadge = `<div class="absolute top-3 right-3 bg-red-600 text-white text-[10px] font-black px-3 py-1 rounded-full shadow-lg">หมด!</div>`;
@@ -1219,6 +1214,16 @@
         const isImport = currentTransMode === 'import';
         title.innerHTML = isImport ? '<i class="fas fa-truck-loading text-emerald-500 mr-2"></i> ยืนยันรายการนำเข้า' : '<i class="fas fa-hand-holding text-rose-500 mr-2"></i> ยืนยันรายการเบิกวัสดุ';
         
+        const refLabel = document.getElementById('cartRefLabel');
+        const refInput = document.getElementById('cartRef');
+        if (isImport) {
+            if (refLabel) refLabel.innerText = 'อ้างอิงเอกสาร / หมายเหตุ';
+            if (refInput) refInput.placeholder = 'ระบุเลขที่เอกสาร หรือที่มา';
+        } else {
+            if (refLabel) refLabel.innerText = 'เหตุผลในการเบิก / หมายเหตุ';
+            if (refInput) refInput.placeholder = 'เช่น เอาไปทำโครงการอะไร';
+        }
+
         const btn = document.getElementById('btnCartSubmit');
         btn.className = `w-full py-4 rounded-xl font-bold text-white shadow-lg transition transform active:scale-95 text-lg ${isImport ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-rose-600 hover:bg-rose-700'}`;
         btn.innerHTML = isImport ? '<i class="fas fa-check-circle mr-2"></i> ยืนยันการนำเข้าทั้งหมด' : '<i class="fas fa-check-circle mr-2"></i> ยืนยันการเบิกทั้งหมด';
@@ -1283,13 +1288,24 @@
         renderMaterialList(currentTransMode); // update list UI
     }
 
+    // Helper to get reference note across possible columns
+    function getRefNote(r) {
+        return r.ref_doc || r['หมายเหตุ'] || r['เหตุผลในการเบิก'] || r['อ้างอิงเอกสาร / หมายเหตุ'] || r['อ้างอิงเอกสาร'] || r.note || r.Note || '';
+    }
+
+    // Helper to extract clean reason note
+    function cleanRefDoc(ref) {
+        if (!ref) return '';
+        return String(ref).replace(/^\[.*?\]\s*/, '').trim();
+    }
+
     document.getElementById('cartForm').onsubmit = async (e) => {
         e.preventDefault();
         if (transCart.length === 0) return;
 
         const dateStr = document.getElementById('cartDate').value;
         const rawRef = document.getElementById('cartRef').value;
-        const combinedRef = (currentTransMode === 'import' && dateStr) ? `[Date: ${dateStr}] ${rawRef}` : rawRef;
+        const combinedRef = dateStr ? `[วันที่ย้อนหลัง: ${dateStr}] ${rawRef}` : rawRef;
         
         document.getElementById('loadingOverlay').classList.remove('hidden');
         
@@ -1429,20 +1445,24 @@
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100">` +
-                filtered.map(r => `
+                filtered.map(r => {
+                    const rawRef = getRefNote(r);
+                    const cleanRef = cleanRefDoc(rawRef);
+                    return `
                     <tr class="hover:bg-gray-50 transition group">
                         <td class="p-4 pl-6 align-top">
                             <div class="font-bold text-gray-800 text-sm mb-1">${formatDate(r.timestamp).split(' ')[0]} <span class="text-[10px] text-gray-400 font-medium ml-1 bg-gray-100 px-1.5 py-0.5 rounded inline-block mt-1 lg:mt-0">${formatDate(r.timestamp).split(' ')[1] || ''}</span></div>
                             <div class="text-xs text-gray-500 font-medium flex items-center gap-1.5 truncate"><i class="fas fa-user-circle text-gray-400 text-sm"></i> ${r.user_name}</div>
                         </td>
                         <td class="p-4 align-top">
-                            <div class="text-sm text-gray-700 font-bold bg-white border border-gray-200 px-3 py-1.5 rounded-lg shadow-sm break-words whitespace-normal line-clamp-3 leading-snug">${r.material_name}</div>
+                            <div class="text-sm text-gray-700 font-bold bg-white border border-gray-200 px-3 py-1.5 rounded-lg shadow-sm break-words whitespace-normal leading-snug">${r.material_name}</div>
+                            ${cleanRef ? `<div class="text-xs text-gray-500 mt-2 flex items-start gap-1.5"><i class="fas fa-comment-dots mt-0.5 text-gray-400"></i><span class="break-words line-clamp-2">${cleanRef}</span></div>` : ''}
                         </td>
                         <td class="p-4 pr-6 text-right align-top">
                             <span class="font-black ${colorTextClass} text-xl bg-white px-3 py-1.5 rounded-lg shadow-sm border border-gray-100 inline-block">${r.qty}</span>
                         </td>
                     </tr>
-                `).join('') + `</tbody></table>`;
+                `}).join('') + `</tbody></table>`;
         };
 
         if(document.getElementById('withdrawLog')) document.getElementById('withdrawLog').innerHTML = renderLog(state.reports.withdraw, 'text-rose-600');
@@ -1647,7 +1667,8 @@
     function exportPDF() {
         if (!window.jspdf) { alert("PDF Library not loaded"); return; }
         const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
+        // ปรับเป็นแนวนอน ('l' = landscape) กระดาษ A4
+        const doc = new jsPDF('l', 'mm', 'a4'); 
         
         showToast('กำลังประมวลผลไฟล์ PDF กรุณารอสักครู่...', 'success');
         
@@ -1684,11 +1705,12 @@
                         const dateStr = formatDate(r.timestamp);
                         const datePart = dateStr.split(' ')[0];
                         const timePart = dateStr.split(' ')[1] || '-';
-                        return [datePart, timePart, r.type, r.material_name, r.qty, r.user_name];
+                        const rawRef = getRefNote(r);
+                        return [datePart, timePart, r.type, r.material_name, r.qty, cleanRefDoc(rawRef) || '-', r.user_name];
                     });
                     
                     doc.autoTable({
-                        head: [['วันที่', 'เวลา', 'ประเภท', 'รายการ', 'จำนวน', 'ผู้ทำรายการ']],
+                        head: [['วันที่', 'เวลา', 'ประเภท', 'รายการ', 'จำนวน', 'หมายเหตุ', 'ผู้ทำรายการ']],
                         body: data,
                         startY: 35,
                         margin: { top: 35, bottom: 20 },
@@ -1733,11 +1755,12 @@
                 const dateStr = formatDate(r.timestamp);
                 const datePart = dateStr.split(' ')[0];
                 const timePart = dateStr.split(' ')[1] || '-';
-                return [datePart, timePart, r.type, r.material_name, r.qty, r.user_name];
+                const rawRef = getRefNote(r);
+                return [datePart, timePart, r.type, r.material_name, r.qty, cleanRefDoc(rawRef) || '-', r.user_name];
             });
             
             doc.autoTable({
-                head: [['Date', 'Time', 'Type', 'Item', 'Qty', 'User']],
+                head: [['Date', 'Time', 'Type', 'Item', 'Qty', 'Note', 'User']],
                 body: data,
                 startY: 35,
                 margin: { top: 35, bottom: 20 },
@@ -1766,11 +1789,14 @@
         d.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
         
         // Add BOM \uFEFF to make Excel read UTF-8 properly
-        const c = "\uFEFFวันที่,เวลา,ประเภท,รายการ,จำนวน,ผู้ทำรายการ\n" + d.map(e => {
+        const c = "\uFEFFวันที่,เวลา,ประเภท,รายการ,จำนวน,หมายเหตุ,ผู้ทำรายการ\n" + d.map(e => {
             const dateStr = formatDate(e.timestamp);
             const datePart = dateStr.split(' ')[0];
             const timePart = dateStr.split(' ')[1] || '-';
-            return `${datePart},${timePart},${e.type},"${e.material_name}",${e.qty},"${e.user_name}"`;
+            const rawRef = getRefNote(e);
+            const cleanRef = cleanRefDoc(rawRef) || '-';
+            const safeRef = cleanRef.replace(/"/g, '""');
+            return `${datePart},${timePart},${e.type},"${e.material_name}",${e.qty},"${safeRef}","${e.user_name}"`;
         }).join("\n");
         
         const l = document.createElement("a");
