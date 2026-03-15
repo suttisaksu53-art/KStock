@@ -384,9 +384,15 @@
                     <input type="text" id="cartRef" class="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition box-border" placeholder="ระบุเลขที่เอกสาร หรือที่มา">
                 </div>
             </div>
-            <button type="submit" id="btnCartSubmit" class="w-full py-3.5 rounded-xl font-bold text-white shadow-lg transition transform active:scale-95 text-lg bg-indigo-600 hover:bg-indigo-700">
-                ยืนยันทำรายการทั้งหมด
-            </button>
+            
+            <div class="flex gap-3">
+                <button type="button" id="btnExportCartPDF" onclick="exportCartPDF()" class="w-1/3 py-3.5 rounded-xl font-bold text-white shadow-lg transition transform active:scale-95 text-sm bg-gray-600 hover:bg-gray-700 flex items-center justify-center gap-2">
+                    <i class="fas fa-file-pdf text-lg"></i> พิมพ์ใบรายการ
+                </button>
+                <button type="submit" id="btnCartSubmit" class="w-2/3 py-3.5 rounded-xl font-bold text-white shadow-lg transition transform active:scale-95 text-lg bg-indigo-600 hover:bg-indigo-700">
+                    ยืนยันทำรายการทั้งหมด
+                </button>
+            </div>
         </form>
     </div>
   </div>
@@ -1043,7 +1049,7 @@
             const matchName = safeName.toLowerCase().includes(txt);
             const q = parseInt(m.qty || 0);
             let matchStatus = true;
-            if (status === 'low') matchStatus = q > 0 && q < 155;
+            if (status === 'low') matchStatus = q > 0 && q < 150;
             if (status === 'out') matchStatus = q === 0;
             return matchName && matchStatus;
         });
@@ -1225,7 +1231,7 @@
         }
 
         const btn = document.getElementById('btnCartSubmit');
-        btn.className = `w-full py-4 rounded-xl font-bold text-white shadow-lg transition transform active:scale-95 text-lg ${isImport ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-rose-600 hover:bg-rose-700'}`;
+        btn.className = `w-full py-3.5 rounded-xl font-bold text-white shadow-lg transition transform active:scale-95 text-lg ${isImport ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-rose-600 hover:bg-rose-700'}`;
         btn.innerHTML = isImport ? '<i class="fas fa-check-circle mr-2"></i> ยืนยันการนำเข้าทั้งหมด' : '<i class="fas fa-check-circle mr-2"></i> ยืนยันการเบิกทั้งหมด';
 
         renderCartItems();
@@ -1349,6 +1355,81 @@
             showToast(`ทำรายการเสร็จสมบูรณ์ทั้งหมด ${successCount} รายการ`, 'success');
         }
     };
+
+    // --- FUNCTION EXPORT CART PDF (ใบยืนยันรายการ) ---
+    function exportCartPDF() {
+        if (transCart.length === 0) return showToast('ไม่มีรายการในตะกร้า', 'error');
+        
+        if (!window.jspdf) { alert("PDF Library not loaded"); return; }
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF('p', 'mm', 'a4'); 
+        
+        showToast('กำลังสร้างฟอร์ม PDF...', 'success');
+        
+        const fontUrl = 'https://raw.githubusercontent.com/google/fonts/main/ofl/sarabun/Sarabun-Regular.ttf';
+        
+        fetch(fontUrl)
+        .then(res => res.blob())
+        .then(blob => {
+            const reader = new FileReader();
+            reader.readAsDataURL(blob);
+            reader.onloadend = () => {
+                const base64 = reader.result.split(',')[1];
+                doc.addFileToVFS('Sarabun-Regular.ttf', base64);
+                doc.addFont('Sarabun-Regular.ttf', 'Sarabun', 'normal');
+                doc.setFont('Sarabun');
+                
+                const isImport = currentTransMode === 'import';
+                const docTitle = isImport ? 'ใบรับเข้าวัสดุ (Import Slip)' : 'ใบเบิกวัสดุ (Withdrawal Slip)';
+                
+                // Header
+                doc.setFontSize(20);
+                doc.text(docTitle, 105, 20, { align: 'center' });
+                
+                doc.setFontSize(12);
+                const runDate = new Date();
+                const inputDate = document.getElementById('cartDate').value;
+                // นำคำว่า (ย้อนหลัง) ออก
+                const showDate = inputDate ? formatDate(new Date(inputDate)).split(' ')[0] : formatDate(runDate).split(' ')[0];
+                
+                doc.text(`วันที่ทำรายการ: ${showDate}`, 14, 35);
+                doc.text(`เวลาที่ออกเอกสาร: ${formatDate(runDate).split(' ')[1]}`, 120, 35);
+                
+                doc.text(`ผู้ทำรายการ: ${state.user.fullname}`, 14, 43);
+                doc.text(`กลุ่มงาน: ${state.user.group || '-'}`, 120, 43);
+                
+                const refNote = document.getElementById('cartRef').value || '-';
+                const refLabel = isImport ? 'อ้างอิงเอกสาร:' : 'เหตุผลในการเบิก:';
+                doc.text(`${refLabel} ${refNote}`, 14, 51);
+                
+                // Table
+                const tableData = transCart.map((item, index) => [
+                    (index + 1).toString(),
+                    item.material_id,
+                    item.name,
+                    item.transQty.toString()
+                ]);
+                
+                doc.autoTable({
+                    head: [['ลำดับ', 'รหัสวัสดุ', 'รายการ', 'จำนวน']],
+                    body: tableData,
+                    startY: 58,
+                    styles: { font: 'Sarabun', fontSize: 11 },
+                    headStyles: { fillColor: isImport ? [16, 185, 129] : [225, 29, 72] } 
+                });
+                
+                // Signatures (ปรับระยะห่างใหม่เพื่อไม่ให้ซ้อนทับกัน)
+                const finalY = doc.lastAutoTable.finalY || 60;
+                doc.text('ลงชื่อ .................................................... ผู้ทำรายการ', 14, finalY + 30);
+                doc.text('ลงชื่อ .................................................... ผู้อนุมัติ', 115, finalY + 30);
+                
+                doc.save(`form_${currentTransMode}_${runDate.getTime()}.pdf`);
+            };
+        }).catch(err => {
+            console.error(err);
+            showToast('ไม่สามารถโหลดฟอนต์สำหรับ PDF ได้', 'error');
+        });
+    }
 
     // --- 8. VIEW: REPORTS ---
     async function renderReports(c, viewID) {
