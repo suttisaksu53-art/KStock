@@ -1413,16 +1413,17 @@
                 const refLabel = isImport ? 'อ้างอิงเอกสาร:' : 'เหตุผลในการเบิก:';
                 doc.text(`${refLabel} ${refNote}`, 14, 51);
                 
-                // Table
+                // Table (เพิ่ม Location)
                 const tableData = transCart.map((item, index) => [
                     (index + 1).toString(),
                     item.material_id,
                     item.name,
+                    item.location || item.Location || item['ที่เก็บ'] || item['ชั้นวาง'] || '-',
                     item.transQty.toString()
                 ]);
                 
                 doc.autoTable({
-                    head: [['ลำดับ', 'รหัสวัสดุ', 'รายการ', 'จำนวน']],
+                    head: [['ลำดับ', 'รหัสวัสดุ', 'รายการ', 'ที่เก็บ', 'จำนวน']],
                     body: tableData,
                     startY: 58,
                     styles: { font: 'Sarabun', fontSize: 11 },
