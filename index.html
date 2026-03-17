@@ -337,6 +337,11 @@
           <label class="block text-sm font-bold text-gray-700 mb-1">ชื่อวัสดุ <span class="text-red-500">*</span></label>
           <input type="text" id="matName" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition" placeholder="ระบุชื่อวัสดุ / อุปกรณ์" required>
         </div>
+        <!-- เพิ่มฟิลด์ชั้นวาง/ที่เก็บตรงนี้ -->
+        <div>
+          <label class="block text-sm font-bold text-gray-700 mb-1">ชั้นวาง / ที่เก็บ</label>
+          <input type="text" id="matLocation" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition" placeholder="ระบุพิกัดที่เก็บ เช่น ตู้ A ชั้น 2" required>
+        </div>
         <div>
           <label class="block text-sm font-bold text-gray-700 mb-2">รูปภาพประกอบ</label>
           <div class="flex gap-2 mb-3">
@@ -1139,7 +1144,8 @@
                 
                 <!-- Content Area -->
                 <div class="p-5 flex-1 flex flex-col">
-                    <h4 class="font-bold text-gray-800 text-base line-clamp-2 mb-3 h-12 leading-tight" title="${m.name}">${m.name}</h4>
+                    <h4 class="font-bold text-gray-800 text-base line-clamp-2 mb-1 leading-tight" title="${m.name}">${m.name}</h4>
+                    <p class="text-xs text-gray-500 mb-3 flex items-start gap-1"><i class="fas fa-map-marker-alt mt-0.5 text-red-400"></i> <span>${m.location || m.Location || m['ที่เก็บ'] || m['ชั้นวาง'] || 'ไม่ได้ระบุ'}</span></p>
                     <div class="mt-auto flex justify-between items-end">
                         <div>
                             <span class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Stock ID</span>
@@ -1232,7 +1238,7 @@
             if (refInput) refInput.placeholder = 'ระบุเลขที่เอกสาร หรือที่มา';
         } else {
             if (refLabel) refLabel.innerText = 'เหตุผลในการเบิก / หมายเหตุ';
-            if (refInput) refInput.placeholder = 'เช่น ชื่อโครงการ หรืองาน';
+            if (refInput) refInput.placeholder = 'เช่น เอาไปทำโครงการอะไร';
         }
 
         const btn = document.getElementById('btnCartSubmit');
@@ -1254,7 +1260,7 @@
                 <img src="${item.image_url || 'https://via.placeholder.com/150?text=No+Image'}" class="w-12 h-12 object-contain rounded-lg border border-gray-100 p-1 bg-white shrink-0">
                 <div class="flex-1 min-w-[120px]">
                     <p class="font-bold text-gray-800 text-sm truncate" title="${item.name}">${item.name}</p>
-                    <p class="text-[10px] text-gray-500">คงเหลือปัจจุบัน: <span class="font-bold text-blue-600">${item.qty}</span></p>
+                    <p class="text-[10px] text-gray-500 mt-0.5"><i class="fas fa-map-marker-alt text-red-400 mr-1"></i>${item.location || item.Location || item['ที่เก็บ'] || item['ชั้นวาง'] || 'ไม่ได้ระบุ'} | คงเหลือ: <span class="font-bold text-blue-600">${item.qty}</span></p>
                 </div>
                 <div class="flex items-center gap-1 sm:gap-2 ml-auto">
                     <button type="button" onclick="adjCartQty(${index}, -1)" class="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center font-bold text-gray-600 transition shrink-0">-</button>
@@ -1654,6 +1660,8 @@
         if (m) {
             document.getElementById('matId').value = m.material_id;
             document.getElementById('matName').value = m.name;
+            // ดึงค่าที่เก็บมาแสดง (รองรับชื่อคอลัมน์ที่เป็นภาษาไทยและอังกฤษ)
+            document.getElementById('matLocation').value = m.location || m.Location || m['ที่เก็บ'] || m['ชั้นวาง'] || '';
         } else {
             document.getElementById('matId').value = '';
         }
@@ -1708,6 +1716,7 @@
         
         let payload = { 
             name: document.getElementById('matName').value, 
+            location: document.getElementById('matLocation').value,
             image_url: document.getElementById('matImgUrl').value 
         };
         
@@ -1920,12 +1929,13 @@
                     const data = state.materials.map((m, index) => [
                         (index + 1).toString(), 
                         m.name, 
+                        m.location || m.Location || m['ที่เก็บ'] || m['ชั้นวาง'] || '-',
                         m.qty.toString(), 
                         formatDate(m.last_import_date || m.last_withdraw_date).split(' ')[0]
                     ]);
                     
                     doc.autoTable({
-                        head: [['ลำดับ (No.)', 'ชื่อวัสดุ (Material Name)', 'คงเหลือ (Qty)', 'อัปเดตล่าสุด']],
+                        head: [['ลำดับ', 'ชื่อวัสดุ (Material Name)', 'ที่เก็บ (Location)', 'คงเหลือ (Qty)', 'อัปเดตล่าสุด']],
                         body: data,
                         startY: 35,
                         margin: { top: 35, bottom: 20 },
@@ -1956,9 +1966,15 @@
             console.error("Font Load Error:", err);
             alert("ไม่สามารถโหลดฟอนต์ภาษาไทยจาก Server ได้ จะสร้าง PDF ด้วยฟอนต์มาตรฐานแทน");
             doc.setFont("helvetica");
-            const data = state.materials.map((m, index) => [(index + 1).toString(), m.name, m.qty.toString(), formatDate(m.last_import_date || m.last_withdraw_date).split(' ')[0]]);
+            const data = state.materials.map((m, index) => [
+                (index + 1).toString(), 
+                m.name, 
+                m.location || m.Location || m['ที่เก็บ'] || m['ชั้นวาง'] || '-', 
+                m.qty.toString(), 
+                formatDate(m.last_import_date || m.last_withdraw_date).split(' ')[0]
+            ]);
             doc.autoTable({
-                head: [['No.', 'Material Name', 'Qty', 'Last Update']],
+                head: [['No.', 'Material Name', 'Location', 'Qty', 'Last Update']],
                 body: data,
                 startY: 35,
                 margin: { top: 35, bottom: 20 },
@@ -1979,7 +1995,10 @@
     function exportInventoryCSV() {
         if (!state.materials || state.materials.length === 0) return showToast('ไม่มีข้อมูลที่จะส่งออก', 'error');
         // Add BOM \uFEFF to make Excel read UTF-8 properly
-        const c = "\uFEFFลำดับที่ (No.),Material Name,Quantity,Last Update\n" + state.materials.map((m, index) => `${index + 1},"${m.name}",${m.qty},${formatDate(m.last_import_date || m.last_withdraw_date).split(' ')[0]}`).join("\n");
+        const c = "\uFEFFลำดับที่ (No.),ชื่อวัสดุ (Material Name),ที่เก็บ (Location),คงเหลือ (Quantity),อัปเดตล่าสุด (Last Update)\n" + state.materials.map((m, index) => {
+            const loc = m.location || m.Location || m['ที่เก็บ'] || m['ชั้นวาง'] || '-';
+            return `${index + 1},"${m.name}","${loc}",${m.qty},${formatDate(m.last_import_date || m.last_withdraw_date).split(' ')[0]}`;
+        }).join("\n");
         const l = document.createElement("a");
         l.href = URL.createObjectURL(new Blob([c], {type:"text/csv;charset=utf-8;"}));
         l.download = "inventory_report.csv";
