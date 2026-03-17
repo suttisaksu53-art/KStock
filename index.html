@@ -253,6 +253,10 @@
            <a onclick="route('users')" class="nav-item" data-page="users">
              <i class="fas fa-users-cog w-8 text-center text-lg"></i> <span>จัดการผู้ใช้งาน</span>
            </a>
+           <!-- เพิ่มเมนู Log ประวัติการเข้าสู่ระบบ -->
+           <a onclick="route('logs')" class="nav-item" data-page="logs">
+             <i class="fas fa-history w-8 text-center text-lg"></i> <span>ประวัติการเข้าใช้งาน</span>
+           </a>
         </div>
       </nav>
       
@@ -740,7 +744,8 @@
         const titles = { 
             'dashboard': 'ภาพรวมระบบ (Dashboard)', 'inventory': 'รายการวัสดุ (Inventory)', 
             'withdraw': 'เบิกวัสดุ (Withdraw)', 'import': 'นำเข้าสต๊อก (Import)', 
-            'reports': 'รายงานและประวัติ (Reports)', 'users': 'จัดการผู้ใช้งาน (Users)' 
+            'reports': 'รายงานและประวัติ (Reports)', 'users': 'จัดการผู้ใช้งาน (Users)',
+            'logs': 'ประวัติการเข้าใช้งานระบบ (System Logs)'
         };
         const titleEl = document.getElementById('pageTitle');
         if(titleEl) titleEl.innerText = titles[page] || 'Inventory System';
@@ -768,6 +773,7 @@
             case 'import': await renderInventory(container, 'import', viewID); break;
             case 'reports': await renderReports(container, viewID); break;
             case 'users': await renderUsers(container, viewID); break;
+            case 'logs': await renderLogs(container, viewID); break;
             default: await renderDashboard(container, viewID); break;
         }
     }
@@ -1640,6 +1646,82 @@
             showToast(`เปลี่ยนสถานะเป็น: ${status === 'approved' ? 'อนุมัติแล้ว' : 'รอตรวจสอบ'}`, 'success');
         } catch(e) {
             renderUsers(document.getElementById('contentArea'), currentViewID); // Refresh to revert visual toggle on error
+        }
+    }
+
+    // --- 11. VIEW: LOGS (ADMIN ONLY) ---
+    async function renderLogs(c, viewID) {
+        if ((state.user.role||'').toLowerCase() !== 'admin') return c.innerHTML = permissionDeniedHTML();
+        if (currentViewID !== viewID) return;
+        
+        c.innerHTML = `
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden fade-in flex flex-col h-full">
+                <div class="p-5 border-b bg-gray-50 flex flex-col sm:flex-row justify-between items-center gap-4">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-xl bg-gray-800 text-white flex items-center justify-center shadow-sm"><i class="fas fa-history text-2xl"></i></div>
+                        <div>
+                            <h3 class="font-bold text-gray-800 text-xl leading-tight">ประวัติการเข้าใช้งาน (System Logs)</h3>
+                            <p class="text-xs text-gray-500 font-medium">บันทึกการเข้าสู่ระบบของผู้ใช้งาน</p>
+                        </div>
+                    </div>
+                    <button onclick="renderLogs(document.getElementById('contentArea'), '${viewID}')" class="text-gray-600 hover:text-gray-900 transition bg-white border border-gray-300 px-4 py-2.5 rounded-xl text-sm font-bold shadow-sm flex items-center gap-2 transform active:scale-95"><i class="fas fa-sync-alt"></i> โหลดข้อมูลใหม่</button>
+                </div>
+                <div class="overflow-x-auto flex-1">
+                    <table class="w-full text-left text-sm">
+                        <thead class="bg-white text-gray-500 font-bold border-b border-gray-200 text-xs uppercase tracking-wider sticky top-0 shadow-sm z-10">
+                            <tr>
+                                <th class="p-4 pl-6">วัน-เวลา</th>
+                                <th class="p-4">รหัสผู้ใช้</th>
+                                <th class="p-4">ชื่อผู้ใช้งาน</th>
+                                <th class="p-4">ชื่อ-นามสกุล</th>
+                                <th class="p-4">ระดับสิทธิ์</th>
+                            </tr>
+                        </thead>
+                        <tbody id="logsTableBody" class="divide-y divide-gray-100">
+                            <tr><td colspan="5" class="p-20 text-center"><div class="loader mx-auto"></div></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>`;
+        
+        try {
+            const logs = await api('getLogs');
+            if (currentViewID !== viewID) return;
+            
+            const tbody = document.getElementById('logsTableBody');
+            if(!tbody) return;
+            
+            if (!logs || logs.length === 0) {
+                 tbody.innerHTML = `<tr><td colspan="5" class="p-10 text-center text-gray-500 font-medium">ไม่มีข้อมูลประวัติการเข้าใช้งาน</td></tr>`;
+                 return;
+            }
+
+            tbody.innerHTML = logs.map(log => {
+                // Fallback mappings
+                const ts = log.timestamp || log.Timestamp || log['Timestamp'] || log.time || log.date || '';
+                const uid = log.user_id || log['User ID'] || log.userId || log.id || '';
+                const uname = log.username || log['Username'] || log.user || '';
+                const fname = log.fullname || log['Fullname'] || log.name || '';
+                const role = log.role || log['Role'] || log.level || '';
+
+                const formattedDate = ts ? formatDate(ts) : '-';
+                const displayUid = uid || '-';
+                const displayUname = uname || '-';
+                const displayFname = fname || '-';
+                const displayRole = role ? `<span class="px-2 py-1 rounded-md text-[10px] font-black ${role.toLowerCase() === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'} uppercase tracking-widest">${role}</span>` : '-';
+
+                return `
+                <tr class="hover:bg-gray-50 transition">
+                    <td class="p-4 pl-6 text-gray-600 font-medium">${formattedDate}</td>
+                    <td class="p-4 font-mono text-xs text-gray-500">${displayUid}</td>
+                    <td class="p-4 font-bold text-gray-700">${displayUname}</td>
+                    <td class="p-4 text-gray-700">${displayFname}</td>
+                    <td class="p-4">${displayRole}</td>
+                </tr>`;
+            }).join('');
+        } catch(e) {
+             const tbody = document.getElementById('logsTableBody');
+             if(tbody) tbody.innerHTML = `<tr><td colspan="5" class="p-10 text-center text-red-500 font-medium">เกิดข้อผิดพลาดในการโหลดข้อมูล</td></tr>`;
         }
     }
 
