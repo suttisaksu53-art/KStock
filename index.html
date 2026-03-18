@@ -547,7 +547,7 @@
 
     // --- AUTO LOGOUT (INACTIVITY TIMER) ---
     let inactivityTimer;
-    const INACTIVITY_LIMIT = 60 * 5 * 1000; // 1 ชั่วโมง (หน่วยเป็นมิลลิวินาที)
+    const INACTIVITY_LIMIT = 60 * 60 * 1000; // 1 ชั่วโมง (หน่วยเป็นมิลลิวินาที)
 
     function resetInactivityTimer() {
         clearTimeout(inactivityTimer);
@@ -623,21 +623,21 @@
     function initApp() {
         updateClock(); // Init clock immediately
         
-        const savedUserStr = localStorage.getItem('user_session');
+        const savedUserStr = sessionStorage.getItem('user_session');
         if (savedUserStr) {
             try {
                 state.user = JSON.parse(savedUserStr);
                 // Basic validation of user object
                 if(state.user && state.user.fullname) {
                     setupUI();
-                    const lastView = localStorage.getItem('last_view') || 'dashboard';
+                    const lastView = sessionStorage.getItem('last_view') || 'dashboard';
                     route(lastView);
                 } else {
                     throw new Error("Invalid session data");
                 }
             } catch(e) {
                 // If parsing fails or data is bad, force login
-                localStorage.removeItem('user_session');
+                sessionStorage.removeItem('user_session');
                 document.getElementById('authPage').classList.remove('hidden');
             }
         } else {
@@ -679,7 +679,7 @@
                 password: document.getElementById('loginPass').value.trim()
             });
             state.user = user;
-            localStorage.setItem('user_session', JSON.stringify(state.user));
+            sessionStorage.setItem('user_session', JSON.stringify(state.user));
             setupUI();
             route('dashboard');
             showToast(`ยินดีต้อนรับเข้าสู่ระบบ, ${user.fullname.split(' ')[0]}`, 'success');
@@ -704,7 +704,7 @@
     };
 
     function logout() {
-        localStorage.clear();
+        sessionStorage.clear();
         location.reload();
     }
 
@@ -751,7 +751,7 @@
         const viewID = currentViewID;
         
         // Remember last view
-        localStorage.setItem('last_view', page);
+        sessionStorage.setItem('last_view', page);
 
         // Update Navigation Active Styling
         document.querySelectorAll('.nav-item').forEach(el => {
