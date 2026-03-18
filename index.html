@@ -547,7 +547,7 @@
 
     // --- AUTO LOGOUT (INACTIVITY TIMER) ---
     let inactivityTimer;
-    const INACTIVITY_LIMIT = 60 * 60 * 1000; // 1 ชั่วโมง (หน่วยเป็นมิลลิวินาที)
+    const INACTIVITY_LIMIT = 60 * 5 * 1000; // 1 ชั่วโมง (หน่วยเป็นมิลลิวินาที)
 
     function resetInactivityTimer() {
         clearTimeout(inactivityTimer);
