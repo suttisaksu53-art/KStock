@@ -547,7 +547,7 @@
 
     // --- AUTO LOGOUT (INACTIVITY TIMER) ---
     let inactivityTimer;
-    const INACTIVITY_LIMIT = 60 * 5 * 1000; // 1 ชั่วโมง (หน่วยเป็นมิลลิวินาที)
+    const INACTIVITY_LIMIT = 60 * 60 * 1000; // 1 ชั่วโมง (หน่วยเป็นมิลลิวินาที)
 
     function resetInactivityTimer() {
         clearTimeout(inactivityTimer);
@@ -1632,37 +1632,50 @@
             if(!tbody) return;
             
             tbody.innerHTML = users.map(u => {
-                const isApproved = u.status === 'approved';
+                const isApproved = (u.status || u.Status) === 'approved';
+                // ป้องกันปัญหาดึงค่าไม่ได้ โดยใช้ตัวแปรสำรองต่างๆ และบังคับให้เป็น String เพื่อป้องกัน Error
+                const fullname = String(u.fullname || u.Fullname || u.name || u.Name || 'ผู้ใช้ใหม่');
+                const username = String(u.username || u.Username || '-');
+                const group = String(u.group || u.Group || '-');
+                const role = String(u.role || u.Role || 'user');
+                const uid = u.user_id || u['User ID'] || u.id || '';
+                
+                // แปลงข้อมูล Object เป็น String เพื่อส่งเข้าปุ่มให้ปลอดภัย (ป้องกันปัญหาชื่อมีเครื่องหมายคำพูด)
+                const userJson = JSON.stringify(u).replace(/'/g, "&#39;").replace(/"/g, "&quot;");
+
                 return `
                 <tr class="hover:bg-blue-50/30 transition group">
                     <td class="p-4 pl-6">
                         <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center font-bold shadow-inner border border-gray-200">${u.fullname.charAt(0).toUpperCase()}</div>
+                            <div class="w-10 h-10 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center font-bold shadow-inner border border-gray-200">${fullname.charAt(0).toUpperCase()}</div>
                             <div>
-                                <div class="font-bold text-gray-800 text-base">${u.fullname}</div>
-                                <div class="text-xs text-gray-500 font-mono mt-0.5"><i class="fas fa-at text-[10px]"></i>${u.username}</div>
+                                <div class="font-bold text-gray-800 text-base">${fullname}</div>
+                                <div class="text-xs text-gray-500 font-mono mt-0.5"><i class="fas fa-at text-[10px]"></i>${username}</div>
                             </div>
                         </div>
                     </td>
                     <td class="p-4">
-                        <span class="bg-gray-100 text-gray-600 border border-gray-200 px-3 py-1 rounded-lg text-xs font-bold shadow-sm">${u.group}</span>
+                        <span class="bg-gray-100 text-gray-600 border border-gray-200 px-3 py-1 rounded-lg text-xs font-bold shadow-sm">${group}</span>
                     </td>
                     <td class="p-4 text-center">
                         <div class="flex flex-col items-center justify-center">
                             <label class="relative inline-flex items-center cursor-pointer group/switch">
-                              <input type="checkbox" class="sr-only peer toggle-checkbox" ${isApproved ? 'checked' : ''} onchange="toggleUserStatus('${u.user_id}', this.checked)">
+                              <input type="checkbox" class="sr-only peer toggle-checkbox" ${isApproved ? 'checked' : ''} onchange="toggleUserStatus('${uid}', this.checked)">
                               <div class="w-12 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all toggle-label shadow-inner group-hover/switch:shadow-md"></div>
                             </label>
                             <span class="text-[10px] mt-1.5 font-black uppercase tracking-wider ${isApproved ? 'text-emerald-600' : 'text-amber-500'}">${isApproved ? 'อนุญาตแล้ว' : 'รอตรวจสอบ'}</span>
                         </div>
                     </td>
-                    <td class="p-4 text-center"><span class="px-3 py-1.5 rounded-lg text-[10px] font-black ${u.role==='admin'?'bg-purple-100 text-purple-700 border border-purple-200':'bg-blue-100 text-blue-700 border border-blue-200'} uppercase tracking-widest shadow-sm">${u.role}</span></td>
+                    <td class="p-4 text-center"><span class="px-3 py-1.5 rounded-lg text-[10px] font-black ${(role || '').toLowerCase()==='admin'?'bg-purple-100 text-purple-700 border border-purple-200':'bg-blue-100 text-blue-700 border border-blue-200'} uppercase tracking-widest shadow-sm">${role}</span></td>
                     <td class="p-4 text-right pr-6">
-                        <button onclick='openPermModal(${JSON.stringify(u)})' class="text-indigo-600 bg-white border border-indigo-200 hover:bg-indigo-50 hover:border-indigo-400 px-4 py-2 rounded-xl text-xs font-bold shadow-sm transition transform active:scale-95"><i class="fas fa-user-shield mr-1"></i> กำหนดสิทธิ์</button>
+                        <button onclick="openPermModal(${userJson})" class="text-indigo-600 bg-white border border-indigo-200 hover:bg-indigo-50 hover:border-indigo-400 px-4 py-2 rounded-xl text-xs font-bold shadow-sm transition transform active:scale-95"><i class="fas fa-user-shield mr-1"></i> กำหนดสิทธิ์</button>
                     </td>
                 </tr>`;
             }).join('');
-        } catch(e) {}
+        } catch(e) {
+            const tbody = document.getElementById('userTableBody');
+            if(tbody) tbody.innerHTML = `<tr><td colspan="5" class="p-10 text-center text-red-500 font-bold"><i class="fas fa-exclamation-triangle mb-2 text-2xl"></i><br>เกิดข้อผิดพลาดในการโหลดข้อมูล: ${e.message}</td></tr>`;
+        }
     }
 
     async function toggleUserStatus(uid, isChecked) {
@@ -1784,9 +1797,13 @@
             else if(typeof u.permissions === 'string') perms = JSON.parse(u.permissions);
         } catch(e) { perms = []; }
         
-        document.getElementById('permUserName').innerText = u.fullname;
-        document.getElementById('permUserInitials').innerText = u.fullname.charAt(0).toUpperCase();
-        document.getElementById('permUserId').value = u.user_id;
+        // บังคับให้เป็น String ป้องกัน Error
+        const fullname = String(u.fullname || u.Fullname || u.name || u.Name || 'ผู้ใช้ใหม่');
+        const uid = u.user_id || u['User ID'] || u.id || '';
+        
+        document.getElementById('permUserName').innerText = fullname;
+        document.getElementById('permUserInitials').innerText = fullname.charAt(0).toUpperCase();
+        document.getElementById('permUserId').value = uid;
         
         document.getElementById('perm_view_stock').checked = true;
         document.getElementById('perm_withdraw_material').checked = perms.includes('withdraw_material');
