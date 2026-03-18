@@ -545,6 +545,28 @@
     const cache = { materials: null, users: null, reports: null };
     let stockChartInstance, statusChartInstance, videoStream, currentFacingMode = 'environment', currentCamTarget = '';
 
+    // --- AUTO LOGOUT (INACTIVITY TIMER) ---
+    let inactivityTimer;
+    const INACTIVITY_LIMIT = 60 * 60 * 1000; // 1 ชั่วโมง (หน่วยเป็นมิลลิวินาที)
+
+    function resetInactivityTimer() {
+        clearTimeout(inactivityTimer);
+        // จะเริ่มจับเวลาใหม่ก็ต่อเมื่อมีการล็อกอินอยู่เท่านั้น
+        if (state.user) {
+            inactivityTimer = setTimeout(() => {
+                alert('คุณไม่ได้ทำรายการใดๆ เป็นเวลานานกว่า 1 ชั่วโมง ระบบได้ทำการออกจากระบบอัตโนมัติเพื่อความปลอดภัย');
+                logout();
+            }, INACTIVITY_LIMIT);
+        }
+    }
+
+    function setupInactivityListeners() {
+        // ดักจับเหตุการณ์การเคลื่อนไหวต่างๆ ของผู้ใช้
+        ['mousemove', 'keydown', 'click', 'scroll', 'touchstart'].forEach(event => {
+            document.addEventListener(event, resetInactivityTimer, true);
+        });
+    }
+
     // --- REALTIME CLOCK ---
     function updateClock() {
         const now = new Date();
@@ -643,6 +665,10 @@
             const mobileAdminMenu = document.getElementById('mobileAdminMenu');
             if(mobileAdminMenu) mobileAdminMenu.classList.remove('hidden');
         }
+
+        // เริ่มตั้งค่าตัวจับเวลาการใช้งานเมื่อหน้า UI โหลดเสร็จและผู้ใช้ล็อกอินอยู่
+        setupInactivityListeners();
+        resetInactivityTimer();
     }
 
     document.getElementById('loginForm').onsubmit = async (e) => {
