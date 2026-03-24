@@ -1,32 +1,25 @@
+
 <!DOCTYPE html>
 <html lang="th">
 <head>
   <meta charset="UTF-8">
-  <!-- แก้ไข Viewport ป้องกันการ Zoom อัตโนมัติในมือถือ และปรับให้เข้ากับรอยบาก (Notch) -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>ระบบจัดการสต๊อกวัสดุ Test Kit - กลุ่มวิจัยเคมีดิน</title>
   
   <!-- ================= LIBRARIES ================= -->
-  <!-- CSS Framework: Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Icons: FontAwesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <!-- Font: Sarabun (Thai) -->
   <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   
-  <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  
-  <!-- PDF Export: jsPDF & AutoTable -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
   
   <!-- ================= STYLES ================= -->
   <style>
-    /* แก้ไขปัญหาหน้าจอล้นในมือถือ Chrome / Safari */
     html {
       height: 100%;
-      height: 100dvh; /* ปรับขนาดอัตโนมัติตามแถบ Address Bar ของมือถือ */
+      height: 100dvh;
     }
     body { 
       font-family: 'Sarabun', sans-serif; 
@@ -37,7 +30,6 @@
       padding: 0;
       overflow: hidden;
     }
-    /* เฉพาะ iOS Safari ให้แสดงผลเต็มจอเป๊ะๆ */
     @supports (-webkit-touch-callout: none) {
       html, body {
         height: -webkit-fill-available;
@@ -46,7 +38,6 @@
     
     .hidden { display: none !important; }
     
-    /* Loading Spinner */
     .loader { 
       border: 4px solid #f3f3f3; 
       border-top: 4px solid #3b82f6; 
@@ -60,20 +51,17 @@
       100% { transform: rotate(360deg); } 
     }
 
-    /* Custom Scrollbar */
     ::-webkit-scrollbar { width: 8px; height: 8px; }
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
     ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
     
-    /* Animation */
     .fade-in { animation: fadeIn 0.25s ease-in-out; }
     @keyframes fadeIn { 
       from { opacity: 0; transform: translateY(10px); } 
       to { opacity: 1; transform: translateY(0); } 
     }
 
-    /* Navigation Active State */
     .nav-item {
         display: flex;
         align-items: center;
@@ -81,37 +69,34 @@
         border-radius: 0.5rem;
         cursor: pointer;
         transition: all 0.2s;
-        color: #94a3b8; /* Slate-400 */
+        color: #94a3b8; 
         font-weight: 500;
         margin-bottom: 4px;
     }
     .nav-item:hover {
-        background-color: #334155; /* Slate-700 */
-        color: #f8fafc; /* Slate-50 */
+        background-color: #334155; 
+        color: #f8fafc; 
     }
     .nav-item.active {
-        background-color: #1e293b; /* Slate-800 */
+        background-color: #1e293b; 
         color: #ffffff;
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
     }
     .nav-item.active i {
-        color: #38bdf8; /* Sky-400 */
+        color: #38bdf8; 
     }
 
-    /* Toggle Switch (Slide Bar) */
     .toggle-checkbox:checked {
         right: 0;
-        border-color: #10b981; /* Emerald-500 */
+        border-color: #10b981; 
     }
     .toggle-checkbox:checked + .toggle-label {
         background-color: #10b981;
     }
 
-    /* Input File Overlay */
     .file-input-wrapper { position: relative; overflow: hidden; }
     .file-input-overlay { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; z-index: 20; }
     
-    /* Remove input number arrows */
     input[type="number"]::-webkit-inner-spin-button,
     input[type="number"]::-webkit-outer-spin-button {
       -webkit-appearance: none;
@@ -122,7 +107,6 @@
     }
   </style>
 </head>
-<!-- เอา h-screen ออกเพราะเราใช้ความสูงจาก CSS (100dvh) แทนแล้ว -->
 <body class="flex flex-col">
 
   <!-- ================= TOAST NOTIFICATION ================= -->
@@ -270,7 +254,6 @@
            <a onclick="route('users')" class="nav-item" data-page="users">
              <i class="fas fa-users-cog w-8 text-center text-lg"></i> <span>จัดการผู้ใช้งาน</span>
            </a>
-           <!-- เพิ่มเมนู Log ประวัติการเข้าสู่ระบบ -->
            <a onclick="route('logs')" class="nav-item" data-page="logs">
              <i class="fas fa-history w-8 text-center text-lg"></i> <span>ประวัติการเข้าใช้งาน</span>
            </a>
@@ -354,15 +337,29 @@
       </div>
       <form id="materialForm" class="p-6 space-y-5 overflow-y-auto">
         <input type="hidden" id="matId">
+        
+        <!-- เพิ่มฟิลด์ประเภท Test Kit -->
+        <div>
+          <label class="block text-sm font-bold text-gray-700 mb-1">ประเภท Test Kit <span class="text-red-500">*</span></label>
+          <select id="matType" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition" required>
+            <option value="" disabled selected>-- เลือกประเภท --</option>
+            <option value="pH Test Kit">pH Test Kit</option>
+            <option value="NPK Test Kit">NPK Test Kit</option>
+            <option value="EC Test Kit">EC Test Kit</option>
+            <option value="อื่นๆ">อื่นๆ</option>
+          </select>
+        </div>
+
         <div>
           <label class="block text-sm font-bold text-gray-700 mb-1">ชื่อวัสดุ <span class="text-red-500">*</span></label>
           <input type="text" id="matName" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition" placeholder="ระบุชื่อวัสดุ / อุปกรณ์" required>
         </div>
-        <!-- เพิ่มฟิลด์ชั้นวาง/ที่เก็บตรงนี้ -->
+        
         <div>
           <label class="block text-sm font-bold text-gray-700 mb-1">ชั้นวาง / ที่เก็บ</label>
           <input type="text" id="matLocation" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition" placeholder="ระบุพิกัดที่เก็บ เช่น ตู้ A ชั้น 2" required>
         </div>
+
         <div>
           <label class="block text-sm font-bold text-gray-700 mb-2">รูปภาพประกอบ</label>
           <div class="flex gap-2 mb-3">
@@ -857,16 +854,26 @@
     function updateDashboardUI(c, viewID) {
          if(currentViewID !== viewID || !document.contains(c)) return;
          
-         const total = state.materials.length;
+         const typeVal = document.getElementById('dashboardFilterType') ? document.getElementById('dashboardFilterType').value : 'all';
+
+         let filteredMaterials = state.materials;
+         if (typeVal !== 'all') {
+             filteredMaterials = filteredMaterials.filter(m => {
+                 const matType = String(m.type || m.Type || m['ประเภท'] || m['type'] || '');
+                 return matType === typeVal;
+             });
+         }
+         
+         const total = filteredMaterials.length;
          
          // คำนวณจำนวนตามสถานะ
-         const outOfStock = state.materials.filter(m => parseInt(m.qty || 0) === 0).length;
-         const low = state.materials.filter(m => parseInt(m.qty || 0) > 0 && parseInt(m.qty || 0) < 150).length;
+         const outOfStock = filteredMaterials.filter(m => parseInt(m.qty || 0) === 0).length;
+         const low = filteredMaterials.filter(m => parseInt(m.qty || 0) > 0 && parseInt(m.qty || 0) < 150).length;
          const normal = total - low - outOfStock;
 
          // Calculate True Last Update by finding maximum date
          let maxTime = 0;
-         state.materials.forEach(m => {
+         filteredMaterials.forEach(m => {
              const iTime = m.last_import_date ? new Date(m.last_import_date).getTime() : 0;
              const wTime = m.last_withdraw_date ? new Date(m.last_withdraw_date).getTime() : 0;
              if (iTime > maxTime) maxTime = iTime;
@@ -875,6 +882,15 @@
          const last = maxTime > 0 ? formatDate(new Date(maxTime)).split(' ')[0] : 'ไม่มีข้อมูล';
          
          c.innerHTML = `
+            <div class="flex justify-between items-center mb-4 fade-in">
+                <h2 class="text-xl font-bold text-gray-800">สรุปข้อมูล</h2>
+                <select id="dashboardFilterType" onchange="updateDashboardUI(document.getElementById('contentArea'), currentViewID)" class="py-2 px-3 bg-white border border-gray-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-blue-500 outline-none shadow-sm text-gray-600">
+                    <option value="all" ${typeVal === 'all' ? 'selected' : ''}>ทุกประเภท (Test Kit)</option>
+                    <option value="pH Test Kit" ${typeVal === 'pH Test Kit' ? 'selected' : ''}>pH Test Kit</option>
+                    <option value="NPK Test Kit" ${typeVal === 'NPK Test Kit' ? 'selected' : ''}>NPK Test Kit</option>
+                    <option value="EC Test Kit" ${typeVal === 'EC Test Kit' ? 'selected' : ''}>EC Test Kit</option>
+                </select>
+            </div>
             <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6 mb-8 fade-in">
                 ${statCard('ทั้งหมด', total, 'fas fa-boxes', 'bg-blue-100 text-blue-600')}
                 ${statCard('ปกติ', normal, 'fas fa-check-circle', 'bg-emerald-100 text-emerald-600')}
@@ -909,8 +925,8 @@
         `;
             
          // จัดเรียงข้อมูลตามจำนวน
-         const sortedByQtyDesc = [...state.materials].sort((a,b) => parseInt(b.qty || 0) - parseInt(a.qty || 0));
-         const sortedByQtyAsc = [...state.materials].sort((a,b) => parseInt(a.qty || 0) - parseInt(b.qty || 0));
+         const sortedByQtyDesc = [...filteredMaterials].sort((a,b) => parseInt(b.qty || 0) - parseInt(a.qty || 0));
+         const sortedByQtyAsc = [...filteredMaterials].sort((a,b) => parseInt(a.qty || 0) - parseInt(b.qty || 0));
          
          const top5 = sortedByQtyDesc.slice(0, 5);
          const bottom5 = sortedByQtyAsc.slice(0, 5);
@@ -992,6 +1008,45 @@
          }
     }
 
+    // ฟังก์ชันเสริมสำหรับดึงข้อมูล Inventory ที่ถูก Filter แล้ว (ใช้ร่วมกับการ Export PDF/CSV)
+    function getFilteredInventory() {
+        const searchInput = document.getElementById('searchInput');
+        const filterStatus = document.getElementById('filterStatus');
+        const filterType = document.getElementById('filterType');
+        const sortQty = document.getElementById('sortQty');
+
+        const txt = searchInput ? searchInput.value.toLowerCase() : '';
+        const status = filterStatus ? filterStatus.value : 'all';
+        const typeVal = filterType ? filterType.value : 'all';
+        const sort = sortQty ? sortQty.value : 'desc';
+
+        let filtered = state.materials.filter(m => {
+            const safeName = String(m.name || '');
+            const matchName = safeName.toLowerCase().includes(txt);
+            const q = parseInt(m.qty || 0);
+            let matchStatus = true;
+            if (status === 'low') matchStatus = q > 0 && q < 150;
+            if (status === 'out') matchStatus = q === 0;
+
+            let matchType = true;
+            const matType = String(m.type || m.Type || m['ประเภท'] || m['type'] || '');
+            if (typeVal !== 'all') {
+                matchType = matType === typeVal;
+            }
+
+            return matchName && matchStatus && matchType;
+        });
+
+        filtered.sort((a,b) => {
+            const qa = parseInt(a.qty || 0);
+            const qb = parseInt(b.qty || 0);
+            if (sort === 'desc') return qb - qa;
+            return qa - qb;
+        });
+
+        return filtered;
+    }
+
     // --- 7. VIEW: INVENTORY & OPERATIONS ---
     async function renderInventory(c, mode, viewID) {
         if(currentViewID !== viewID) return;
@@ -1033,6 +1088,12 @@
                             <i class="fas fa-search absolute left-4 top-3 text-gray-400"></i>
                             <input type="text" id="searchInput" placeholder="ค้นหาชื่อ..." class="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-${color}-500 outline-none transition shadow-inner" onkeyup="renderMaterialList('${mode}')">
                         </div>
+                        <select id="filterType" onchange="renderMaterialList('${mode}')" class="py-2.5 px-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-${color}-500 outline-none transition shadow-inner text-gray-600">
+                            <option value="all">ทุกประเภท (Test Kit)</option>
+                            <option value="pH Test Kit">pH Test Kit</option>
+                            <option value="NPK Test Kit">NPK Test Kit</option>
+                            <option value="EC Test Kit">EC Test Kit</option>
+                        </select>
                         <select id="filterStatus" onchange="renderMaterialList('${mode}')" class="py-2.5 px-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-${color}-500 outline-none transition shadow-inner text-gray-600">
                             <option value="all">สถานะทั้งหมด</option>
                             <option value="low">ใกล้หมด</option>
@@ -1088,38 +1149,13 @@
         const container = document.getElementById('inventoryContainer');
         if (!container) return;
 
-        const searchInput = document.getElementById('searchInput');
-        const filterStatus = document.getElementById('filterStatus');
-        const sortQty = document.getElementById('sortQty');
-
-        const txt = searchInput ? searchInput.value.toLowerCase() : '';
-        const status = filterStatus ? filterStatus.value : 'all';
-        const sort = sortQty ? sortQty.value : 'desc';
-
         const perms = state.user.permissions || [];
         const isAdmin = (state.user.role||'').toLowerCase() === 'admin';
         const canManage = isAdmin || perms.includes('manage_material');
         const canWithdraw = isAdmin || perms.includes('withdraw_material');
         const canImport = isAdmin || perms.includes('import_material');
         
-        // Filter
-        let filtered = state.materials.filter(m => {
-            const safeName = String(m.name || '');
-            const matchName = safeName.toLowerCase().includes(txt);
-            const q = parseInt(m.qty || 0);
-            let matchStatus = true;
-            if (status === 'low') matchStatus = q > 0 && q < 150;
-            if (status === 'out') matchStatus = q === 0;
-            return matchName && matchStatus;
-        });
-
-        // Sort
-        filtered.sort((a,b) => {
-            const qa = parseInt(a.qty || 0);
-            const qb = parseInt(b.qty || 0);
-            if (sort === 'desc') return qb - qa;
-            return qa - qb;
-        });
+        const filtered = getFilteredInventory();
         
         if (filtered.length === 0) {
             container.innerHTML = `
@@ -1193,6 +1229,7 @@
                 
                 <!-- Content Area -->
                 <div class="p-5 flex-1 flex flex-col">
+                    <span class="px-2 py-0.5 bg-indigo-100 text-indigo-700 text-[10px] rounded-md font-bold mb-2 inline-block w-max">${m.type || m.Type || m['ประเภท'] || 'ไม่ได้ระบุประเภท'}</span>
                     <h4 class="font-bold text-gray-800 text-base line-clamp-2 mb-1 leading-tight" title="${m.name}">${m.name}</h4>
                     <p class="text-xs text-gray-500 mb-3 flex items-start gap-1"><i class="fas fa-map-marker-alt mt-0.5 text-red-400"></i> <span>${m.location || m.Location || m['ที่เก็บ'] || m['ชั้นวาง'] || 'ไม่ได้ระบุ'}</span></p>
                     <div class="mt-auto flex justify-between items-end">
@@ -1389,7 +1426,9 @@
                     material_name: item.name,
                     qty: item.transQty,
                     user_name: state.user.fullname,
-                    ref_doc: combinedRef
+                    ref_doc: combinedRef,
+                    // ส่งประเภทพ่วงไปด้วย
+                    type: item.type || item.Type || item['ประเภท'] || ''
                 });
                 successCount++;
             } catch(err) {
@@ -1467,12 +1506,13 @@
                     (index + 1).toString(),
                     item.material_id,
                     item.name,
+                    item.type || item.Type || item['ประเภท'] || '-',
                     item.location || item.Location || item['ที่เก็บ'] || item['ชั้นวาง'] || '-',
                     item.transQty.toString()
                 ]);
                 
                 doc.autoTable({
-                    head: [['ลำดับ', 'รหัสวัสดุ', 'รายการ', 'ที่เก็บ', 'จำนวน']],
+                    head: [['ลำดับ', 'รหัสวัสดุ', 'รายการ', 'ประเภท', 'ที่เก็บ', 'จำนวน']],
                     body: tableData,
                     startY: 58,
                     styles: { font: 'Sarabun', fontSize: 11 },
@@ -1492,6 +1532,40 @@
         });
     }
 
+    // ฟังก์ชันย่อยสำหรับกรองข้อมูลรายงานประวัติเพื่อเอาไปใช้ทั้งใน UI และ PDF/CSV
+    function getFilteredReports() {
+        const startStr = document.getElementById('filterStartDate')?.value;
+        const endStr = document.getElementById('filterEndDate')?.value;
+        const typeVal = document.getElementById('filterReportType')?.value || 'all';
+        
+        const s = startStr ? new Date(startStr) : null;
+        const e = endStr ? new Date(endStr) : null;
+        if(e) e.setHours(23, 59, 59);
+
+        const filterFn = (i) => {
+            if(s && new Date(i.timestamp) < s) return false;
+            if(e && new Date(i.timestamp) > e) return false;
+            
+            // หา type จาก history ก่อน (ถ้ามี) หากไม่มีให้ไปหาจาก materials ปัจจุบัน
+            let matType = i.type || i.Type || i['ประเภท'] || i['type'];
+            if (!matType) {
+                const mat = state.materials.find(m => m.material_id === i.material_id);
+                matType = mat ? (mat.type || mat.Type || mat['ประเภท'] || mat['type'] || '') : '';
+            }
+            
+            i._resolvedType = String(matType) || '-'; 
+
+            if(typeVal !== 'all' && i._resolvedType !== typeVal) return false;
+
+            return true;
+        };
+
+        return {
+            withdraw: state.reports.withdraw.filter(filterFn),
+            import: state.reports.import.filter(filterFn)
+        };
+    }
+
     // --- 8. VIEW: REPORTS ---
     async function renderReports(c, viewID) {
         if(currentViewID !== viewID) return;
@@ -1508,6 +1582,13 @@
                 </div>
 
                 <div class="flex flex-wrap gap-3 items-center bg-white p-2.5 rounded-2xl shadow-sm border border-gray-200">
+                    <select id="filterReportType" onchange="filterReports()" class="text-sm font-medium border-none bg-transparent outline-none focus:ring-0 text-gray-600">
+                        <option value="all">ทุกประเภท</option>
+                        <option value="pH Test Kit">pH Test Kit</option>
+                        <option value="NPK Test Kit">NPK Test Kit</option>
+                        <option value="EC Test Kit">EC Test Kit</option>
+                    </select>
+                    <div class="h-8 w-px bg-gray-200 mx-1 hidden sm:block"></div>
                     <div class="flex items-center bg-gray-50 rounded-xl border border-gray-200 p-1">
                         <span class="text-xs font-bold text-gray-500 px-2 hidden sm:inline"><i class="fas fa-calendar-alt mr-1"></i> ช่วงวันที่</span>
                         <input type="date" id="filterStartDate" class="text-sm font-medium border-none bg-transparent outline-none focus:ring-0" onchange="filterReports()">
@@ -1556,23 +1637,10 @@
     }
 
     function filterReports() {
-        const startStr = document.getElementById('filterStartDate')?.value;
-        const endStr = document.getElementById('filterEndDate')?.value;
-        const s = startStr ? new Date(startStr) : null;
-        const e = endStr ? new Date(endStr) : null;
-        if(e) e.setHours(23, 59, 59);
-
-        const filterFn = (i) => {
-            if(!s && !e) return true;
-            const d = new Date(i.timestamp);
-            if(s && d < s) return false;
-            if(e && d > e) return false;
-            return true;
-        };
+        const filteredReps = getFilteredReports();
 
         const renderLog = (data, colorTextClass) => {
-            const filtered = data.filter(filterFn);
-            if (!filtered.length) return `
+            if (!data.length) return `
                 <div class="flex flex-col items-center justify-center h-full py-20 text-gray-400">
                     <div class="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mb-4 border border-gray-100"><i class="fas fa-clipboard-list text-3xl opacity-50"></i></div>
                     <p class="text-sm font-bold text-gray-500">ไม่มีข้อมูลประวัติในช่วงเวลานี้</p>
@@ -1581,13 +1649,14 @@
             return `<table class="w-full text-sm text-left table-fixed">
                 <thead class="bg-gray-50 text-gray-500 font-bold sticky top-0 border-b border-gray-200 text-xs uppercase tracking-wider shadow-sm z-10">
                     <tr>
-                        <th class="p-4 pl-6 w-1/3">วันที่ทำรายการ</th>
-                        <th class="p-4 w-[45%]">รายการวัสดุ</th>
-                        <th class="p-4 text-right pr-6 w-[22%]">จำนวน</th>
+                        <th class="p-4 pl-6 w-[25%]">วันที่ทำรายการ</th>
+                        <th class="p-4 w-[35%]">รายการวัสดุ</th>
+                        <th class="p-4 w-[25%]">ประเภท</th>
+                        <th class="p-4 text-right pr-6 w-[15%]">จำนวน</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100">` +
-                filtered.map(r => {
+                data.map(r => {
                     const rawRef = getRefNote(r);
                     const cleanRef = cleanRefDoc(rawRef);
                     return `
@@ -1600,6 +1669,9 @@
                             <div class="text-sm text-gray-700 font-bold bg-white border border-gray-200 px-3 py-1.5 rounded-lg shadow-sm break-words whitespace-normal leading-snug">${r.material_name}</div>
                             ${cleanRef ? `<div class="text-xs text-gray-500 mt-2 flex items-start gap-1.5"><i class="fas fa-comment-dots mt-0.5 text-gray-400"></i><span class="break-words line-clamp-2">${cleanRef}</span></div>` : ''}
                         </td>
+                        <td class="p-4 align-top">
+                            <span class="px-2 py-1 bg-gray-100 text-gray-600 text-[10px] rounded-md font-bold">${r._resolvedType || '-'}</span>
+                        </td>
                         <td class="p-4 pr-6 text-right align-top">
                             <span class="font-black ${colorTextClass} text-xl bg-white px-3 py-1.5 rounded-lg shadow-sm border border-gray-100 inline-block">${r.qty}</span>
                         </td>
@@ -1607,8 +1679,8 @@
                 `}).join('') + `</tbody></table>`;
         };
 
-        if(document.getElementById('withdrawLog')) document.getElementById('withdrawLog').innerHTML = renderLog(state.reports.withdraw, 'text-rose-600');
-        if(document.getElementById('importLog')) document.getElementById('importLog').innerHTML = renderLog(state.reports.import, 'text-emerald-600');
+        if(document.getElementById('withdrawLog')) document.getElementById('withdrawLog').innerHTML = renderLog(filteredReps.withdraw, 'text-rose-600');
+        if(document.getElementById('importLog')) document.getElementById('importLog').innerHTML = renderLog(filteredReps.import, 'text-emerald-600');
     }
 
     // --- 9. VIEW: USERS (ADMIN ONLY) ---
@@ -1801,6 +1873,8 @@
             document.getElementById('matName').value = m.name;
             // ดึงค่าที่เก็บมาแสดง (รองรับชื่อคอลัมน์ที่เป็นภาษาไทยและอังกฤษ)
             document.getElementById('matLocation').value = m.location || m.Location || m['ที่เก็บ'] || m['ชั้นวาง'] || '';
+            // เพิ่มการดึงค่าประเภท Test Kit มาแสดงตอนกดปุ่มแก้ไข
+            document.getElementById('matType').value = m.type || m.Type || m['ประเภท'] || '';
         } else {
             document.getElementById('matId').value = '';
         }
@@ -1860,6 +1934,7 @@
         let payload = { 
             name: document.getElementById('matName').value, 
             location: document.getElementById('matLocation').value,
+            type: document.getElementById('matType').value, // <--- เพิ่มบรรทัดนี้ เพื่อส่งค่า Type ไปให้ Backend
             image_url: document.getElementById('matImgUrl').value 
         };
         
@@ -1931,9 +2006,11 @@
                     doc.addFont('Sarabun-Regular.ttf', 'Sarabun', 'normal');
                     doc.setFont('Sarabun');
                     
+                    const filteredReps = getFilteredReports();
+                    // เปลี่ยน key จาก type เป็น action_type ชั่วคราวป้องกันการทับซ้อนกันกับ column ประเภทวัสดุ
                     const allReports = [
-                        ...state.reports.withdraw.map(r => ({...r, type: 'เบิกออก'})),
-                        ...state.reports.import.map(r => ({...r, type: 'นำเข้า'}))
+                        ...filteredReps.withdraw.map(r => ({...r, action_type: 'เบิกออก'})),
+                        ...filteredReps.import.map(r => ({...r, action_type: 'นำเข้า'}))
                     ];
                     
                     // เรียงลำดับจากเก่าไปใหม่ (Oldest to Newest)
@@ -1944,11 +2021,18 @@
                         const datePart = dateStr.split(' ')[0];
                         const timePart = dateStr.split(' ')[1] || '-';
                         const rawRef = getRefNote(r);
-                        return [datePart, timePart, r.type, r.material_name, r.qty, cleanRefDoc(rawRef) || '-', r.user_name];
+                        
+                        let matType = r.type || r.Type || r['ประเภท'] || r['type'];
+                        if (!matType) {
+                            const mat = state.materials.find(m => m.material_id === r.material_id);
+                            matType = mat ? (mat.type || mat.Type || mat['ประเภท'] || '-') : '-';
+                        }
+                        
+                        return [datePart, timePart, r.action_type, r.material_name, matType, r.qty, cleanRefDoc(rawRef) || '-', r.user_name];
                     });
                     
                     doc.autoTable({
-                        head: [['วันที่', 'เวลา', 'ประเภท', 'รายการ', 'จำนวน', 'หมายเหตุ', 'ผู้ทำรายการ']],
+                        head: [['วันที่', 'เวลา', 'ประเภททำรายการ', 'รายการ', 'หมวดหมู่', 'จำนวน', 'หมายเหตุ', 'ผู้ทำรายการ']],
                         body: data,
                         startY: 35,
                         margin: { top: 35, bottom: 20 },
@@ -1981,9 +2065,10 @@
             
             // Fallback Generation
             doc.setFont("helvetica");
+            const filteredReps = getFilteredReports();
             const allReports = [
-                ...state.reports.withdraw.map(r => ({...r, type: 'Withdraw'})),
-                ...state.reports.import.map(r => ({...r, type: 'Import'}))
+                ...filteredReps.withdraw.map(r => ({...r, action_type: 'Withdraw'})),
+                ...filteredReps.import.map(r => ({...r, action_type: 'Import'}))
             ];
             
             // เรียงลำดับจากเก่าไปใหม่ (Oldest to Newest)
@@ -1994,11 +2079,18 @@
                 const datePart = dateStr.split(' ')[0];
                 const timePart = dateStr.split(' ')[1] || '-';
                 const rawRef = getRefNote(r);
-                return [datePart, timePart, r.type, r.material_name, r.qty, cleanRefDoc(rawRef) || '-', r.user_name];
+                
+                let matType = r.type || r.Type || r['ประเภท'] || r['type'];
+                if (!matType) {
+                    const mat = state.materials.find(m => m.material_id === r.material_id);
+                    matType = mat ? (mat.type || mat.Type || mat['ประเภท'] || '-') : '-';
+                }
+                
+                return [datePart, timePart, r.action_type, r.material_name, matType, r.qty, cleanRefDoc(rawRef) || '-', r.user_name];
             });
             
             doc.autoTable({
-                head: [['Date', 'Time', 'Type', 'Item', 'Qty', 'Note', 'User']],
+                head: [['Date', 'Time', 'Type', 'Item', 'Category', 'Qty', 'Note', 'User']],
                 body: data,
                 startY: 35,
                 margin: { top: 35, bottom: 20 },
@@ -2017,9 +2109,10 @@
     }
 
     function exportCSV() {
+        const filteredReps = getFilteredReports();
         const d = [
-            ...state.reports.withdraw.map(x=>({...x, type:'เบิกออก'})),
-            ...state.reports.import.map(x=>({...x, type:'นำเข้า'}))
+            ...filteredReps.withdraw.map(x=>({...x, action_type:'เบิกออก'})),
+            ...filteredReps.import.map(x=>({...x, action_type:'นำเข้า'}))
         ];
         if (!d.length) return showToast('ไม่มีข้อมูลที่จะส่งออก', 'error');
         
@@ -2027,14 +2120,21 @@
         d.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
         
         // Add BOM \uFEFF to make Excel read UTF-8 properly
-        const c = "\uFEFFวันที่,เวลา,ประเภท,รายการ,จำนวน,หมายเหตุ,ผู้ทำรายการ\n" + d.map(e => {
+        const c = "\uFEFFวันที่,เวลา,ประเภททำรายการ,รายการ,หมวดหมู่,จำนวน,หมายเหตุ,ผู้ทำรายการ\n" + d.map(e => {
             const dateStr = formatDate(e.timestamp);
             const datePart = dateStr.split(' ')[0];
             const timePart = dateStr.split(' ')[1] || '-';
             const rawRef = getRefNote(e);
             const cleanRef = cleanRefDoc(rawRef) || '-';
             const safeRef = cleanRef.replace(/"/g, '""');
-            return `${datePart},${timePart},${e.type},"${e.material_name}",${e.qty},"${safeRef}","${e.user_name}"`;
+            
+            let matType = e.type || e.Type || e['ประเภท'] || e['type'];
+            if (!matType) {
+                const mat = state.materials.find(m => m.material_id === e.material_id);
+                matType = mat ? (mat.type || mat.Type || mat['ประเภท'] || '-') : '-';
+            }
+            
+            return `${datePart},${timePart},${e.action_type},"${e.material_name}","${matType}",${e.qty},"${safeRef}","${e.user_name}"`;
         }).join("\n");
         
         const l = document.createElement("a");
@@ -2069,16 +2169,18 @@
                     doc.addFont('Sarabun-Regular.ttf', 'Sarabun', 'normal');
                     doc.setFont('Sarabun');
                     
-                    const data = state.materials.map((m, index) => [
+                    const filteredData = getFilteredInventory();
+                    const data = filteredData.map((m, index) => [
                         (index + 1).toString(), 
                         m.name, 
+                        m.type || m.Type || m['ประเภท'] || '-',
                         m.location || m.Location || m['ที่เก็บ'] || m['ชั้นวาง'] || '-',
                         m.qty.toString(), 
                         formatDate(m.last_import_date || m.last_withdraw_date).split(' ')[0]
                     ]);
                     
                     doc.autoTable({
-                        head: [['ลำดับ', 'ชื่อวัสดุ (Material Name)', 'ที่เก็บ (Location)', 'คงเหลือ (Qty)', 'อัปเดตล่าสุด']],
+                        head: [['ลำดับ', 'ชื่อวัสดุ (Material Name)', 'ประเภท', 'ที่เก็บ', 'คงเหลือ', 'อัปเดตล่าสุด']],
                         body: data,
                         startY: 35,
                         margin: { top: 35, bottom: 20 },
@@ -2109,15 +2211,17 @@
             console.error("Font Load Error:", err);
             alert("ไม่สามารถโหลดฟอนต์ภาษาไทยจาก Server ได้ จะสร้าง PDF ด้วยฟอนต์มาตรฐานแทน");
             doc.setFont("helvetica");
-            const data = state.materials.map((m, index) => [
+            const filteredData = getFilteredInventory();
+            const data = filteredData.map((m, index) => [
                 (index + 1).toString(), 
                 m.name, 
+                m.type || m.Type || m['ประเภท'] || '-',
                 m.location || m.Location || m['ที่เก็บ'] || m['ชั้นวาง'] || '-', 
                 m.qty.toString(), 
                 formatDate(m.last_import_date || m.last_withdraw_date).split(' ')[0]
             ]);
             doc.autoTable({
-                head: [['No.', 'Material Name', 'Location', 'Qty', 'Last Update']],
+                head: [['No.', 'Material Name', 'Type', 'Location', 'Qty', 'Last Update']],
                 body: data,
                 startY: 35,
                 margin: { top: 35, bottom: 20 },
@@ -2136,11 +2240,13 @@
     }
 
     function exportInventoryCSV() {
-        if (!state.materials || state.materials.length === 0) return showToast('ไม่มีข้อมูลที่จะส่งออก', 'error');
+        const filteredData = getFilteredInventory();
+        if (!filteredData || filteredData.length === 0) return showToast('ไม่มีข้อมูลที่จะส่งออก', 'error');
         // Add BOM \uFEFF to make Excel read UTF-8 properly
-        const c = "\uFEFFลำดับที่ (No.),ชื่อวัสดุ (Material Name),ที่เก็บ (Location),คงเหลือ (Quantity),อัปเดตล่าสุด (Last Update)\n" + state.materials.map((m, index) => {
+        const c = "\uFEFFลำดับที่ (No.),ชื่อวัสดุ (Material Name),ประเภท (Type),ที่เก็บ (Location),คงเหลือ (Quantity),อัปเดตล่าสุด (Last Update)\n" + filteredData.map((m, index) => {
             const loc = m.location || m.Location || m['ที่เก็บ'] || m['ชั้นวาง'] || '-';
-            return `${index + 1},"${m.name}","${loc}",${m.qty},${formatDate(m.last_import_date || m.last_withdraw_date).split(' ')[0]}`;
+            const matType = m.type || m.Type || m['ประเภท'] || '-';
+            return `${index + 1},"${m.name}","${matType}","${loc}",${m.qty},${formatDate(m.last_import_date || m.last_withdraw_date).split(' ')[0]}`;
         }).join("\n");
         const l = document.createElement("a");
         l.href = URL.createObjectURL(new Blob([c], {type:"text/csv;charset=utf-8;"}));
