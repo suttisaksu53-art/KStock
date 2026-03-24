@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="th">
 <head>
@@ -105,6 +104,11 @@
     input[type="number"] {
       -moz-appearance: textfield;
     }
+    
+    /* Smooth scrolling for mobile */
+    #contentArea {
+        -webkit-overflow-scrolling: touch;
+    }
   </style>
 </head>
 <body class="flex flex-col">
@@ -202,7 +206,8 @@
   </div>
 
   <!-- ================= MAIN APPLICATION LAYOUT ================= -->
-  <div id="mainApp" class="hidden w-full h-full flex bg-gray-50">
+  <!-- เปลี่ยนเป็น fixed inset-0 เพื่อให้แอพยึดติดพอดีหน้าจอเสมอ -->
+  <div id="mainApp" class="hidden fixed inset-0 flex bg-gray-50">
     
     <!-- UNIFIED SIDEBAR (For both Mobile & Desktop) -->
     <aside id="sidebar" class="fixed inset-y-0 left-0 z-40 w-72 bg-slate-900 text-slate-300 shadow-2xl flex flex-col transition-transform duration-300 transform -translate-x-full md:translate-x-0 border-r border-slate-800">
@@ -1069,7 +1074,7 @@
 
         // FIXED Layout: Added missing </div> closing tags properly for flex containers
         c.innerHTML = `
-            <div class="flex flex-col h-full fade-in">
+            <div class="flex flex-col min-h-full fade-in">
                 <!-- Toolbar -->
                 <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-200 flex flex-col md:flex-row justify-between items-center mb-6 gap-4 sticky top-0 z-10">
                     
@@ -1700,7 +1705,7 @@
                     </div>
                     <button onclick="renderUsers(document.getElementById('contentArea'), '${viewID}')" class="text-gray-600 hover:text-indigo-600 transition bg-white border border-gray-300 px-4 py-2.5 rounded-xl text-sm font-bold shadow-sm flex items-center gap-2 transform active:scale-95"><i class="fas fa-sync-alt"></i> โหลดข้อมูลใหม่</button>
                 </div>
-                <div class="overflow-x-auto flex-1">
+                <div class="overflow-auto flex-1">
                     <table class="w-full text-left text-sm">
                         <thead class="bg-white text-gray-500 font-bold border-b border-gray-200 text-xs uppercase tracking-wider sticky top-0 shadow-sm z-10">
                             <tr><th class="p-4 pl-6">บัญชีผู้ใช้งาน</th><th class="p-4">กลุ่มงาน</th><th class="p-4 text-center">สิทธิ์เข้าใช้งาน</th><th class="p-4 text-center">ระดับผู้ใช้</th><th class="p-4 text-right pr-6">การตั้งค่า</th></tr>
@@ -1794,7 +1799,7 @@
                     </div>
                     <button onclick="renderLogs(document.getElementById('contentArea'), '${viewID}')" class="text-gray-600 hover:text-gray-900 transition bg-white border border-gray-300 px-4 py-2.5 rounded-xl text-sm font-bold shadow-sm flex items-center gap-2 transform active:scale-95"><i class="fas fa-sync-alt"></i> โหลดข้อมูลใหม่</button>
                 </div>
-                <div class="overflow-x-auto flex-1">
+                <div class="overflow-auto flex-1">
                     <table class="w-full text-left text-sm">
                         <thead class="bg-white text-gray-500 font-bold border-b border-gray-200 text-xs uppercase tracking-wider sticky top-0 shadow-sm z-10">
                             <tr>
