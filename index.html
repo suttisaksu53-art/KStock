@@ -207,7 +207,7 @@
   </div>
 
   <!-- ================= MAIN APPLICATION LAYOUT ================= -->
-  <!-- เปลี่ยนเป็น fixed inset-0 เพื่อให้แอพยึดติดพอดีหน้าจอเสมอ -->
+ 
   <div id="mainApp" class="hidden fixed inset-0 flex bg-gray-50">
     
     <!-- UNIFIED SIDEBAR (For both Mobile & Desktop) -->
@@ -581,7 +581,7 @@
     }
 
     function setupInactivityListeners() {
-        // ดักจับเหตุการณ์การเคลื่อนไหวต่างๆ ของผู้ใช้
+        
         ['mousemove', 'keydown', 'click', 'scroll', 'touchstart'].forEach(event => {
             document.addEventListener(event, resetInactivityTimer, true);
         });
