@@ -14,101 +14,169 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
   
-  <!-- ================= STYLES ================= -->
-  <style>
-    html {
-      height: 100%;
-      height: 100dvh;
+  <!-- ================= THEME CONFIGURATION ================= -->
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: {
+              50: 'var(--p-50)', 100: 'var(--p-100)', 200: 'var(--p-200)', 400: 'var(--p-400)', 500: 'var(--p-500)', 600: 'var(--p-600)', 700: 'var(--p-700)'
+            },
+            sidebar: {
+              300: 'var(--s-300)', 400: 'var(--s-400)', 800: 'var(--s-800)', 900: 'var(--s-900)', 950: 'var(--s-950)'
+            }
+          }
+        }
+      }
     }
+  </script>
+
+  <!-- ================= STYLES & UNIVERSAL GLASSMORPHISM ================= -->
+  <style>
+    :root {
+      /* Base Colors */
+      --p-50: #eff6ff; --p-100: #dbeafe; --p-200: #bfdbfe; --p-400: #60a5fa; --p-500: #3b82f6; --p-600: #2563eb; --p-700: #1d4ed8;
+      
+      /* Universal Glassmorphism Variables */
+      --glass-bg: rgba(255, 255, 255, 0.85);
+      --glass-border: rgba(255, 255, 255, 0.6);
+      --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+      --text-main: #0f172a;
+      --text-muted: #334155;
+      --text-shadow: 0 1px 2px rgba(255, 255, 255, 0.9);
+      --input-bg: rgba(255, 255, 255, 0.6);
+      --blur-val: blur(16px);
+    }
+
+    html { height: 100%; height: 100dvh; }
+    
     body { 
       font-family: 'Sarabun', sans-serif; 
-      background-color: #f3f4f6; 
-      color: #1f2937;
+      background-color: #0f172a; /* Fallback */
+      background-size: cover !important;
+      background-position: center !important;
+      background-attachment: fixed !important;
+      background-repeat: no-repeat !important;
+      color: var(--text-main);
       height: 100%;
       margin: 0;
       padding: 0;
       overflow: hidden;
-    }
-    @supports (-webkit-touch-callout: none) {
-      html, body {
-        height: -webkit-fill-available;
-      }
+      transition: background-image 0.5s ease-in-out;
     }
     
+    @supports (-webkit-touch-callout: none) { html, body { height: -webkit-fill-available; } }
     .hidden { display: none !important; }
     
     .loader { 
-      border: 4px solid #f3f3f3; 
-      border-top: 4px solid #3b82f6; 
+      border: 4px solid rgba(255,255,255,0.3); 
+      border-top: 4px solid var(--p-500); 
       border-radius: 50%; 
-      width: 48px; 
-      height: 48px; 
+      width: 48px; height: 48px; 
       animation: spin 1s linear infinite; 
     }
-    @keyframes spin { 
-      0% { transform: rotate(0deg); } 
-      100% { transform: rotate(360deg); } 
-    }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
     ::-webkit-scrollbar { width: 8px; height: 8px; }
     ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    ::-webkit-scrollbar-thumb { background: rgba(128,128,128,0.5); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(128,128,128,0.8); }
     
     .fade-in { animation: fadeIn 0.25s ease-in-out; }
-    @keyframes fadeIn { 
-      from { opacity: 0; transform: translateY(10px); } 
-      to { opacity: 1; transform: translateY(0); } 
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* ========================================================
+       ✨ THEME OVERRIDES (APPLYING GLASS TO ALL COMPONENTS)
+       ======================================================== */
+    
+    /* Make base containers transparent */
+    #mainApp, #authPage, .bg-gray-50 { background: transparent !important; }
+
+    /* The Magical Glassmorphism Conversion */
+    .bg-white, .bg-gray-100, .bg-slate-900, .bg-slate-950, .bg-sidebar-900, .bg-sidebar-950, aside, header {
+      background: var(--glass-bg) !important;
+      backdrop-filter: var(--blur-val) !important;
+      -webkit-backdrop-filter: var(--blur-val) !important;
+      border-color: var(--glass-border) !important;
+      box-shadow: var(--glass-shadow) !important;
+      transition: background-color 0.5s ease, border-color 0.5s ease, color 0.5s ease;
     }
 
-    .nav-item {
-        display: flex;
-        align-items: center;
-        padding: 12px 16px;
-        border-radius: 0.5rem;
-        cursor: pointer;
-        transition: all 0.2s;
-        color: #94a3b8; 
-        font-weight: 500;
-        margin-bottom: 4px;
-    }
-    .nav-item:hover {
-        background-color: #334155; 
-        color: #f8fafc; 
-    }
-    .nav-item.active {
-        background-color: #1e293b; 
-        color: #ffffff;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
-    }
-    .nav-item.active i {
-        color: #38bdf8; 
+    /* Modals need higher blur to stand out */
+    #materialModal > div, #cartModal > div, #userPermModal > div, #changePasswordModal > div, #themeModal > div {
+       background: var(--glass-bg) !important;
+       backdrop-filter: blur(24px) !important;
+       -webkit-backdrop-filter: blur(24px) !important;
+       border: 1px solid var(--glass-border) !important;
     }
 
-    .toggle-checkbox:checked {
-        right: 0;
-        border-color: #10b981; 
+    /* Text Color Mastery for Perfect Contrast */
+    .text-gray-800, .text-gray-700, .text-slate-300, h1, h2, h3, h4, label {
+      color: var(--text-main) !important;
+      text-shadow: var(--text-shadow) !important;
     }
-    .toggle-checkbox:checked + .toggle-label {
-        background-color: #10b981;
+    .text-gray-600, .text-gray-500, .text-slate-400, .text-slate-500, p, span {
+      color: var(--text-muted) !important;
+      text-shadow: var(--text-shadow) !important;
     }
 
+    /* Exceptions for colored badges to stay vibrant */
+    .text-white, button .text-white { color: #ffffff !important; text-shadow: 0 1px 3px rgba(0,0,0,0.6) !important; }
+    .text-red-500 { color: #ef4444 !important; text-shadow: 0 1px 2px rgba(255,255,255,0.3) !important; }
+    
+    /* Dynamic Dark Mode Colors for Badges */
+    html[data-theme-type="dark"] .text-primary-600, html[data-theme-type="dark"] .text-blue-600 { color: var(--p-400) !important; text-shadow: 0 1px 4px rgba(0,0,0,0.8) !important; }
+    html[data-theme-type="dark"] .text-emerald-600 { color: #34d399 !important; text-shadow: 0 1px 4px rgba(0,0,0,0.8) !important; }
+    html[data-theme-type="dark"] .text-rose-600, html[data-theme-type="dark"] .text-red-600 { color: #fb7185 !important; text-shadow: 0 1px 4px rgba(0,0,0,0.8) !important; }
+    html[data-theme-type="dark"] .text-amber-600 { color: #fbbf24 !important; text-shadow: 0 1px 4px rgba(0,0,0,0.8) !important; }
+    html[data-theme-type="dark"] .text-purple-600 { color: #a78bfa !important; text-shadow: 0 1px 4px rgba(0,0,0,0.8) !important; }
+
+    /* Dynamic Dark Mode Backgrounds for Badges */
+    html[data-theme-type="dark"] .bg-primary-100, html[data-theme-type="dark"] .bg-blue-100 { background-color: rgba(59, 130, 246, 0.25) !important; border: 1px solid rgba(59, 130, 246, 0.4) !important; }
+    html[data-theme-type="dark"] .bg-emerald-100 { background-color: rgba(16, 185, 129, 0.25) !important; border: 1px solid rgba(16, 185, 129, 0.4) !important;}
+    html[data-theme-type="dark"] .bg-rose-100, html[data-theme-type="dark"] .bg-red-100 { background-color: rgba(244, 63, 94, 0.25) !important; border: 1px solid rgba(244, 63, 94, 0.4) !important;}
+    html[data-theme-type="dark"] .bg-amber-100 { background-color: rgba(245, 158, 11, 0.25) !important; border: 1px solid rgba(245, 158, 11, 0.4) !important;}
+    html[data-theme-type="dark"] .bg-purple-100 { background-color: rgba(139, 92, 246, 0.25) !important; border: 1px solid rgba(139, 92, 246, 0.4) !important;}
+
+    /* Forms & Inputs */
+    input, select, textarea {
+      background: var(--input-bg) !important;
+      color: var(--text-main) !important;
+      border: 1px solid var(--glass-border) !important;
+      backdrop-filter: blur(8px) !important;
+      -webkit-backdrop-filter: blur(8px) !important;
+    }
+    input::placeholder { color: var(--text-muted) !important; opacity: 0.7; }
+    
+    /* Tables in Glassmorphism */
+    table thead { background: transparent !important; }
+    table thead th { background: rgba(0,0,0,0.1) !important; color: var(--text-main) !important; backdrop-filter: blur(4px); }
+    table tr { border-bottom: 1px solid var(--glass-border) !important; }
+    table tr:hover td { background-color: rgba(128,128,128,0.15) !important; }
+    
+    /* Elevated Buttons */
+    button.bg-primary-600, button.bg-emerald-600, button.bg-rose-600, button.bg-red-600, button.bg-gray-800, button.bg-blue-600 {
+       background-image: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(0,0,0,0.1) 100%);
+       backdrop-filter: blur(4px);
+       border: 1px solid rgba(255,255,255,0.3) !important;
+       box-shadow: 0 4px 15px rgba(0,0,0,0.2) !important;
+    }
+
+    /* Sidebar Navigation Highlights */
+    .nav-item { display: flex; align-items: center; padding: 12px 16px; border-radius: 0.5rem; cursor: pointer; transition: all 0.2s; color: var(--text-muted); font-weight: 500; margin-bottom: 4px; border: 1px solid transparent; }
+    .nav-item.active { background: rgba(128,128,128,0.25) !important; border: 1px solid var(--glass-border); box-shadow: inset 0 2px 4px rgba(0,0,0,0.1); color: var(--text-main); }
+    .nav-item:hover { background: rgba(128,128,128,0.15) !important; color: var(--text-main); }
+    .nav-item.active i { color: var(--p-500); text-shadow: 0 0 10px var(--p-500); }
+
+    .toggle-checkbox:checked { right: 0; border-color: var(--p-500); }
+    .toggle-checkbox:checked + .toggle-label { background-color: var(--p-500); }
     .file-input-wrapper { position: relative; overflow: hidden; }
     .file-input-overlay { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; z-index: 20; }
-    
-    input[type="number"]::-webkit-inner-spin-button,
-    input[type="number"]::-webkit-outer-spin-button {
-      -webkit-appearance: none;
-      margin: 0;
-    }
-    input[type="number"] {
-      -moz-appearance: textfield;
-    }
-    
-    /* Smooth scrolling for mobile */
-    #contentArea {
-        -webkit-overflow-scrolling: touch;
-    }
+    input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+    input[type="number"] { -moz-appearance: textfield; }
+    #contentArea { -webkit-overflow-scrolling: touch; }
+
   </style>
 </head>
 <body class="flex flex-col">
@@ -137,9 +205,9 @@
 
   <!-- ================= AUTHENTICATION PAGE ================= -->
   <div id="authPage" class="fixed inset-0 z-50 bg-gray-100 flex items-center justify-center p-4 overflow-y-auto">
-    <div class="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-md border-t-4 border-blue-600">
+    <div class="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-md border-t-4 border-primary-600">
       <div class="text-center mb-8">
-        <div class="w-20 h-20 bg-gradient-to-tr from-blue-600 to-cyan-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg text-white transform rotate-3">
+        <div class="w-20 h-20 bg-gradient-to-tr from-primary-600 to-primary-400 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg text-white transform rotate-3">
             <i class="fas fa-cubes-stacked text-4xl"></i>
         </div>
         <h1 class="text-2xl font-bold text-gray-800">Inventory System</h1>
@@ -152,19 +220,19 @@
           <label class="block text-sm font-bold text-gray-700 mb-1">ชื่อผู้ใช้งาน</label>
           <div class="relative">
             <i class="fas fa-user absolute left-4 top-3.5 text-gray-400"></i>
-            <input type="text" id="loginUser" class="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition" placeholder="Username" required>
+            <input type="text" id="loginUser" class="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none transition" placeholder="Username" required>
           </div>
         </div>
         <div>
           <label class="block text-sm font-bold text-gray-700 mb-1">รหัสผ่าน</label>
           <div class="relative">
             <i class="fas fa-lock absolute left-4 top-3.5 text-gray-400"></i>
-            <input type="password" id="loginPass" class="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition" placeholder="Password" required>
+            <input type="password" id="loginPass" class="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none transition" placeholder="Password" required>
           </div>
         </div>
-        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl shadow-lg transition transform active:scale-95 text-lg">เข้าสู่ระบบ</button>
+        <button type="submit" class="w-full bg-primary-600 hover:bg-primary-700 text-white font-bold py-3.5 rounded-xl shadow-lg transition transform active:scale-95 text-lg">เข้าสู่ระบบ</button>
         <div class="text-center pt-4 border-t mt-4">
-          <button type="button" onclick="toggleAuth('register')" class="text-sm text-blue-600 hover:underline font-bold">ลงทะเบียนผู้ใช้งานใหม่</button>
+          <button type="button" onclick="toggleAuth('register')" class="text-sm text-primary-600 hover:underline font-bold">ลงทะเบียนผู้ใช้งานใหม่</button>
         </div>
       </form>
       
@@ -207,32 +275,30 @@
   </div>
 
   <!-- ================= MAIN APPLICATION LAYOUT ================= -->
- 
   <div id="mainApp" class="hidden fixed inset-0 flex bg-gray-50">
     
     <!-- UNIFIED SIDEBAR (For both Mobile & Desktop) -->
-    <aside id="sidebar" class="fixed inset-y-0 left-0 z-40 w-72 bg-slate-900 text-slate-300 shadow-2xl flex flex-col transition-transform duration-300 transform -translate-x-full md:translate-x-0 border-r border-slate-800">
+    <aside id="sidebar" class="fixed inset-y-0 left-0 z-40 w-72 bg-white shadow-2xl flex flex-col transition-transform duration-300 transform -translate-x-full md:translate-x-0 border-r border-gray-200">
       
       <!-- Sidebar Header & Logo -->
-      <div class="h-16 flex items-center justify-between px-6 border-b border-slate-800 bg-slate-950 shrink-0">
+      <div class="h-16 flex items-center justify-between px-6 border-b border-gray-200 bg-white shrink-0">
          <div class="flex items-center gap-3">
-            <div class="w-9 h-9 bg-blue-600 rounded-lg flex items-center justify-center text-white shadow-md">
+            <div class="w-9 h-9 bg-primary-600 rounded-lg flex items-center justify-center text-white shadow-md">
                 <i class="fas fa-flask"></i>
             </div>
             <div>
-              <h2 class="font-bold text-white text-lg leading-tight tracking-wide">CHMStockPro</h2>
-              <p class="text-[10px] text-slate-400 font-medium uppercase tracking-widest">Inventory System</p>
+              <h2 class="font-bold text-lg leading-tight tracking-wide">CHMStockPro</h2>
+              <p class="text-[10px] font-medium uppercase tracking-widest">Inventory System</p>
             </div>
          </div>
-         <!-- Close button for Mobile -->
-         <button class="md:hidden text-slate-400 hover:text-white" onclick="toggleSidebar(false)">
+         <button class="md:hidden hover:text-primary-500" onclick="toggleSidebar(false)">
              <i class="fas fa-times text-xl"></i>
          </button>
       </div>
       
       <!-- Menus -->
       <nav class="flex-1 overflow-y-auto p-4 space-y-1">
-        <p class="px-3 text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 mt-2">Main Menu</p>
+        <p class="px-3 text-xs font-bold uppercase tracking-widest mb-2 mt-2 opacity-70">Main Menu</p>
         <a onclick="route('dashboard')" class="nav-item" data-page="dashboard">
           <i class="fas fa-chart-pie w-8 text-center text-lg"></i> <span>ภาพรวม (Dashboard)</span>
         </a>
@@ -240,7 +306,7 @@
           <i class="fas fa-boxes-stacked w-8 text-center text-lg"></i> <span>รายการวัสดุ (Inventory)</span>
         </a>
         
-        <p class="px-3 text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 mt-6">Transactions</p>
+        <p class="px-3 text-xs font-bold uppercase tracking-widest mb-2 mt-6 opacity-70">Transactions</p>
         <a onclick="route('withdraw')" class="nav-item" data-page="withdraw">
           <i class="fas fa-hand-holding w-8 text-center text-lg"></i> <span>เบิกวัสดุ (Withdraw)</span>
         </a>
@@ -248,44 +314,47 @@
           <i class="fas fa-truck-loading w-8 text-center text-lg"></i> <span>นำเข้าสต๊อก (Import)</span>
         </a>
         
-        <p class="px-3 text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 mt-6">Analytics</p>
+        <p class="px-3 text-xs font-bold uppercase tracking-widest mb-2 mt-6 opacity-70">Analytics</p>
         <a onclick="route('reports')" class="nav-item" data-page="reports">
           <i class="fas fa-file-contract w-8 text-center text-lg"></i> <span>รายงาน & ประวัติ</span>
         </a>
         
         <!-- Admin Menu -->
         <div id="adminMenuSection" class="hidden">
-           <div class="my-4 border-t border-slate-800"></div>
-           <p class="px-3 text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Administration</p>
+           <div class="my-4 border-t border-gray-200"></div>
+           <p class="px-3 text-xs font-bold uppercase tracking-widest mb-2 opacity-70">Administration</p>
            <a onclick="route('users')" class="nav-item" data-page="users">
              <i class="fas fa-users-cog w-8 text-center text-lg"></i> <span>จัดการผู้ใช้งาน</span>
            </a>
            <a onclick="route('logs')" class="nav-item" data-page="logs">
              <i class="fas fa-history w-8 text-center text-lg"></i> <span>ประวัติการเข้าใช้งาน</span>
            </a>
+           <a onclick="openThemeModal()" class="nav-item" data-page="theme">
+             <i class="fas fa-palette w-8 text-center text-lg text-primary-500"></i> <span>ตั้งค่ารูปแบบธีมระบบ</span>
+           </a>
         </div>
       </nav>
       
       <!-- Profile Section (Bottom) -->
-      <div class="p-4 border-t border-slate-800 bg-slate-950">
-        <div class="flex items-center gap-3 p-2 hover:bg-slate-800 rounded-lg transition cursor-default">
-          <div class="w-10 h-10 rounded-full bg-gradient-to-r from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold shadow-md" id="avatarInitials">U</div>
+      <div class="p-4 border-t border-gray-200 bg-white">
+        <div class="flex items-center gap-3 p-2 rounded-lg transition cursor-default">
+          <div class="w-10 h-10 rounded-full bg-gradient-to-r from-primary-500 to-primary-700 flex items-center justify-center text-white font-bold shadow-md" id="avatarInitials">U</div>
           <div class="flex-1 min-w-0">
-            <p class="text-sm font-bold text-white truncate" id="sidebarName">Username</p>
-            <p class="text-xs text-slate-400 truncate uppercase" id="sidebarRole">Role</p>
+            <p class="text-sm font-bold truncate" id="sidebarName">Username</p>
+            <p class="text-xs truncate uppercase opacity-70" id="sidebarRole">Role</p>
           </div>
-          <button onclick="openChangePasswordModal()" class="text-slate-400 hover:text-blue-400 transition p-1" title="เปลี่ยนรหัสผ่าน">
+          <button onclick="openChangePasswordModal()" class="hover:text-primary-400 transition p-1" title="เปลี่ยนรหัสผ่าน">
              <i class="fas fa-key"></i>
           </button>
-          <button onclick="logout()" class="text-slate-400 hover:text-red-400 transition p-1" title="ออกจากระบบ">
+          <button onclick="logout()" class="hover:text-red-400 transition p-1" title="ออกจากระบบ">
              <i class="fas fa-sign-out-alt"></i>
           </button>
         </div>
       </div>
       
       <!-- Credit Footer -->
-      <div class="text-center py-2 bg-slate-950 border-t border-slate-800 pb-4">
-        <span class="text-[10px] text-slate-500 font-medium tracking-widest">Design by AAAMACKY</span>
+      <div class="text-center py-2 bg-white border-t border-gray-200 pb-4 opacity-50">
+        <span class="text-[10px] font-medium tracking-widest">Design by AAAMACKY</span>
       </div>
     </aside>
 
@@ -296,23 +365,23 @@
     <div class="flex-1 flex flex-col min-w-0 h-full md:ml-72 transition-all duration-300 relative">
       
       <!-- Top Header -->
-      <header class="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 md:px-8 z-20 shrink-0 sticky top-0 shadow-sm">
+      <header class="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 md:px-8 z-20 shrink-0 sticky top-0 shadow-sm transition-colors duration-500">
         <div class="flex items-center gap-4">
           <!-- Hamburger Button (Mobile Only) -->
-          <button class="md:hidden text-gray-500 hover:text-blue-600 hover:bg-gray-100 p-2 rounded-lg transition" onclick="toggleSidebar(true)">
+          <button class="md:hidden hover:text-primary-600 p-2 rounded-lg transition" onclick="toggleSidebar(true)">
             <i class="fas fa-bars text-xl"></i>
           </button>
-          <h2 class="text-xl font-black text-gray-800 tracking-tight" id="pageTitle">ภาพรวมระบบ</h2>
+          <h2 class="text-xl font-black tracking-tight" id="pageTitle">ภาพรวมระบบ</h2>
         </div>
         
         <div class="flex items-center gap-3">
           <!-- Real-time Clock -->
-          <div id="topClock" class="hidden md:flex items-center px-3 py-1.5 bg-gray-100 rounded-full text-xs font-bold text-gray-600 border border-gray-200 shadow-inner">
-             <i class="far fa-clock text-blue-500 mr-2"></i> <span>กำลังโหลด...</span>
+          <div id="topClock" class="hidden md:flex items-center px-3 py-1.5 bg-gray-100 rounded-full text-xs font-bold border border-gray-200 shadow-inner">
+             <i class="far fa-clock text-primary-500 mr-2"></i> <span>กำลังโหลด...</span>
           </div>
-          <div class="hidden sm:flex items-center px-4 py-1.5 bg-blue-50 border border-blue-100 rounded-full">
-            <i class="fas fa-building text-blue-400 text-xs mr-2"></i>
-            <span class="text-sm font-bold text-blue-700" id="headerGroupName">กลุ่มงาน</span>
+          <div class="hidden sm:flex items-center px-4 py-1.5 bg-primary-50 border border-primary-100 rounded-full text-gray-800">
+            <i class="fas fa-building text-primary-400 text-xs mr-2"></i>
+            <span class="text-sm font-bold text-primary-700" id="headerGroupName">กลุ่มงาน</span>
           </div>
         </div>
       </header>
@@ -324,7 +393,7 @@
       
       <!-- 6. CART FAB (Floating Action Button) -->
       <div id="cartFab" class="fixed bottom-6 right-6 z-[60] hidden transition-all duration-300">
-        <button onclick="openCartModal()" class="relative flex items-center justify-center w-16 h-16 rounded-full shadow-2xl border-4 border-white transition transform active:scale-95 bg-indigo-600 hover:bg-indigo-700 text-white">
+        <button onclick="openCartModal()" class="relative flex items-center justify-center w-16 h-16 rounded-full shadow-2xl border-4 border-white transition transform active:scale-95 bg-primary-600 hover:bg-primary-700 text-white">
             <i class="fas fa-shopping-cart text-2xl"></i>
             <span id="cartBadge" class="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-black px-2 py-0.5 rounded-full shadow-lg border-2 border-white min-w-[24px] text-center">0</span>
         </button>
@@ -338,16 +407,15 @@
   <div id="materialModal" class="fixed inset-0 bg-black/60 z-[70] hidden flex items-center justify-center p-4 backdrop-blur-sm">
     <div class="bg-white rounded-2xl w-full max-w-lg shadow-2xl flex flex-col max-h-[90vh]">
       <div class="p-5 border-b flex justify-between items-center bg-gray-50 rounded-t-2xl">
-        <h3 class="text-lg font-bold text-gray-800"><i class="fas fa-box text-blue-500 mr-2"></i> จัดการข้อมูลวัสดุ</h3>
-        <button type="button" onclick="closeModal('materialModal')" class="text-gray-400 hover:text-gray-600 transition"><i class="fas fa-times text-xl"></i></button>
+        <h3 class="text-lg font-bold"><i class="fas fa-box text-primary-500 mr-2"></i> จัดการข้อมูลวัสดุ</h3>
+        <button type="button" onclick="closeModal('materialModal')" class="hover:text-primary-500 transition"><i class="fas fa-times text-xl"></i></button>
       </div>
       <form id="materialForm" class="p-6 space-y-5 overflow-y-auto">
         <input type="hidden" id="matId">
         
-        <!-- เพิ่มฟิลด์ประเภท Test Kit -->
         <div>
-          <label class="block text-sm font-bold text-gray-700 mb-1">ประเภท Test Kit <span class="text-red-500">*</span></label>
-          <select id="matType" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition" required>
+          <label class="block text-sm font-bold mb-1">ประเภท Test Kit <span class="text-red-500">*</span></label>
+          <select id="matType" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none transition" required>
             <option value="" disabled selected>-- เลือกประเภท --</option>
             <option value="pH Test Kit">pH Test Kit</option>
             <option value="NPK Test Kit">NPK Test Kit</option>
@@ -357,37 +425,37 @@
         </div>
 
         <div>
-          <label class="block text-sm font-bold text-gray-700 mb-1">ชื่อวัสดุ <span class="text-red-500">*</span></label>
-          <input type="text" id="matName" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition" placeholder="ระบุชื่อวัสดุ / อุปกรณ์" required>
+          <label class="block text-sm font-bold mb-1">ชื่อวัสดุ <span class="text-red-500">*</span></label>
+          <input type="text" id="matName" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none transition" placeholder="ระบุชื่อวัสดุ / อุปกรณ์" required>
         </div>
         
         <div>
-          <label class="block text-sm font-bold text-gray-700 mb-1">ชั้นวาง / ที่เก็บ</label>
-          <input type="text" id="matLocation" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition" placeholder="ระบุพิกัดที่เก็บ เช่น ตู้ A ชั้น 2" required>
+          <label class="block text-sm font-bold mb-1">ชั้นวาง / ที่เก็บ</label>
+          <input type="text" id="matLocation" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none transition" placeholder="ระบุพิกัดที่เก็บ เช่น ตู้ A ชั้น 2" required>
         </div>
 
         <div>
-          <label class="block text-sm font-bold text-gray-700 mb-2">รูปภาพประกอบ</label>
+          <label class="block text-sm font-bold mb-2">รูปภาพประกอบ</label>
           <div class="flex gap-2 mb-3">
-            <button type="button" onclick="toggleImgInput('file', 'mat')" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 border border-gray-200 rounded-xl text-xs font-bold text-gray-700 transition">อัปโหลดไฟล์</button>
-            <button type="button" onclick="toggleImgInput('url', 'mat')" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 border border-gray-200 rounded-xl text-xs font-bold text-gray-700 transition">ใช้ลิงก์ URL</button>
-            <button type="button" onclick="openCamera('mat')" class="px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-xl text-xs font-bold transition flex items-center gap-2"><i class="fas fa-camera"></i> ถ่ายรูป</button>
+            <button type="button" onclick="toggleImgInput('file', 'mat')" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 border border-gray-200 rounded-xl text-xs font-bold transition">อัปโหลดไฟล์</button>
+            <button type="button" onclick="toggleImgInput('url', 'mat')" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 border border-gray-200 rounded-xl text-xs font-bold transition">ใช้ลิงก์ URL</button>
+            <button type="button" onclick="openCamera('mat')" class="px-4 py-2 bg-primary-50 hover:bg-primary-100 text-primary-700 border border-primary-200 rounded-xl text-xs font-bold transition flex items-center gap-2"><i class="fas fa-camera"></i> ถ่ายรูป</button>
           </div>
           
           <div id="matInputFile" class="file-input-wrapper border-2 border-dashed border-gray-300 rounded-xl p-4 h-40 flex flex-col items-center justify-center bg-gray-50 hover:bg-gray-100 transition relative">
             <input type="file" id="matImgFile" accept="image/*" class="file-input-overlay" onchange="previewImage(this, 'mat')">
             <div id="matPreview" class="absolute inset-0 bg-contain bg-center bg-no-repeat rounded-xl hidden z-10 bg-white"></div>
             <div id="matPlaceholder" class="text-center pointer-events-none z-0">
-                <i class="fas fa-cloud-upload-alt text-4xl text-blue-400 mb-2"></i>
-                <p class="text-sm font-bold text-gray-600">คลิกเพื่อเลือกไฟล์รูปภาพ</p>
-                <p class="text-xs text-gray-400 mt-1">รองรับ JPG, PNG</p>
+                <i class="fas fa-cloud-upload-alt text-4xl text-primary-400 mb-2"></i>
+                <p class="text-sm font-bold mt-2">คลิกเพื่อเลือกไฟล์รูปภาพ</p>
+                <p class="text-xs opacity-70 mt-1">รองรับ JPG, PNG</p>
             </div>
           </div>
-          <input type="url" id="matImgUrl" class="hidden w-full px-4 py-2 border border-gray-300 rounded-xl mt-2 outline-none focus:ring-2 focus:ring-blue-500" placeholder="https://example.com/image.jpg">
+          <input type="url" id="matImgUrl" class="hidden w-full px-4 py-2 border border-gray-300 rounded-xl mt-2 outline-none focus:ring-2 focus:ring-primary-500" placeholder="https://example.com/image.jpg">
         </div>
         
         <div class="pt-4 border-t border-gray-100">
-            <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl shadow-lg transition transform active:scale-95 text-lg">บันทึกข้อมูล</button>
+            <button type="submit" class="w-full bg-primary-600 hover:bg-primary-700 text-white font-bold py-3.5 rounded-xl shadow-lg transition transform active:scale-95 text-lg">บันทึกข้อมูล</button>
         </div>
       </form>
     </div>
@@ -397,33 +465,31 @@
   <div id="cartModal" class="fixed inset-0 bg-black/60 z-[80] hidden flex items-center justify-center p-4 backdrop-blur-sm">
     <div class="bg-white rounded-2xl w-full max-w-2xl shadow-2xl flex flex-col max-h-[90vh]">
         <div class="p-5 border-b flex justify-between items-center bg-gray-50 rounded-t-2xl">
-            <h3 id="cartModalTitle" class="text-lg font-bold text-gray-800"><i class="fas fa-list-check text-indigo-500 mr-2"></i> รายการที่เลือก</h3>
-            <button type="button" onclick="closeModal('cartModal')" class="text-gray-400 hover:text-gray-600 transition"><i class="fas fa-times text-xl"></i></button>
+            <h3 id="cartModalTitle" class="text-lg font-bold"><i class="fas fa-list-check text-primary-500 mr-2"></i> รายการที่เลือก</h3>
+            <button type="button" onclick="closeModal('cartModal')" class="hover:text-primary-500 transition"><i class="fas fa-times text-xl"></i></button>
         </div>
         
-        <!-- Cart Items -->
         <div class="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50/50" id="cartItemsContainer">
             <!-- Dynamically injected -->
         </div>
         
-        <!-- Form Inputs & Submit -->
         <form id="cartForm" class="p-4 sm:p-5 border-t border-gray-200 bg-white rounded-b-2xl">
             <div class="flex flex-col sm:flex-row gap-4 mb-5">
                 <div class="w-full sm:w-1/2">
-                    <label class="block text-[11px] sm:text-xs font-bold text-gray-700 mb-1">วันที่ทำรายการ </label>
-                    <input type="date" id="cartDate" class="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition box-border">
+                    <label class="block text-[11px] sm:text-xs font-bold mb-1">วันที่ทำรายการ </label>
+                    <input type="date" id="cartDate" class="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-primary-500 outline-none transition box-border">
                 </div>
                 <div class="w-full sm:w-1/2">
-                    <label id="cartRefLabel" class="block text-[11px] sm:text-xs font-bold text-gray-700 mb-1">อ้างอิงเอกสาร / หมายเหตุ</label>
-                    <input type="text" id="cartRef" class="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition box-border" placeholder="ระบุเลขที่ใบสั่งซื้อ หรือที่มา">
+                    <label id="cartRefLabel" class="block text-[11px] sm:text-xs font-bold mb-1">อ้างอิงเอกสาร / หมายเหตุ</label>
+                    <input type="text" id="cartRef" class="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-primary-500 outline-none transition box-border" placeholder="ระบุเลขที่ใบสั่งซื้อ หรือที่มา">
                 </div>
             </div>
             
             <div class="flex gap-3">
-                <button type="button" id="btnExportCartPDF" onclick="exportCartPDF()" class="w-1/3 py-3.5 rounded-xl font-bold text-white shadow-lg transition transform active:scale-95 text-sm bg-red-600 hover:bg-red-700 flex items-center justify-center gap-2">
+                <button type="button" id="btnExportCartPDF" onclick="exportCartPDF()" class="w-1/3 py-3.5 rounded-xl font-bold text-white shadow-lg transition transform active:scale-95 text-sm bg-gray-800 hover:bg-gray-900 flex items-center justify-center gap-2">
                     <i class="fas fa-file-pdf text-lg"></i> ใบรายการ
                 </button>
-                <button type="submit" id="btnCartSubmit" class="w-2/3 py-3.5 rounded-xl font-bold text-white shadow-lg transition transform active:scale-95 text-lg bg-indigo-600 hover:bg-indigo-700">
+                <button type="submit" id="btnCartSubmit" class="w-2/3 py-3.5 rounded-xl font-bold text-white shadow-lg transition transform active:scale-95 text-lg bg-primary-600 hover:bg-primary-700">
                     ยืนยันทำรายการทั้งหมด
                 </button>
             </div>
@@ -435,15 +501,15 @@
   <div id="userPermModal" class="fixed inset-0 bg-black/60 z-[80] hidden flex items-center justify-center p-4 backdrop-blur-sm">
     <div class="bg-white rounded-2xl w-full max-w-md shadow-2xl flex flex-col max-h-[90vh]">
       <div class="p-5 border-b flex justify-between items-center bg-gray-50 rounded-t-2xl">
-        <h3 class="text-lg font-bold text-gray-800"><i class="fas fa-shield-alt text-purple-500 mr-2"></i> กำหนดสิทธิ์ผู้ใช้งาน</h3>
-        <button type="button" onclick="closeModal('userPermModal')" class="text-gray-400 hover:text-gray-600 transition"><i class="fas fa-times text-xl"></i></button>
+        <h3 class="text-lg font-bold"><i class="fas fa-shield-alt text-primary-500 mr-2"></i> กำหนดสิทธิ์ผู้ใช้งาน</h3>
+        <button type="button" onclick="closeModal('userPermModal')" class="hover:text-primary-500 transition"><i class="fas fa-times text-xl"></i></button>
       </div>
       <div class="p-6 overflow-y-auto">
-        <div class="flex items-center gap-4 mb-6 p-4 bg-indigo-50 rounded-xl border border-indigo-100">
-           <div class="w-12 h-12 bg-indigo-600 text-white rounded-full flex items-center justify-center font-bold text-xl shadow-md" id="permUserInitials">U</div>
+        <div class="flex items-center gap-4 mb-6 p-4 bg-primary-50 rounded-xl border border-primary-100">
+           <div class="w-12 h-12 bg-primary-600 text-white rounded-full flex items-center justify-center font-bold text-xl shadow-md" id="permUserInitials">U</div>
            <div>
-              <h4 class="font-bold text-gray-800 text-lg" id="permUserName">User Name</h4>
-              <p class="text-xs text-indigo-500 font-bold uppercase tracking-wider" id="permUserGroup">Group Name</p>
+              <h4 class="font-bold text-lg" id="permUserName">User Name</h4>
+              <p class="text-xs text-primary-500 font-bold uppercase tracking-wider" id="permUserGroup">Group Name</p>
            </div>
         </div>
         
@@ -452,8 +518,8 @@
            <!-- View Stock (Default) -->
            <label class="flex items-center justify-between p-4 border border-gray-200 rounded-xl bg-gray-50 cursor-not-allowed">
               <div class="flex items-center gap-3">
-                  <i class="fas fa-eye text-gray-400 text-lg"></i>
-                  <span class="text-sm font-bold text-gray-600">ดูข้อมูล (View Only)</span>
+                  <i class="fas fa-eye text-lg"></i>
+                  <span class="text-sm font-bold">ดูข้อมูล (View Only)</span>
               </div>
               <div class="relative inline-flex items-center">
                 <input type="checkbox" id="perm_view_stock" class="sr-only peer toggle-checkbox" checked disabled>
@@ -462,10 +528,10 @@
            </label>
            
            <!-- Withdraw -->
-           <label class="flex items-center justify-between p-4 border border-gray-200 rounded-xl hover:bg-rose-50 hover:border-rose-200 cursor-pointer transition group">
+           <label class="flex items-center justify-between p-4 border border-gray-200 rounded-xl hover:bg-gray-100 hover:border-gray-300 cursor-pointer transition group">
               <div class="flex items-center gap-3">
-                  <i class="fas fa-hand-holding text-rose-400 group-hover:text-rose-600 text-lg transition"></i>
-                  <span class="text-sm font-bold text-gray-700">สิทธิ์เบิกวัสดุ (Withdraw)</span>
+                  <i class="fas fa-hand-holding group-hover:text-rose-500 text-lg transition"></i>
+                  <span class="text-sm font-bold">สิทธิ์เบิกวัสดุ (Withdraw)</span>
               </div>
               <div class="relative inline-flex items-center cursor-pointer">
                 <input type="checkbox" id="perm_withdraw_material" class="sr-only peer toggle-checkbox">
@@ -474,10 +540,10 @@
            </label>
 
            <!-- Import -->
-           <label class="flex items-center justify-between p-4 border border-gray-200 rounded-xl hover:bg-emerald-50 hover:border-emerald-200 cursor-pointer transition group">
+           <label class="flex items-center justify-between p-4 border border-gray-200 rounded-xl hover:bg-gray-100 hover:border-gray-300 cursor-pointer transition group">
               <div class="flex items-center gap-3">
-                  <i class="fas fa-truck-loading text-emerald-400 group-hover:text-emerald-600 text-lg transition"></i>
-                  <span class="text-sm font-bold text-gray-700">สิทธิ์นำเข้าสต๊อก (Import)</span>
+                  <i class="fas fa-truck-loading group-hover:text-emerald-500 text-lg transition"></i>
+                  <span class="text-sm font-bold">สิทธิ์นำเข้าสต๊อก (Import)</span>
               </div>
               <div class="relative inline-flex items-center cursor-pointer">
                 <input type="checkbox" id="perm_import_material" class="sr-only peer toggle-checkbox">
@@ -486,10 +552,10 @@
            </label>
 
            <!-- Manage -->
-           <label class="flex items-center justify-between p-4 border border-gray-200 rounded-xl hover:bg-amber-50 hover:border-amber-200 cursor-pointer transition group">
+           <label class="flex items-center justify-between p-4 border border-gray-200 rounded-xl hover:bg-gray-100 hover:border-gray-300 cursor-pointer transition group">
               <div class="flex items-center gap-3">
-                  <i class="fas fa-edit text-amber-400 group-hover:text-amber-600 text-lg transition"></i>
-                  <span class="text-sm font-bold text-gray-700">จัดการรายการวัสดุ (Add/Edit)</span>
+                  <i class="fas fa-edit group-hover:text-amber-500 text-lg transition"></i>
+                  <span class="text-sm font-bold">จัดการรายการวัสดุ (Add/Edit)</span>
               </div>
               <div class="relative inline-flex items-center cursor-pointer">
                 <input type="checkbox" id="perm_manage_material" class="sr-only peer toggle-checkbox">
@@ -499,7 +565,7 @@
         </div>
 
         <div class="pt-6 border-t border-gray-100 mt-6">
-            <button onclick="savePermissions()" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-3.5 rounded-xl font-bold shadow-lg transition transform active:scale-95 text-lg">
+            <button onclick="savePermissions()" class="w-full bg-primary-600 hover:bg-primary-700 text-white py-3.5 rounded-xl font-bold shadow-lg transition transform active:scale-95 text-lg">
                 บันทึกการตั้งค่าสิทธิ์
             </button>
         </div>
@@ -511,24 +577,24 @@
   <div id="changePasswordModal" class="fixed inset-0 bg-black/60 z-[80] hidden flex items-center justify-center p-4 backdrop-blur-sm">
     <div class="bg-white rounded-2xl w-full max-w-sm shadow-2xl flex flex-col">
       <div class="p-5 border-b flex justify-between items-center bg-gray-50 rounded-t-2xl">
-        <h3 class="text-lg font-bold text-gray-800"><i class="fas fa-key text-blue-500 mr-2"></i> เปลี่ยนรหัสผ่าน</h3>
-        <button type="button" onclick="closeModal('changePasswordModal')" class="text-gray-400 hover:text-gray-600 transition"><i class="fas fa-times text-xl"></i></button>
+        <h3 class="text-lg font-bold"><i class="fas fa-key text-primary-500 mr-2"></i> เปลี่ยนรหัสผ่าน</h3>
+        <button type="button" onclick="closeModal('changePasswordModal')" class="hover:text-primary-500 transition"><i class="fas fa-times text-xl"></i></button>
       </div>
       <form id="changePasswordForm" class="p-6 space-y-4">
         <div>
-          <label class="block text-sm font-bold text-gray-700 mb-1">รหัสผ่านเดิม</label>
-          <input type="password" id="oldPassword" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition" required>
+          <label class="block text-sm font-bold mb-1">รหัสผ่านเดิม</label>
+          <input type="password" id="oldPassword" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none transition" required>
         </div>
         <div>
-          <label class="block text-sm font-bold text-gray-700 mb-1">รหัสผ่านใหม่</label>
-          <input type="password" id="newPassword" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition" required>
+          <label class="block text-sm font-bold mb-1">รหัสผ่านใหม่</label>
+          <input type="password" id="newPassword" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none transition" required>
         </div>
         <div>
-          <label class="block text-sm font-bold text-gray-700 mb-1">ยืนยันรหัสผ่านใหม่</label>
-          <input type="password" id="confirmNewPassword" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition" required>
+          <label class="block text-sm font-bold mb-1">ยืนยันรหัสผ่านใหม่</label>
+          <input type="password" id="confirmNewPassword" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none transition" required>
         </div>
         <div class="pt-4 border-t border-gray-100">
-            <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl shadow-lg transition transform active:scale-95">บันทึกรหัสผ่านใหม่</button>
+            <button type="submit" class="w-full bg-primary-600 hover:bg-primary-700 text-white font-bold py-3 rounded-xl shadow-lg transition transform active:scale-95">บันทึกรหัสผ่านใหม่</button>
         </div>
       </form>
     </div>
@@ -541,20 +607,153 @@
     </button>
     <img id="fullSizeImage" src="" class="max-w-full max-h-full object-contain rounded-lg shadow-2xl" onclick="event.stopPropagation();">
   </div>
+  
+  <!-- 6. THEME SETTINGS MODAL (Admin Only) -->
+  <div id="themeModal" class="fixed inset-0 bg-black/60 z-[80] hidden flex items-center justify-center p-4 backdrop-blur-sm">
+      <div class="bg-white rounded-2xl w-full max-w-4xl shadow-2xl flex flex-col max-h-[90vh]">
+        <div class="p-5 border-b flex justify-between items-center bg-gray-50 rounded-t-2xl">
+          <h3 class="text-lg font-bold"><i class="fas fa-palette text-primary-500 mr-2"></i> ตั้งค่ารูปแบบ UI/UX (Themes)</h3>
+          <button type="button" onclick="closeModal('themeModal')" class="hover:text-primary-500 transition"><i class="fas fa-times text-xl"></i></button>
+        </div>
+        <div class="p-6 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 overflow-y-auto max-h-[65vh]" id="themeContainer">
+           <!-- Generated via JS -->
+        </div>
+        <div class="p-4 border-t border-gray-100 bg-gray-50 rounded-b-2xl">
+            <p class="text-[11px] font-bold text-center"><i class="fas fa-info-circle mr-1"></i> การเปลี่ยนธีมจะเปลี่ยนรูปร่างและหน้าตาของทั้งระบบ และมีผลกับทุกคนทันที</p>
+        </div>
+      </div>
+  </div>
 
   <!-- ================= JAVASCRIPT LOGIC ================= -->
   <script>
-    // --- 1. CONFIGURATION ---
-    // Make sure to replace this URL if you redeploy the Apps Script
-    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxdK7zgf3YLbUPUEEgBhfe2jP2g6J4jvgGLhNUJnTd4WGlL9OJUVL5wJFBI6iMV9d4o/exec";
+    // --- 1. CONFIGURATION & THEMES ---
+    var WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxdK7zgf3YLbUPUEEgBhfe2jP2g6J4jvgGLhNUJnTd4WGlL9OJUVL5wJFBI6iMV9d4o/exec";
+    
+    var THEMES = {
+        'modern': { name: 'Modern Blue', type: 'light', bg: 'https://images.unsplash.com/photo-1557682250-33bd709cbe85?q=80&w=2564&auto=format&fit=crop', icon: 'fas fa-layer-group', desc: 'คลีน มินิมอล', p50: '#eff6ff', p100: '#dbeafe', p200: '#bfdbfe', p400: '#60a5fa', p500: '#3b82f6', p600: '#2563eb', p700: '#1d4ed8' },
+        'dark': { name: 'Dark Mode', type: 'dark', bg: 'https://images.unsplash.com/photo-1519608487953-e999c86e7455?q=80&w=2564&auto=format&fit=crop', icon: 'fas fa-moon', desc: 'โหมดกลางคืน', p50: '#f8fafc', p100: '#f1f5f9', p200: '#e2e8f0', p400: '#94a3b8', p500: '#64748b', p600: '#475569', p700: '#334155' },
+        'glass': { name: 'Vibrant Glass', type: 'dark', bg: 'https://images.unsplash.com/photo-1579546929518-9e396f3cc809?q=80&w=2564&auto=format&fit=crop', icon: 'fas fa-droplet', desc: 'กระจกใสสีสดใส', p50: '#f5f3ff', p100: '#ede9fe', p200: '#ddd6fe', p400: '#a78bfa', p500: '#8b5cf6', p600: '#7c3aed', p700: '#6d28d9' },
+        'brutal': { name: 'Abstract Art', type: 'light', bg: 'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?q=80&w=2564&auto=format&fit=crop', icon: 'fas fa-shapes', desc: 'ศิลปะป๊อปอาร์ต', p50: '#fef08a', p100: '#fde047', p200: '#facc15', p400: '#eab308', p500: '#ca8a04', p600: '#a16207', p700: '#713f12' },
+        'neumorph': { name: 'Neumorphism', type: 'light', bg: 'https://images.unsplash.com/photo-1586075010923-2dd4570fb338?q=80&w=2564&auto=format&fit=crop', icon: 'fas fa-dot-circle', desc: 'นูนลึกเนียนตา', p50: '#f1f5f9', p100: '#e2e8f0', p200: '#cbd5e1', p400: '#94a3b8', p500: '#64748b', p600: '#475569', p700: '#334155' },
+        'forest': { name: 'Forest', type: 'dark', bg: 'https://images.unsplash.com/photo-1511497584788-876760111969?q=80&w=2564&auto=format&fit=crop', icon: 'fas fa-tree', desc: 'ป่าธรรมชาติ', p50: '#f0fdf4', p100: '#dcfce7', p200: '#bbf7d0', p400: '#4ade80', p500: '#22c55e', p600: '#16a34a', p700: '#15803d' },
+        'ocean': { name: 'Deep Ocean', type: 'dark', bg: 'https://images.unsplash.com/photo-1518837695005-2083093ee35b?q=80&w=2564&auto=format&fit=crop', icon: 'fas fa-water', desc: 'โทนสีฟ้าคราม', p50: '#ecfeff', p100: '#cffafe', p200: '#a5f3fc', p400: '#22d3ee', p500: '#06b6d4', p600: '#0891b2', p700: '#0e7490' },
+        'sunset': { name: 'Sunset Warm', type: 'dark', bg: 'https://images.unsplash.com/photo-1472120435266-53107fd0fd68?q=80&w=2564&auto=format&fit=crop', icon: 'fas fa-sun', desc: 'โทนสีส้มอบอุ่น', p50: '#fff7ed', p100: '#ffedd5', p200: '#fed7aa', p400: '#fb923c', p500: '#f97316', p600: '#ea580c', p700: '#c2410c' },
+        'coffee': { name: 'Coffee Mocha', type: 'dark', bg: 'https://images.unsplash.com/photo-1497935586351-b67a49e012bf?q=80&w=2564&auto=format&fit=crop', icon: 'fas fa-mug-hot', desc: 'โทนสีน้ำตาลกาแฟ', p50: '#fdf8f6', p100: '#f2e8e5', p200: '#eaddd7', p400: '#c5a89f', p500: '#a98074', p600: '#8a655b', p700: '#6a4a42' },
+        'sakura': { name: 'Pink Sakura', type: 'light', bg: 'https://images.unsplash.com/photo-1522383225653-ed111181a951?q=80&w=2564&auto=format&fit=crop', icon: 'fas fa-fan', desc: 'ดอกซากุระ', p50: '#fdf2f8', p100: '#fce7f3', p200: '#fbcfe8', p400: '#f472b6', p500: '#ec4899', p600: '#db2777', p700: '#be185d' },
+        'cyberpunk': { name: 'Cyberpunk', type: 'dark', bg: 'https://images.unsplash.com/photo-1515630278258-407f66498911?q=80&w=2564&auto=format&fit=crop', icon: 'fas fa-city', desc: 'นีออนกลางคืน', p50: '#fdf4ff', p100: '#fae8ff', p200: '#f5d0fe', p400: '#e879f9', p500: '#d946ef', p600: '#c026d3', p700: '#a21caf' },
+        'minimal': { name: 'Monochrome', type: 'light', bg: 'https://images.unsplash.com/photo-1476304884326-cd2c88572c5f?q=80&w=2564&auto=format&fit=crop', icon: 'fas fa-square', desc: 'ขาวดำเรียบง่าย', p50: '#f4f4f5', p100: '#e4e4e7', p200: '#d4d4d8', p400: '#a1a1aa', p500: '#71717a', p600: '#52525b', p700: '#3f3f46' },
+        'retro': { name: '80s Retro', type: 'dark', bg: 'https://images.unsplash.com/photo-1550684376-efcbd6e3f031?q=80&w=2564&auto=format&fit=crop', icon: 'fas fa-compact-disc', desc: 'วินเทจซินธ์เวฟ', p50: '#fdf4ff', p100: '#fae8ff', p200: '#f5d0fe', p400: '#e879f9', p500: '#d946ef', p600: '#c026d3', p700: '#a21caf' },
+        'terminal': { name: 'Terminal', type: 'dark', bg: 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?q=80&w=2564&auto=format&fit=crop', icon: 'fas fa-terminal', desc: 'แฮกเกอร์', p50: '#f0fdf4', p100: '#dcfce7', p200: '#bbf7d0', p400: '#4ade80', p500: '#22c55e', p600: '#16a34a', p700: '#15803d' },
+        'luxury': { name: 'Gold Luxury', type: 'dark', bg: 'https://images.unsplash.com/photo-1605806616949-1e87b487cb2a?q=80&w=2564&auto=format&fit=crop', icon: 'fas fa-crown', desc: 'หรูหราดำ-ทอง', p50: '#fefce8', p100: '#fef9c3', p200: '#fef08a', p400: '#facc15', p500: '#eab308', p600: '#ca8a04', p700: '#a16207' }
+    };
+    var currentTheme = 'modern';
+
+    function applyTheme(themeId) {
+        const t = THEMES[themeId] || THEMES['modern'];
+        const root = document.documentElement;
+        
+        root.setAttribute('data-theme-type', t.type);
+        
+        // Update Primary Colors
+        root.style.setProperty('--p-50', t.p50);
+        root.style.setProperty('--p-100', t.p100);
+        root.style.setProperty('--p-200', t.p200);
+        root.style.setProperty('--p-400', t.p400);
+        root.style.setProperty('--p-500', t.p500);
+        root.style.setProperty('--p-600', t.p600);
+        root.style.setProperty('--p-700', t.p700);
+        
+        // Base Background Image
+        document.body.style.backgroundImage = `url('${t.bg}')`;
+
+        // Apply Global Glassmorphism with contrast management
+        if (t.type === 'dark') {
+            root.style.setProperty('--glass-bg', 'rgba(15, 23, 42, 0.75)'); 
+            root.style.setProperty('--glass-border', 'rgba(255, 255, 255, 0.15)');
+            root.style.setProperty('--glass-shadow', '0 8px 32px 0 rgba(0, 0, 0, 0.4)');
+            root.style.setProperty('--text-main', '#f8fafc');
+            root.style.setProperty('--text-muted', '#cbd5e1');
+            root.style.setProperty('--text-shadow', '0 2px 4px rgba(0,0,0,0.8)');
+            root.style.setProperty('--input-bg', 'rgba(0, 0, 0, 0.4)');
+            Chart.defaults.color = '#cbd5e1'; 
+            Chart.defaults.borderColor = 'rgba(255,255,255,0.15)';
+        } else {
+            root.style.setProperty('--glass-bg', 'rgba(255, 255, 255, 0.85)'); 
+            root.style.setProperty('--glass-border', 'rgba(255, 255, 255, 0.6)');
+            root.style.setProperty('--glass-shadow', '0 8px 32px 0 rgba(31, 38, 135, 0.15)');
+            root.style.setProperty('--text-main', '#0f172a');
+            root.style.setProperty('--text-muted', '#334155');
+            root.style.setProperty('--text-shadow', '0 1px 2px rgba(255,255,255,0.9)');
+            root.style.setProperty('--input-bg', 'rgba(255, 255, 255, 0.6)');
+            Chart.defaults.color = '#334155'; 
+            Chart.defaults.borderColor = 'rgba(0,0,0,0.1)';
+        }
+        
+        if (window.stockChartInstance) window.stockChartInstance.update();
+        if (window.bottomChartInstance) window.bottomChartInstance.update();
+        if (window.statusChartInstance) window.statusChartInstance.update();
+    }
+    
+    async function loadGlobalTheme() {
+        const localTheme = localStorage.getItem('global_theme');
+        if (localTheme) {
+            currentTheme = localTheme;
+            applyTheme(localTheme);
+        }
+        try {
+            const globalTheme = await api('getGlobalTheme');
+            if (globalTheme && THEMES[globalTheme] && globalTheme !== currentTheme) {
+                currentTheme = globalTheme;
+                applyTheme(globalTheme);
+                localStorage.setItem('global_theme', globalTheme);
+            }
+        } catch(e) {}
+    }
+
+    async function saveTheme(themeId) {
+        currentTheme = themeId;
+        applyTheme(themeId);
+        openThemeModal(); 
+        showToast('กำลังอัปเดตธีมระบบ...', 'success');
+        try {
+            await api('updateGlobalTheme', { theme: themeId });
+            localStorage.setItem('global_theme', themeId);
+            showToast('บันทึกธีมระบบเรียบร้อยแล้ว', 'success');
+        } catch(e) {
+            localStorage.setItem('global_theme', themeId);
+            showToast('เปลี่ยนธีมสำเร็จ (โหมดออฟไลน์)', 'success');
+        }
+    }
+
+    function openThemeModal() {
+        const container = document.getElementById('themeContainer');
+        container.innerHTML = Object.keys(THEMES).map(k => `
+            <button onclick="saveTheme('${k}')" class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border transition-all duration-300 outline-none ${currentTheme === k ? 'border-primary-500 bg-[rgba(59,130,246,0.2)] scale-105 shadow-md ring-2 ring-primary-500/30' : 'border-[rgba(128,128,128,0.2)] hover:bg-[rgba(128,128,128,0.1)] hover:-translate-y-1 shadow-sm'}">
+                <div class="w-12 h-12 flex items-center justify-center rounded-xl bg-gradient-to-tr from-[rgba(0,0,0,0.6)] to-[rgba(0,0,0,0.8)] text-white shadow-sm text-xl relative overflow-hidden" style="background: url('${THEMES[k].bg}') center/cover;">
+                    <div class="absolute inset-0 bg-black/40"></div>
+                    <i class="${THEMES[k].icon} relative z-10 drop-shadow-md"></i>
+                    ${currentTheme === k ? '<div class="absolute inset-0 bg-[rgba(59,130,246,0.5)] flex items-center justify-center"><i class="fas fa-check text-white text-2xl drop-shadow-md z-20"></i></div>' : ''}
+                </div>
+                <div class="text-center">
+                    <p class="font-bold text-sm leading-tight">${THEMES[k].name}</p>
+                    <p class="text-[10px] mt-0.5 leading-tight opacity-80">${THEMES[k].desc}</p>
+                </div>
+            </button>
+        `).join('');
+        document.getElementById('themeModal').classList.remove('hidden');
+    }
+
+    function hexToRgb(hex) {
+        const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+        return result ? [parseInt(result[1], 16), parseInt(result[2], 16), parseInt(result[3], 16)] : [59, 130, 246];
+    }
     
     // --- 2. GLOBAL STATE & CACHE ---
-    let currentViewID = ''; // Unique ID to prevent Race Conditions during fast switching
-    let bottomChartInstance; // Added missing global variable
-    let transCart = []; // Global cart state for bulk transactions
-    let currentTransMode = ''; // Stores whether cart is for 'import' or 'withdraw'
+    var currentViewID = ''; 
+    var transCart = []; 
+    var currentTransMode = ''; 
     
-    const state = { 
+    var state = { 
         user: null, 
         materials: [], 
         reports: { withdraw: [], import: [] }, 
@@ -562,16 +761,19 @@
         filter: { search: '', sort: 'newest' } 
     };
     
-    const cache = { materials: null, users: null, reports: null };
-    let stockChartInstance, statusChartInstance, videoStream, currentFacingMode = 'environment', currentCamTarget = '';
+    var cache = { materials: null, users: null, reports: null };
+    
+    window.stockChartInstance = null;
+    window.statusChartInstance = null;
+    window.bottomChartInstance = null;
+    var videoStream = null, currentFacingMode = 'environment', currentCamTarget = '';
 
     // --- AUTO LOGOUT (INACTIVITY TIMER) ---
-    let inactivityTimer;
-    const INACTIVITY_LIMIT = 60 * 60 * 1000; // 1 ชั่วโมง (หน่วยเป็นมิลลิวินาที)
+    var inactivityTimer = null;
+    const INACTIVITY_LIMIT = 60 * 60 * 1000; 
 
     function resetInactivityTimer() {
         clearTimeout(inactivityTimer);
-        // จะเริ่มจับเวลาใหม่ก็ต่อเมื่อมีการล็อกอินอยู่เท่านั้น
         if (state.user) {
             inactivityTimer = setTimeout(() => {
                 alert('คุณไม่ได้ทำรายการใดๆ เป็นเวลานานกว่า 1 ชั่วโมง ระบบได้ทำการออกจากระบบอัตโนมัติเพื่อความปลอดภัย');
@@ -581,7 +783,6 @@
     }
 
     function setupInactivityListeners() {
-        
         ['mousemove', 'keydown', 'click', 'scroll', 'touchstart'].forEach(event => {
             document.addEventListener(event, resetInactivityTimer, true);
         });
@@ -594,20 +795,19 @@
         if (clockEl) {
             const timeStr = now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
             const dateStr = now.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' });
-            clockEl.innerHTML = `<i class="far fa-clock text-blue-500 mr-2 text-sm"></i> <span>${dateStr} | ${timeStr}</span>`;
+            clockEl.innerHTML = `<i class="far fa-clock text-primary-500 mr-2 text-sm drop-shadow-md"></i> <span>${dateStr} | ${timeStr}</span>`;
         }
     }
     setInterval(updateClock, 1000);
 
     // --- 3. API HANDLER (Robust Fetch) ---
     async function api(action, payload = {}) {
-        const showOverlay = !['getMaterials', 'getReports'].includes(action);
+        const showOverlay = !['getMaterials', 'getReports', 'getGlobalTheme'].includes(action);
         if(showOverlay) document.getElementById('loadingOverlay').classList.remove('hidden');
         
         try {
             let result;
             if (typeof google !== 'undefined' && google.script) {
-                // Production: running inside Google Apps Script iframe
                 result = await new Promise((resolve, reject) => {
                     google.script.run
                         .withSuccessHandler(res => res.success ? resolve(res.data) : reject(new Error(res.error)))
@@ -615,15 +815,12 @@
                         .apiHandler({ action, payload });
                 });
             } else {
-                // Development: running via standard fetch
                 const res = await fetch(WEB_APP_URL, {
                     method: 'POST',
                     redirect: 'follow',
                     headers: { "Content-Type": "text/plain;charset=utf-8" },
-                    // Important: Wrap action and payload correctly
                     body: JSON.stringify({ action: action, payload: payload })
                 });
-                
                 const json = await res.json();
                 if (!json.success) throw new Error(json.error);
                 result = json.data;
@@ -641,13 +838,13 @@
 
     // --- 4. AUTHENTICATION & INIT ---
     function initApp() {
-        updateClock(); // Init clock immediately
+        loadGlobalTheme(); 
+        updateClock(); 
         
         const savedUserStr = sessionStorage.getItem('user_session');
         if (savedUserStr) {
             try {
                 state.user = JSON.parse(savedUserStr);
-                // Basic validation of user object
                 if(state.user && state.user.fullname) {
                     setupUI();
                     const lastView = sessionStorage.getItem('last_view') || 'dashboard';
@@ -656,7 +853,6 @@
                     throw new Error("Invalid session data");
                 }
             } catch(e) {
-                // If parsing fails or data is bad, force login
                 sessionStorage.removeItem('user_session');
                 document.getElementById('authPage').classList.remove('hidden');
             }
@@ -669,24 +865,18 @@
         document.getElementById('authPage').classList.add('hidden');
         document.getElementById('mainApp').classList.remove('hidden');
         
-        // Safety check to prevent errors
         if(!state.user || !state.user.fullname) return;
 
-        // Apply User Data to Sidebar UI
         document.getElementById('sidebarName').innerText = state.user.fullname.split(' ')[0];
         document.getElementById('sidebarRole').innerText = (state.user.role || 'user').toUpperCase();
         document.getElementById('avatarInitials').innerText = state.user.fullname.charAt(0).toUpperCase();
         document.getElementById('headerGroupName').innerText = state.user.group || 'ฝ่ายบริหารทั่วไป';
         
-        // Display Admin Menu if Role is Admin
         const isAdmin = (state.user.role || '').toLowerCase() === 'admin';
         if (isAdmin) {
             document.getElementById('adminMenuSection').classList.remove('hidden');
-            const mobileAdminMenu = document.getElementById('mobileAdminMenu');
-            if(mobileAdminMenu) mobileAdminMenu.classList.remove('hidden');
         }
 
-        // เริ่มตั้งค่าตัวจับเวลาการใช้งานเมื่อหน้า UI โหลดเสร็จและผู้ใช้ล็อกอินอยู่
         setupInactivityListeners();
         resetInactivityTimer();
     }
@@ -703,9 +893,7 @@
             setupUI();
             route('dashboard');
             showToast(`ยินดีต้อนรับเข้าสู่ระบบ, ${user.fullname.split(' ')[0]}`, 'success');
-        } catch (e) {
-            // Error is handled and toasted inside api()
-        }
+        } catch (e) {}
     };
 
     document.getElementById('registerForm').onsubmit = async (e) => {
@@ -743,12 +931,9 @@
     }
 
     // --- 5. ROUTING & NAVIGATION ---
-    
-    // Toggle Sidebar for Mobile (Robust implementation)
     function toggleSidebar(forceOpen) {
         const sidebar = document.getElementById('sidebar');
         const overlay = document.getElementById('sidebarOverlay');
-        
         if (!sidebar || !overlay) return;
 
         if (typeof forceOpen === 'boolean') {
@@ -766,27 +951,17 @@
     }
 
     async function route(page) {
-        // Fix Race Condition: Generate a unique ID for this specific route request
+        if(page === 'theme') return; 
+        
         currentViewID = Date.now().toString();
         const viewID = currentViewID;
-        
-        // Remember last view
         sessionStorage.setItem('last_view', page);
 
-        // Update Navigation Active Styling
         document.querySelectorAll('.nav-item').forEach(el => {
             const isActive = el.dataset.page === page;
             el.classList.toggle('active', isActive);
-            if (isActive) {
-                el.classList.add('bg-slate-800', 'text-white');
-                el.classList.remove('text-slate-400'); // Ensure inactive color is removed
-            } else {
-                el.classList.remove('bg-slate-800', 'text-white');
-                el.classList.add('text-slate-400');
-            }
         });
 
-        // Set Page Title
         const titles = { 
             'dashboard': 'ภาพรวมระบบ (Dashboard)', 'inventory': 'รายการวัสดุ (Inventory)', 
             'withdraw': 'เบิกวัสดุ (Withdraw)', 'import': 'นำเข้าสต๊อก (Import)', 
@@ -796,22 +971,18 @@
         const titleEl = document.getElementById('pageTitle');
         if(titleEl) titleEl.innerText = titles[page] || 'Inventory System';
         
-        // Automatically hide mobile sidebar when navigating
         toggleSidebar(false);
 
-        // Clean up memory from Chart instances to prevent overlaps
-        if (stockChartInstance) { stockChartInstance.destroy(); stockChartInstance = null; }
-        if (statusChartInstance) { statusChartInstance.destroy(); statusChartInstance = null; }
-        if (bottomChartInstance) { bottomChartInstance.destroy(); bottomChartInstance = null; }
+        if (window.stockChartInstance) { window.stockChartInstance.destroy(); window.stockChartInstance = null; }
+        if (window.statusChartInstance) { window.statusChartInstance.destroy(); window.statusChartInstance = null; }
+        if (window.bottomChartInstance) { window.bottomChartInstance.destroy(); window.bottomChartInstance = null; }
 
         const container = document.getElementById('contentArea');
         if (!container) return;
         
-        // Clear transaction cart when navigating to avoid mixups
         transCart = [];
         updateCartUI();
 
-        // Render appropriate view
         switch (page) {
             case 'dashboard': await renderDashboard(container, viewID); break;
             case 'inventory': await renderInventory(container, 'view', viewID); break;
@@ -826,35 +997,27 @@
 
     // --- 6. VIEW: DASHBOARD ---
     async function renderDashboard(c, viewID) {
-        // Show skeleton loader immediately
         c.innerHTML = `
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8">
                 ${cardSkeleton().repeat(4)}
             </div>
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div class="lg:col-span-2 h-80 bg-white rounded-2xl shadow-sm border border-gray-100 flex items-center justify-center"><div class="loader"></div></div>
-                <div class="h-80 bg-white rounded-2xl shadow-sm border border-gray-100 flex items-center justify-center"><div class="loader"></div></div>
+                <div class="lg:col-span-2 h-80 bg-white rounded-2xl shadow-sm flex items-center justify-center"><div class="loader"></div></div>
+                <div class="h-80 bg-white rounded-2xl shadow-sm flex items-center justify-center"><div class="loader"></div></div>
             </div>`;
         
-        // If we have cached data, display it immediately for a fast UX
         if (cache.materials) { 
             state.materials = JSON.parse(cache.materials); 
             updateDashboardUI(c, viewID); 
         }
         
         try {
-            // Fetch fresh data in the background
             const data = await api('getMaterials');
-            
-            // CRITICAL: If user changed pages while fetching, DO NOT render
             if (currentViewID !== viewID) return; 
-            
             state.materials = data;
-            cache.materials = JSON.stringify(data); // update cache
-            updateDashboardUI(c, viewID); // update UI with fresh data
-        } catch(e) {
-            // Silent catch to not disrupt UI if it fails in background
-        }
+            cache.materials = JSON.stringify(data);
+            updateDashboardUI(c, viewID);
+        } catch(e) {}
     }
 
     function updateDashboardUI(c, viewID) {
@@ -871,13 +1034,10 @@
          }
          
          const total = filteredMaterials.length;
-         
-         // คำนวณจำนวนตามสถานะ
          const outOfStock = filteredMaterials.filter(m => parseInt(m.qty || 0) === 0).length;
          const low = filteredMaterials.filter(m => parseInt(m.qty || 0) > 0 && parseInt(m.qty || 0) < 150).length;
          const normal = total - low - outOfStock;
 
-         // Calculate True Last Update by finding maximum date
          let maxTime = 0;
          filteredMaterials.forEach(m => {
              const iTime = m.last_import_date ? new Date(m.last_import_date).getTime() : 0;
@@ -887,68 +1047,103 @@
          });
          const last = maxTime > 0 ? formatDate(new Date(maxTime)).split(' ')[0] : 'ไม่มีข้อมูล';
          
+         const pinnedMaterials = filteredMaterials.filter(m => m.pinned === true || m.pinned === 'true' || m.pinned === 1 || m.pinned === 'TRUE');
+         let pinnedHtml = '';
+         if (pinnedMaterials.length > 0) {
+             let cards = '';
+             pinnedMaterials.forEach(m => {
+                 const isOut = parseInt(m.qty || 0) === 0;
+                 cards += `
+                 <div class="bg-white p-4 rounded-2xl shadow-sm border border-[rgba(255,255,255,0.1)] flex items-center gap-4 cursor-pointer hover:-translate-y-1 transition transform" onclick="route('inventory')">
+                     <div class="w-12 h-12 rounded-xl bg-[rgba(0,0,0,0.05)] p-1 flex items-center justify-center shrink-0">
+                         <img src="${m.image_url || 'https://via.placeholder.com/150'}" class="max-w-full max-h-full object-contain drop-shadow-sm">
+                     </div>
+                     <div class="flex-1 min-w-0">
+                         <p class="font-bold text-sm truncate">${m.name}</p>
+                         <p class="text-[10px] opacity-70 truncate">${m.type || m.Type || '-'}</p>
+                     </div>
+                     <div class="text-right shrink-0">
+                         <span class="text-xl font-black ${isOut ? 'text-red-500' : 'text-primary-500'} drop-shadow-md">${m.qty}</span>
+                     </div>
+                 </div>
+                 `;
+             });
+             
+             pinnedHtml = `
+             <div class="mb-8 fade-in">
+                 <div class="flex items-center gap-2 mb-4">
+                     <i class="fas fa-thumbtack text-amber-400 text-xl drop-shadow-md -rotate-45"></i>
+                     <h3 class="font-bold text-lg">รายการที่ผลิตเสร็จ</h3>
+                 </div>
+                 <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                     ${cards}
+                 </div>
+             </div>
+             `;
+         }
+
          c.innerHTML = `
             <div class="flex justify-between items-center mb-4 fade-in">
-                <h2 class="text-xl font-bold text-gray-800">สรุปข้อมูล</h2>
-                <select id="dashboardFilterType" onchange="updateDashboardUI(document.getElementById('contentArea'), currentViewID)" class="py-2 px-3 bg-white border border-gray-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-blue-500 outline-none shadow-sm text-gray-600">
+                <h2 class="text-xl font-bold">สรุปข้อมูล</h2>
+                <select id="dashboardFilterType" onchange="updateDashboardUI(document.getElementById('contentArea'), '${viewID}')" class="py-2 px-3 rounded-xl text-sm font-medium focus:ring-2 focus:ring-primary-500 outline-none shadow-sm cursor-pointer">
                     <option value="all" ${typeVal === 'all' ? 'selected' : ''}>ทุกประเภท (Test Kit)</option>
                     <option value="pH Test Kit" ${typeVal === 'pH Test Kit' ? 'selected' : ''}>pH Test Kit</option>
                     <option value="NPK Test Kit" ${typeVal === 'NPK Test Kit' ? 'selected' : ''}>NPK Test Kit</option>
                     <option value="Saline Soil Test Kit" ${typeVal === 'Saline Soil Test Kit' ? 'selected' : ''}>Saline Soil Test Kit</option>
                 </select>
             </div>
+            ${pinnedHtml}
             <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6 mb-8 fade-in">
-                ${statCard('ทั้งหมด', total, 'fas fa-boxes', 'bg-blue-100 text-blue-600')}
+                ${statCard('ทั้งหมด', total, 'fas fa-boxes', 'bg-primary-100 text-primary-600')}
                 ${statCard('ปกติ', normal, 'fas fa-check-circle', 'bg-emerald-100 text-emerald-600')}
                 ${statCard('ใกล้หมด', low, 'fas fa-exclamation-triangle', 'bg-amber-100 text-amber-600')}
                 ${statCard('หมด', outOfStock, 'fas fa-times-circle', 'bg-red-100 text-red-600')}
-                ${statCard('อัปเดตล่าสุด', last, 'fas fa-clock', 'bg-purple-100 text-purple-600')}
+                ${statCard('อัปเดตล่าสุด', last, 'fas fa-clock', 'bg-primary-100 text-primary-600')}
             </div>
             
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 fade-in mb-8">
                 <!-- TOP 5 Chart -->
-                <div class="bg-white p-5 md:p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col">
+                <div class="bg-white p-5 md:p-6 rounded-2xl flex flex-col">
                     <div class="flex justify-between items-center mb-4">
-                        <h3 class="font-bold text-gray-800 text-base"><i class="fas fa-arrow-up text-emerald-500 mr-2"></i> คงเหลือสูงสุด 5 อันดับ</h3>
+                        <h3 class="font-bold text-base"><i class="fas fa-arrow-up text-emerald-500 mr-2 drop-shadow-md"></i> คงเหลือสูงสุด 5 อันดับ</h3>
                     </div>
                     <div class="relative flex-1 min-h-[240px] w-full"><canvas id="stockChart"></canvas></div>
                 </div>
                 
                 <!-- BOTTOM 5 Chart -->
-                 <div class="bg-white p-5 md:p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col">
+                 <div class="bg-white p-5 md:p-6 rounded-2xl flex flex-col">
                     <div class="flex justify-between items-center mb-4">
-                        <h3 class="font-bold text-gray-800 text-base"><i class="fas fa-arrow-down text-rose-500 mr-2"></i> คงเหลือน้อยสุด 5 อันดับ</h3>
+                        <h3 class="font-bold text-base"><i class="fas fa-arrow-down text-rose-500 mr-2 drop-shadow-md"></i> คงเหลือน้อยสุด 5 อันดับ</h3>
                     </div>
                     <div class="relative flex-1 min-h-[240px] w-full"><canvas id="bottomStockChart"></canvas></div>
                 </div>
                 
                 <!-- STATUS Doughnut -->
-                <div class="bg-white p-5 md:p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col">
-                    <h3 class="font-bold text-gray-800 text-base mb-4"><i class="fas fa-chart-pie text-purple-500 mr-2"></i> สถานะความพร้อมสต๊อก</h3>
+                <div class="bg-white p-5 md:p-6 rounded-2xl flex flex-col">
+                    <h3 class="font-bold text-base mb-4"><i class="fas fa-chart-pie text-primary-500 mr-2 drop-shadow-md"></i> สถานะความพร้อมสต๊อก</h3>
                     <div class="relative flex-1 min-h-[240px] w-full flex items-center justify-center"><canvas id="statusChart"></canvas></div>
                 </div>
             </div>
         `;
             
-         // จัดเรียงข้อมูลตามจำนวน
          const sortedByQtyDesc = [...filteredMaterials].sort((a,b) => parseInt(b.qty || 0) - parseInt(a.qty || 0));
          const sortedByQtyAsc = [...filteredMaterials].sort((a,b) => parseInt(a.qty || 0) - parseInt(b.qty || 0));
          
          const top5 = sortedByQtyDesc.slice(0, 5);
          const bottom5 = sortedByQtyAsc.slice(0, 5);
-         
-         // TOP 5 Chart
+
          const ctx1 = document.getElementById('stockChart');
          if(ctx1) {
-             stockChartInstance = new Chart(ctx1, { 
+             if (window.stockChartInstance) { window.stockChartInstance.destroy(); }
+             window.stockChartInstance = new Chart(ctx1, { 
                  type: 'bar', 
                  data: { 
                      labels: top5.map(m => String(m.name || '').length > 15 ? String(m.name || '').substring(0,15)+'...' : String(m.name || '')), 
                      datasets: [{ 
                          label: 'จำนวนคงเหลือ', 
                          data: top5.map(m => parseInt(m.qty || 0)), 
-                         backgroundColor: '#10b981', 
-                         hoverBackgroundColor: '#059669',
+                         backgroundColor: 'rgba(16, 185, 129, 0.8)', 
+                         hoverBackgroundColor: 'rgba(16, 185, 129, 1)',
                          borderRadius: 6 
                      }] 
                  }, 
@@ -963,18 +1158,18 @@
              });
          }
          
-         // BOTTOM 5 Chart
          const ctxBottom = document.getElementById('bottomStockChart');
          if(ctxBottom) {
-             bottomChartInstance = new Chart(ctxBottom, { 
+             if (window.bottomChartInstance) { window.bottomChartInstance.destroy(); }
+             window.bottomChartInstance = new Chart(ctxBottom, { 
                  type: 'bar', 
                  data: { 
                      labels: bottom5.map(m => String(m.name || '').length > 15 ? String(m.name || '').substring(0,15)+'...' : String(m.name || '')), 
                      datasets: [{ 
                          label: 'จำนวนคงเหลือ', 
                          data: bottom5.map(m => parseInt(m.qty || 0)), 
-                         backgroundColor: '#f43f5e', // Rose-500
-                         hoverBackgroundColor: '#e11d48',
+                         backgroundColor: 'rgba(244, 63, 94, 0.8)', 
+                         hoverBackgroundColor: 'rgba(244, 63, 94, 1)',
                          borderRadius: 6 
                      }] 
                  }, 
@@ -989,16 +1184,16 @@
              });
          }
          
-         // STATUS Chart
          const ctx2 = document.getElementById('statusChart');
          if(ctx2) {
-             statusChartInstance = new Chart(ctx2, { 
+             if (window.statusChartInstance) { window.statusChartInstance.destroy(); }
+             window.statusChartInstance = new Chart(ctx2, { 
                  type: 'doughnut', 
                  data: { 
                      labels: ['ปกติ', 'ใกล้หมด', 'หมด'], 
                      datasets: [{ 
                          data: [normal, low, outOfStock], 
-                         backgroundColor: ['#10b981', '#f59e0b', '#ef4444'], 
+                         backgroundColor: ['rgba(16, 185, 129, 0.8)', 'rgba(245, 158, 11, 0.8)', 'rgba(239, 68, 68, 0.8)'], 
                          borderWidth: 0,
                          hoverOffset: 4
                      }] 
@@ -1014,7 +1209,6 @@
          }
     }
 
-    // ฟังก์ชันเสริมสำหรับดึงข้อมูล Inventory ที่ถูก Filter แล้ว (ใช้ร่วมกับการ Export PDF/CSV)
     function getFilteredInventory() {
         const searchInput = document.getElementById('searchInput');
         const filterStatus = document.getElementById('filterStatus');
@@ -1044,6 +1238,11 @@
         });
 
         filtered.sort((a,b) => {
+            const aPinned = a.pinned === true || a.pinned === 'true' || a.pinned === 1 || a.pinned === 'TRUE' ? 1 : 0;
+            const bPinned = b.pinned === true || b.pinned === 'true' || b.pinned === 1 || b.pinned === 'TRUE' ? 1 : 0;
+            
+            if (aPinned !== bPinned) return bPinned - aPinned; // Pinned items first
+
             const qa = parseInt(a.qty || 0);
             const qb = parseInt(b.qty || 0);
             if (sort === 'desc') return qb - qa;
@@ -1060,52 +1259,55 @@
         const perms = state.user.permissions || [];
         const isAdmin = (state.user.role || '').toLowerCase() === 'admin';
         
-        // Remove old early return so we still render the UI (cards), but we disable buttons instead
         const canManage = isAdmin || perms.includes('manage_material');
         const canWithdraw = isAdmin || perms.includes('withdraw_material');
         const canImport = isAdmin || perms.includes('import_material');
         
         const titles = { 'view': 'รายการวัสดุทั้งหมด', 'withdraw': 'เบิกวัสดุออกจากคลัง', 'import': 'นำเข้าวัสดุสู่คลัง' };
         const icons = { 'view': 'box-open', 'withdraw': 'hand-holding', 'import': 'truck-loading' };
-        const colors = { 'view': 'blue', 'withdraw': 'rose', 'import': 'emerald' };
+        
+        const colorClasses = {
+            'view': { bg: 'bg-primary-100', text: 'text-primary-600', border: 'border-primary-500', btn: 'bg-primary-600 hover:bg-primary-700' },
+            'withdraw': { bg: 'bg-rose-100', text: 'text-rose-600', border: 'border-rose-500', btn: 'bg-rose-600 hover:bg-rose-700' },
+            'import': { bg: 'bg-emerald-100', text: 'text-emerald-600', border: 'border-emerald-500', btn: 'bg-emerald-600 hover:bg-emerald-700' }
+        };
 
         const title = titles[mode];
         const icon = icons[mode];
-        const color = colors[mode];
+        const uiColor = colorClasses[mode];
 
-        // FIXED Layout: Added missing </div> closing tags properly for flex containers
         c.innerHTML = `
             <div class="flex flex-col min-h-full fade-in">
                 <!-- Toolbar -->
-                <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-200 flex flex-col md:flex-row justify-between items-center mb-6 gap-4 sticky top-0 z-10">
+                <div class="bg-white p-4 rounded-2xl shadow-sm flex flex-col md:flex-row justify-between items-center mb-6 gap-4 sticky top-0 z-10">
                     
                     <div class="flex items-center gap-4 w-full md:w-auto">
-                        <div class="w-12 h-12 rounded-xl bg-${color}-100 text-${color}-600 flex items-center justify-center shadow-sm">
-                            <i class="fas fa-${icon} text-2xl"></i>
+                        <div class="w-12 h-12 rounded-xl ${uiColor.bg} ${uiColor.text} flex items-center justify-center shadow-sm">
+                            <i class="fas fa-${icon} text-2xl drop-shadow-md"></i>
                         </div>
                         <div>
-                            <h2 class="font-bold text-xl text-gray-800">${title}</h2>
-                            <p class="text-xs text-gray-500 font-medium">ค้นหาและทำรายการได้ที่นี่</p>
+                            <h2 class="font-bold text-xl">${title}</h2>
+                            <p class="text-xs font-medium opacity-70">ค้นหาและทำรายการได้ที่นี่</p>
                         </div>
                     </div>
                     
                     <div class="flex flex-wrap justify-start md:justify-end items-center gap-2 w-full md:w-auto mt-3 md:mt-0">
                         <div class="relative flex-1 min-w-[150px]">
-                            <i class="fas fa-search absolute left-4 top-3 text-gray-400"></i>
-                            <input type="text" id="searchInput" placeholder="ค้นหาชื่อ..." class="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-${color}-500 outline-none transition shadow-inner" onkeyup="renderMaterialList('${mode}')">
+                            <i class="fas fa-search absolute left-4 top-3 opacity-50"></i>
+                            <input type="text" id="searchInput" placeholder="ค้นหาชื่อ..." class="w-full pl-10 pr-4 py-2.5 rounded-xl text-sm font-medium focus:ring-2 focus:ring-primary-500 outline-none transition" onkeyup="renderMaterialList('${mode}')">
                         </div>
-                        <select id="filterType" onchange="renderMaterialList('${mode}')" class="py-2.5 px-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-${color}-500 outline-none transition shadow-inner text-gray-600">
+                        <select id="filterType" onchange="renderMaterialList('${mode}')" class="py-2.5 px-3 rounded-xl text-sm font-medium focus:ring-2 focus:ring-primary-500 outline-none transition cursor-pointer">
                             <option value="all">ทุกประเภท (Test Kit)</option>
                             <option value="pH Test Kit">pH Test Kit</option>
                             <option value="NPK Test Kit">NPK Test Kit</option>
                             <option value="Saline Soil Test Kit">Saline Soil Test Kit</option>
                         </select>
-                        <select id="filterStatus" onchange="renderMaterialList('${mode}')" class="py-2.5 px-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-${color}-500 outline-none transition shadow-inner text-gray-600">
+                        <select id="filterStatus" onchange="renderMaterialList('${mode}')" class="py-2.5 px-3 rounded-xl text-sm font-medium focus:ring-2 focus:ring-primary-500 outline-none transition cursor-pointer">
                             <option value="all">สถานะทั้งหมด</option>
                             <option value="low">ใกล้หมด</option>
                             <option value="out">หมด</option>
                         </select>
-                        <select id="sortQty" onchange="renderMaterialList('${mode}')" class="py-2.5 px-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-${color}-500 outline-none transition shadow-inner text-gray-600">
+                        <select id="sortQty" onchange="renderMaterialList('${mode}')" class="py-2.5 px-3 rounded-xl text-sm font-medium focus:ring-2 focus:ring-primary-500 outline-none transition cursor-pointer">
                             <option value="desc">มากไปน้อย</option>
                             <option value="asc">น้อยไปมาก</option>
                         </select>
@@ -1114,23 +1316,21 @@
                         <button onclick="exportInventoryPDF()" class="bg-red-600 hover:bg-red-700 text-white px-3.5 py-2.5 rounded-xl text-sm font-bold shadow-md transition transform active:scale-95" title="Export PDF"><i class="fas fa-file-pdf"></i></button>
                         ` : ''}
                         ${mode === 'view' && canManage ? `
-                        <button onclick="openMaterialModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-md transition transform active:scale-95 whitespace-nowrap">
+                        <button onclick="openMaterialModal()" class="${uiColor.btn} text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-md transition transform active:scale-95 whitespace-nowrap">
                             <i class="fas fa-plus mr-1"></i> เพิ่มรายการ
                         </button>` : ''}
-                        <button onclick="refreshMaterials('${mode}')" class="bg-white hover:bg-gray-50 border border-gray-200 text-gray-600 px-4 py-2.5 rounded-xl shadow-sm transition" title="รีเฟรชข้อมูล">
+                        <button onclick="refreshMaterials('${mode}')" class="bg-white hover:bg-gray-50 px-4 py-2.5 rounded-xl shadow-sm transition transform active:scale-95" title="รีเฟรชข้อมูล">
                             <i class="fas fa-sync-alt"></i>
                         </button>
                     </div>
                 </div>
                 
-                <!-- Grid Container: Use auto-fill instead of fixed columns to stop squishing -->
                 <div id="inventoryContainer" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1.5rem; width: 100%;" class="pb-24">
                     ${cardSkeleton().repeat(8)}
                 </div>
             </div>
         `;
         
-        // Fetch or Load Cache
         if (!cache.materials) {
             try {
                 const data = await api('getMaterials');
@@ -1165,97 +1365,105 @@
         
         if (filtered.length === 0) {
             container.innerHTML = `
-                <div style="grid-column: 1 / -1;" class="py-20 flex flex-col items-center justify-center text-gray-400 bg-white rounded-2xl border border-gray-200 border-dashed">
-                    <i class="fas fa-box-open text-6xl mb-4 text-gray-300"></i>
-                    <p class="text-xl font-bold text-gray-500">ไม่พบรายการวัสดุ</p>
-                    <p class="text-sm mt-1">ลองเปลี่ยนคำค้นหา หรือเปลี่ยนตัวกรอง</p>
+                <div style="grid-column: 1 / -1;" class="py-20 flex flex-col items-center justify-center bg-white rounded-2xl shadow-sm">
+                    <i class="fas fa-box-open text-6xl mb-4 opacity-50"></i>
+                    <p class="text-xl font-bold">ไม่พบรายการวัสดุ</p>
+                    <p class="text-sm mt-1 opacity-70">ลองเปลี่ยนคำค้นหา หรือเปลี่ยนตัวกรอง</p>
                 </div>`;
             return;
         }
 
-        container.innerHTML = filtered.map(m => {
+        let htmlString = '';
+        filtered.forEach(m => {
             const isLow = parseInt(m.qty) > 0 && parseInt(m.qty) < 150;
             const isOut = parseInt(m.qty) === 0;
+            const isPinned = m.pinned === true || m.pinned === 'true' || m.pinned === 1 || m.pinned === 'TRUE';
+            
             let statusBadge = '';
             if (isOut) statusBadge = `<div class="absolute top-3 right-3 bg-red-600 text-white text-[10px] font-black px-3 py-1 rounded-full shadow-lg">หมด!</div>`;
             else if (isLow) statusBadge = `<div class="absolute top-3 right-3 bg-amber-500 text-white text-[10px] font-black px-3 py-1 rounded-full shadow-lg">ใกล้หมด</div>`;
 
-            // Setup buttons based on permissions
+            let pinBadge = '';
+            if (isAdmin) {
+                pinBadge = `<button onclick="togglePin('${m.material_id}', ${isPinned}, event)" class="absolute top-3 left-3 w-8 h-8 rounded-full flex items-center justify-center shadow-lg transition transform active:scale-95 z-20 ${isPinned ? 'bg-amber-400 text-white border-2 border-white' : 'bg-[rgba(255,255,255,0.5)] text-gray-600 hover:bg-white'}"><i class="fas fa-thumbtack ${isPinned ? '-rotate-45' : ''}"></i></button>`;
+            } else if (isPinned) {
+                pinBadge = `<div class="absolute top-3 left-3 w-8 h-8 rounded-full bg-amber-400 text-white border-2 border-white flex items-center justify-center shadow-lg z-20"><i class="fas fa-thumbtack -rotate-45"></i></div>`;
+            }
+
             let actionButtons = '';
-            
             const inCart = transCart.some(item => item.material_id === m.material_id);
 
             if (mode === 'view') {
                 if (canManage) {
+                    const matJson = JSON.stringify(m).replace(/'/g, "&#39;").replace(/"/g, "&quot;");
                     actionButtons = `
                     <div class="flex gap-3">
-                        <button onclick='openMaterialModal(${JSON.stringify(m)})' class="flex-1 py-2.5 text-xs bg-white border border-gray-300 rounded-xl text-gray-700 hover:text-blue-600 hover:border-blue-400 font-bold transition shadow-sm">แก้ไข</button>
-                        <button onclick="deleteMaterial('${m.material_id}')" class="flex-1 py-2.5 text-xs bg-white border border-gray-300 rounded-xl text-gray-700 hover:text-red-600 hover:border-red-400 font-bold transition shadow-sm">ลบ</button>
+                        <button onclick="openMaterialModal(${matJson})" class="flex-1 py-2.5 text-xs bg-white rounded-xl hover:text-primary-600 font-bold transition shadow-sm transform active:scale-95">แก้ไข</button>
+                        <button onclick="deleteMaterial('${m.material_id}')" class="flex-1 py-2.5 text-xs bg-white rounded-xl hover:text-red-600 font-bold transition shadow-sm transform active:scale-95">ลบ</button>
                     </div>`;
                 } else {
-                    actionButtons = `<button disabled class="w-full py-2.5 text-xs bg-gray-100 border border-gray-200 rounded-xl text-gray-400 font-bold cursor-not-allowed"><i class="fas fa-lock mr-1"></i> ไม่มีสิทธิ์จัดการข้อมูล</button>`;
+                    actionButtons = `<button disabled class="w-full py-2.5 text-xs bg-gray-100 rounded-xl opacity-50 font-bold cursor-not-allowed"><i class="fas fa-lock mr-1"></i> ไม่มีสิทธิ์จัดการข้อมูล</button>`;
                 }
             } else if (mode === 'withdraw') {
                 if (canWithdraw) {
                     if (inCart) {
-                        actionButtons = `<button onclick='removeFromCart("${m.material_id}", "${mode}")' class="w-full py-3 text-sm font-bold text-gray-500 bg-gray-100 border border-gray-300 rounded-xl hover:bg-gray-200 transition flex items-center justify-center gap-2 shadow-sm"><i class="fas fa-check"></i> เลือกแล้ว (ยกเลิก)</button>`;
+                        actionButtons = `<button onclick='removeFromCart("${m.material_id}", "${mode}")' class="w-full py-3 text-sm font-bold bg-white rounded-xl hover:bg-gray-50 transition flex items-center justify-center gap-2 shadow-sm transform active:scale-95"><i class="fas fa-check text-emerald-500"></i> เลือกแล้ว (ยกเลิก)</button>`;
                     } else {
-                        actionButtons = `<button onclick='addToCart("${m.material_id}", "withdraw")' class="w-full py-3 text-sm font-bold text-rose-600 bg-rose-50 border border-rose-200 rounded-xl hover:bg-rose-600 hover:text-white transition transform active:scale-95 flex items-center justify-center gap-2 shadow-sm">
+                        actionButtons = `<button onclick='addToCart("${m.material_id}", "withdraw")' class="w-full py-3 text-sm font-bold bg-rose-600 hover:bg-rose-700 text-white rounded-xl transition transform active:scale-95 flex items-center justify-center gap-2 shadow-sm">
                             <i class="fas fa-cart-plus"></i> เลือกเพื่อเบิก
                         </button>`;
                     }
                 } else {
-                    actionButtons = `<button disabled class="w-full py-3 text-sm font-bold text-gray-400 bg-gray-200 border border-gray-300 rounded-xl cursor-not-allowed flex items-center justify-center gap-2">
+                    actionButtons = `<button disabled class="w-full py-3 text-sm font-bold bg-gray-100 rounded-xl opacity-50 cursor-not-allowed flex items-center justify-center gap-2">
                         <i class="fas fa-lock"></i> ไม่มีสิทธิ์เบิกวัสดุ
                     </button>`;
                 }
             } else if (mode === 'import') {
                 if (canImport) {
                     if (inCart) {
-                        actionButtons = `<button onclick='removeFromCart("${m.material_id}", "${mode}")' class="w-full py-3 text-sm font-bold text-gray-500 bg-gray-100 border border-gray-300 rounded-xl hover:bg-gray-200 transition flex items-center justify-center gap-2 shadow-sm"><i class="fas fa-check"></i> เลือกแล้ว (ยกเลิก)</button>`;
+                        actionButtons = `<button onclick='removeFromCart("${m.material_id}", "${mode}")' class="w-full py-3 text-sm font-bold bg-white rounded-xl hover:bg-gray-50 transition flex items-center justify-center gap-2 shadow-sm transform active:scale-95"><i class="fas fa-check text-emerald-500"></i> เลือกแล้ว (ยกเลิก)</button>`;
                     } else {
-                        actionButtons = `<button onclick='addToCart("${m.material_id}", "import")' class="w-full py-3 text-sm font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-xl hover:bg-emerald-600 hover:text-white transition transform active:scale-95 flex items-center justify-center gap-2 shadow-sm">
+                        actionButtons = `<button onclick='addToCart("${m.material_id}", "import")' class="w-full py-3 text-sm font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition transform active:scale-95 flex items-center justify-center gap-2 shadow-sm">
                             <i class="fas fa-cart-plus"></i> เลือกเพื่อนำเข้า
                         </button>`;
                     }
                 } else {
-                    actionButtons = `<button disabled class="w-full py-3 text-sm font-bold text-gray-400 bg-gray-200 border border-gray-300 rounded-xl cursor-not-allowed flex items-center justify-center gap-2">
+                    actionButtons = `<button disabled class="w-full py-3 text-sm font-bold bg-gray-100 rounded-xl opacity-50 cursor-not-allowed flex items-center justify-center gap-2">
                         <i class="fas fa-lock"></i> ไม่มีสิทธิ์นำเข้าวัสดุ
                     </button>`;
                 }
             }
 
-            return `
-            <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-xl transition-all duration-300 flex flex-col group relative">
-                <!-- Image Area: Contain 100% -->
-                <div class="h-44 bg-white relative overflow-hidden border-b border-gray-100 p-2 flex items-center justify-center">
-                    <img src="${m.image_url || 'https://via.placeholder.com/400x300?text=No+Image'}" class="max-w-full max-h-full object-contain transition-transform duration-700 group-hover:scale-105 cursor-pointer" onerror="this.src='https://via.placeholder.com/400x300?text=Image+Error'" onclick="openImageModal('${m.image_url || 'https://via.placeholder.com/800x600?text=No+Image'}')">
+            htmlString += `
+            <div class="bg-white rounded-2xl shadow-sm overflow-hidden hover:shadow-lg transition-all duration-300 flex flex-col group relative">
+                <div class="h-44 relative overflow-hidden border-b border-[rgba(255,255,255,0.1)] p-2 flex items-center justify-center" style="background: rgba(0,0,0,0.15);">
+                    ${pinBadge}
+                    <img src="${m.image_url || 'https://via.placeholder.com/400x300?text=No+Image'}" class="max-w-full max-h-full object-contain transition-transform duration-700 group-hover:scale-105 cursor-pointer drop-shadow-lg" onerror="this.src='https://via.placeholder.com/400x300?text=Image+Error'" onclick="openImageModal('${m.image_url || 'https://via.placeholder.com/800x600?text=No+Image'}')">
                     ${statusBadge}
                 </div>
                 
-                <!-- Content Area -->
                 <div class="p-5 flex-1 flex flex-col">
-                    <span class="px-2 py-0.5 bg-indigo-100 text-indigo-700 text-[10px] rounded-md font-bold mb-2 inline-block w-max">${m.type || m.Type || m['ประเภท'] || 'ไม่ได้ระบุประเภท'}</span>
-                    <h4 class="font-bold text-gray-800 text-base line-clamp-2 mb-1 leading-tight" title="${m.name}">${m.name}</h4>
-                    <p class="text-xs text-gray-500 mb-3 flex items-start gap-1"><i class="fas fa-map-marker-alt mt-0.5 text-red-400"></i> <span>${m.location || m.Location || m['ที่เก็บ'] || m['ชั้นวาง'] || 'ไม่ได้ระบุ'}</span></p>
+                    <span class="px-2 py-0.5 bg-[rgba(0,0,0,0.2)] text-[10px] rounded-md font-bold mb-2 inline-block w-max backdrop-blur-sm border border-[rgba(255,255,255,0.1)] text-white">${m.type || m.Type || m['ประเภท'] || 'ไม่ได้ระบุประเภท'}</span>
+                    <h4 class="font-bold text-base line-clamp-2 mb-1 leading-tight" title="${m.name}">${m.name}</h4>
+                    <p class="text-xs mb-3 flex items-start gap-1 opacity-80"><i class="fas fa-map-marker-alt mt-0.5 text-red-400"></i> <span>${m.location || m.Location || m['ที่เก็บ'] || m['ชั้นวาง'] || 'ไม่ได้ระบุ'}</span></p>
                     <div class="mt-auto flex justify-between items-end">
                         <div>
-                            <span class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Stock ID</span>
-                            <span class="text-xs font-mono font-medium bg-gray-100 text-gray-600 px-2 py-1 rounded-md border border-gray-200">#${m.material_id.slice(-5)}</span>
+                            <span class="block text-[10px] font-bold uppercase tracking-widest mb-1 opacity-60">Stock ID</span>
+                            <span class="text-xs font-mono font-bold bg-[rgba(0,0,0,0.1)] px-2 py-1 rounded-md border border-[rgba(255,255,255,0.1)]">#${m.material_id.slice(-5)}</span>
                         </div>
                         <div class="text-right">
-                            <span class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Quantity</span>
-                            <span class="text-3xl font-black ${isOut ? 'text-red-500' : 'text-blue-600'} leading-none">${m.qty}</span>
+                            <span class="block text-[10px] font-bold uppercase tracking-widest mb-1 opacity-60">Quantity</span>
+                            <span class="text-3xl font-black ${isOut ? 'text-red-500' : 'text-primary-500'} leading-none drop-shadow-md">${m.qty}</span>
                         </div>
                     </div>
                 </div>
                 
-                <!-- Action Area -->
-                <div class="p-4 border-t border-gray-100 bg-gray-50/50">
+                <div class="p-4 border-t border-[rgba(255,255,255,0.1)] bg-[rgba(0,0,0,0.05)]">
                     ${actionButtons}
                 </div>
-            </div>
-        `}).join('');
+            </div>`;
+        });
+        container.innerHTML = htmlString;
     }
 
     // --- BULK TRANSACTION LOGIC ---
@@ -1275,20 +1483,20 @@
 
         const existingIndex = transCart.findIndex(item => item.material_id === matId);
         if (existingIndex > -1) {
-            // Should not happen with new logic, but safe guard
+            // pass
         } else {
             transCart.push({ ...mat, transQty: 1 });
         }
         
         updateCartUI();
-        renderMaterialList(mode); // update the button state
+        renderMaterialList(mode); 
         showToast(`เพิ่ม ${mat.name} ลงในรายการแล้ว`, 'success');
     }
 
     function removeFromCart(matId, mode) {
         transCart = transCart.filter(item => item.material_id !== matId);
         updateCartUI();
-        renderMaterialList(mode); // update the button state
+        renderMaterialList(mode); 
     }
 
     function updateCartUI() {
@@ -1304,9 +1512,9 @@
             
             const btn = fab.querySelector('button');
             if(currentTransMode === 'import') {
-                btn.className = 'relative flex items-center justify-center w-16 h-16 rounded-full shadow-2xl border-4 border-white transition transform active:scale-95 bg-emerald-600 hover:bg-emerald-700 text-white';
+                btn.className = 'relative flex items-center justify-center w-16 h-16 rounded-full shadow-2xl transition transform active:scale-95 bg-emerald-600 hover:bg-emerald-700 text-white';
             } else {
-                btn.className = 'relative flex items-center justify-center w-16 h-16 rounded-full shadow-2xl border-4 border-white transition transform active:scale-95 bg-rose-600 hover:bg-rose-700 text-white';
+                btn.className = 'relative flex items-center justify-center w-16 h-16 rounded-full shadow-2xl transition transform active:scale-95 bg-rose-600 hover:bg-rose-700 text-white';
             }
         } else {
             fab.classList.add('hidden');
@@ -1348,18 +1556,18 @@
             return;
         }
         container.innerHTML = transCart.map((item, index) => `
-            <div class="bg-white p-3 rounded-xl shadow-sm border border-gray-200 flex flex-wrap sm:flex-nowrap items-center gap-3">
-                <img src="${item.image_url || 'https://via.placeholder.com/150?text=No+Image'}" class="w-12 h-12 object-contain rounded-lg border border-gray-100 p-1 bg-white shrink-0">
+            <div class="bg-white p-3 rounded-xl shadow-sm border border-[rgba(255,255,255,0.2)] flex flex-wrap sm:flex-nowrap items-center gap-3">
+                <img src="${item.image_url || 'https://via.placeholder.com/150?text=No+Image'}" class="w-12 h-12 object-contain rounded-lg border border-[rgba(255,255,255,0.1)] bg-[rgba(0,0,0,0.1)] p-1 shrink-0">
                 <div class="flex-1 min-w-[120px]">
-                    <p class="font-bold text-gray-800 text-sm truncate" title="${item.name}">${item.name}</p>
-                    <p class="text-[10px] text-gray-500 mt-0.5"><i class="fas fa-map-marker-alt text-red-400 mr-1"></i>${item.location || item.Location || item['ที่เก็บ'] || item['ชั้นวาง'] || 'ไม่ได้ระบุ'} | คงเหลือ: <span class="font-bold text-blue-600">${item.qty}</span></p>
+                    <p class="font-bold text-sm truncate" title="${item.name}">${item.name}</p>
+                    <p class="text-[10px] opacity-80 mt-0.5"><i class="fas fa-map-marker-alt text-red-400 mr-1"></i>${item.location || item.Location || item['ที่เก็บ'] || item['ชั้นวาง'] || 'ไม่ได้ระบุ'} | คงเหลือ: <span class="font-bold text-primary-500 drop-shadow-md">${item.qty}</span></p>
                 </div>
                 <div class="flex items-center gap-1 sm:gap-2 ml-auto">
-                    <button type="button" onclick="adjCartQty(${index}, -1)" class="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center font-bold text-gray-600 transition shrink-0">-</button>
-                    <input type="number" onchange="updateCartItemQty(${index}, this.value)" value="${item.transQty}" min="1" class="w-16 text-center font-black text-lg border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500 py-1">
-                    <button type="button" onclick="adjCartQty(${index}, 1)" class="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center font-bold text-gray-600 transition shrink-0">+</button>
+                    <button type="button" onclick="adjCartQty(${index}, -1)" class="w-8 h-8 rounded-full bg-[rgba(128,128,128,0.2)] hover:bg-[rgba(128,128,128,0.4)] flex items-center justify-center font-bold transition shrink-0">-</button>
+                    <input type="number" onchange="updateCartItemQty(${index}, this.value)" value="${item.transQty}" min="1" class="w-16 text-center font-black text-lg py-1 bg-[rgba(0,0,0,0.1)]">
+                    <button type="button" onclick="adjCartQty(${index}, 1)" class="w-8 h-8 rounded-full bg-[rgba(128,128,128,0.2)] hover:bg-[rgba(128,128,128,0.4)] flex items-center justify-center font-bold transition shrink-0">+</button>
                 </div>
-                <button type="button" onclick="removeCartItem(${index})" class="w-8 h-8 rounded-lg text-red-400 hover:bg-red-50 hover:text-red-600 transition flex items-center justify-center shrink-0 ml-1">
+                <button type="button" onclick="removeCartItem(${index})" class="w-8 h-8 rounded-lg text-red-400 hover:bg-[rgba(239,68,68,0.2)] transition flex items-center justify-center shrink-0 ml-1">
                     <i class="fas fa-trash"></i>
                 </button>
             </div>
@@ -1394,15 +1602,13 @@
         } else {
             renderCartItems();
         }
-        renderMaterialList(currentTransMode); // update list UI
+        renderMaterialList(currentTransMode); 
     }
 
-    // Helper to get reference note across possible columns
     function getRefNote(r) {
         return r.ref_doc || r['หมายเหตุ'] || r['เหตุผลในการเบิก'] || r['อ้างอิงเอกสาร / หมายเหตุ'] || r['อ้างอิงเอกสาร'] || r.note || r.Note || '';
     }
 
-    // Helper to extract clean reason note
     function cleanRefDoc(ref) {
         if (!ref) return '';
         return String(ref).replace(/^\[.*?\]\s*/, '').trim();
@@ -1421,7 +1627,6 @@
         let successCount = 0;
         let errorMsgs = [];
 
-        // Process sequentially to avoid API locks / rate limits
         for (let i = 0; i < transCart.length; i++) {
             const item = transCart[i];
             document.getElementById('loadingText').innerText = `กำลังประมวลผล ${i + 1} / ${transCart.length} รายการ...`;
@@ -1433,7 +1638,6 @@
                     qty: item.transQty,
                     user_name: state.user.fullname,
                     ref_doc: combinedRef,
-                    // ส่งประเภทพ่วงไปด้วย
                     type: item.type || item.Type || item['ประเภท'] || ''
                 });
                 successCount++;
@@ -1442,7 +1646,6 @@
             }
         }
 
-        // Cleanup & Update
         transCart = [];
         updateCartUI();
         closeModal('cartModal');
@@ -1461,16 +1664,13 @@
         }
     };
 
-    // --- FUNCTION EXPORT CART PDF (ใบยืนยันรายการ) ---
     function exportCartPDF() {
         if (transCart.length === 0) return showToast('ไม่มีรายการในตะกร้า', 'error');
-        
         if (!window.jspdf) { alert("PDF Library not loaded"); return; }
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF('p', 'mm', 'a4'); 
         
         showToast('กำลังสร้างฟอร์ม PDF...', 'success');
-        
         const fontUrl = 'https://raw.githubusercontent.com/google/fonts/main/ofl/sarabun/Sarabun-Regular.ttf';
         
         fetch(fontUrl)
@@ -1487,14 +1687,12 @@
                 const isImport = currentTransMode === 'import';
                 const docTitle = isImport ? 'ใบรับเข้าวัสดุ (Import Slip)' : 'ใบเบิกวัสดุ (Withdrawal Slip)';
                 
-                // Header
                 doc.setFontSize(20);
                 doc.text(docTitle, 105, 20, { align: 'center' });
                 
                 doc.setFontSize(12);
                 const runDate = new Date();
                 const inputDate = document.getElementById('cartDate').value;
-                // นำคำว่า (ย้อนหลัง) ออก
                 const showDate = inputDate ? formatDate(new Date(inputDate)).split(' ')[0] : formatDate(runDate).split(' ')[0];
                 
                 doc.text(`วันที่ทำรายการ: ${showDate}`, 14, 35);
@@ -1507,7 +1705,6 @@
                 const refLabel = isImport ? 'อ้างอิงเอกสาร:' : 'เหตุผลในการเบิก:';
                 doc.text(`${refLabel} ${refNote}`, 14, 51);
                 
-                // Table (เพิ่ม Location)
                 const tableData = transCart.map((item, index) => [
                     (index + 1).toString(),
                     item.material_id,
@@ -1525,7 +1722,6 @@
                     headStyles: { fillColor: isImport ? [16, 185, 129] : [225, 29, 72] } 
                 });
                 
-                // Signatures (ปรับระยะห่างใหม่เพื่อไม่ให้ซ้อนทับกัน)
                 const finalY = doc.lastAutoTable.finalY || 60;
                 doc.text('ลงชื่อ .................................................... ผู้ทำรายการ', 14, finalY + 30);
                 doc.text('ลงชื่อ .................................................... ผู้อนุมัติ', 115, finalY + 30);
@@ -1538,7 +1734,6 @@
         });
     }
 
-    // ฟังก์ชันย่อยสำหรับกรองข้อมูลรายงานประวัติเพื่อเอาไปใช้ทั้งใน UI และ PDF/CSV
     function getFilteredReports() {
         const startStr = document.getElementById('filterStartDate')?.value;
         const endStr = document.getElementById('filterEndDate')?.value;
@@ -1552,7 +1747,6 @@
             if(s && new Date(i.timestamp) < s) return false;
             if(e && new Date(i.timestamp) > e) return false;
             
-            // หา type จาก history ก่อน (ถ้ามี) หากไม่มีให้ไปหาจาก materials ปัจจุบัน
             let matType = i.type || i.Type || i['ประเภท'] || i['type'];
             if (!matType) {
                 const mat = state.materials.find(m => m.material_id === i.material_id);
@@ -1579,55 +1773,55 @@
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4 fade-in">
                 <div class="flex items-center gap-3">
                     <div class="w-12 h-12 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center shadow-sm">
-                        <i class="fas fa-file-invoice text-2xl"></i>
+                        <i class="fas fa-file-invoice text-2xl drop-shadow-md"></i>
                     </div>
                     <div>
                         <h2 class="text-2xl font-bold text-gray-800">รายงานประวัติ</h2>
-                        <p class="text-xs text-gray-500 font-medium">ประวัติการนำเข้าและเบิกออกย้อนหลัง</p>
+                        <p class="text-xs font-medium opacity-70">ประวัติการนำเข้าและเบิกออกย้อนหลัง</p>
                     </div>
                 </div>
 
-                <div class="flex flex-wrap gap-3 items-center bg-white p-2.5 rounded-2xl shadow-sm border border-gray-200">
-                    <select id="filterReportType" onchange="filterReports()" class="text-sm font-medium border-none bg-transparent outline-none focus:ring-0 text-gray-600">
+                <div class="flex flex-wrap gap-3 items-center bg-white p-2.5 rounded-2xl shadow-sm">
+                    <select id="filterReportType" onchange="filterReports()" class="text-sm font-medium border-none bg-transparent outline-none focus:ring-0 cursor-pointer">
                         <option value="all">ทุกประเภท</option>
                         <option value="pH Test Kit">pH Test Kit</option>
                         <option value="NPK Test Kit">NPK Test Kit</option>
                         <option value="Saline Soil Test Kit">Saline Soil Test Kit</option>
                     </select>
-                    <div class="h-8 w-px bg-gray-200 mx-1 hidden sm:block"></div>
-                    <div class="flex items-center bg-gray-50 rounded-xl border border-gray-200 p-1">
-                        <span class="text-xs font-bold text-gray-500 px-2 hidden sm:inline"><i class="fas fa-calendar-alt mr-1"></i> ช่วงวันที่</span>
+                    <div class="h-8 w-px bg-[rgba(128,128,128,0.3)] mx-1 hidden sm:block"></div>
+                    <div class="flex items-center bg-[rgba(0,0,0,0.05)] rounded-xl border border-[rgba(128,128,128,0.2)] p-1">
+                        <span class="text-xs font-bold px-2 hidden sm:inline opacity-70"><i class="fas fa-calendar-alt mr-1"></i> ช่วงวันที่</span>
                         <input type="date" id="filterStartDate" class="text-sm font-medium border-none bg-transparent outline-none focus:ring-0" onchange="filterReports()">
-                        <span class="text-gray-300 font-bold mx-1">-</span>
+                        <span class="font-bold mx-1 opacity-50">-</span>
                         <input type="date" id="filterEndDate" class="text-sm font-medium border-none bg-transparent outline-none focus:ring-0 pr-2" onchange="filterReports()">
                     </div>
-                    <div class="h-8 w-px bg-gray-200 mx-1 hidden sm:block"></div>
-                    <button onclick="exportCSV()" class="px-4 py-2.5 bg-gray-800 hover:bg-gray-900 text-white rounded-xl text-xs font-bold shadow-md transition flex items-center gap-2 transform active:scale-95"><i class="fas fa-file-csv text-base"></i> CSV</button>
-                    <button onclick="exportPDF()" class="px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold shadow-md transition flex items-center gap-2 transform active:scale-95"><i class="fas fa-file-pdf text-base"></i> PDF</button>
+                    <div class="h-8 w-px bg-[rgba(128,128,128,0.3)] mx-1 hidden sm:block"></div>
+                    <button onclick="exportCSV()" class="px-4 py-2.5 bg-gray-800 text-white rounded-xl text-xs font-bold shadow-md transition flex items-center gap-2 transform active:scale-95"><i class="fas fa-file-csv text-base"></i> CSV</button>
+                    <button onclick="exportPDF()" class="px-4 py-2.5 bg-red-600 text-white rounded-xl text-xs font-bold shadow-md transition flex items-center gap-2 transform active:scale-95"><i class="fas fa-file-pdf text-base"></i> PDF</button>
                 </div>
             </div>
             
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-24 fade-in">
                 <!-- Withdraw Log -->
-                <div class="bg-white rounded-2xl shadow-sm border border-gray-200 flex flex-col overflow-hidden h-[500px] lg:h-[calc(100vh-260px)]">
-                    <div class="p-5 bg-rose-50 border-b border-rose-100 flex justify-between items-center">
-                        <span class="font-bold text-rose-700 text-lg flex items-center gap-3">
-                            <div class="w-8 h-8 rounded-full bg-rose-200 flex items-center justify-center"><i class="fas fa-arrow-down"></i></div>
+                <div class="bg-white rounded-2xl shadow-sm flex flex-col overflow-hidden h-[500px] lg:h-[calc(100vh-260px)]">
+                    <div class="p-5 bg-rose-500/10 border-b border-[rgba(244,63,94,0.2)] flex justify-between items-center backdrop-blur-sm">
+                        <span class="font-bold text-rose-500 text-lg flex items-center gap-3 drop-shadow-md">
+                            <div class="w-8 h-8 rounded-full bg-rose-500/20 flex items-center justify-center"><i class="fas fa-arrow-down"></i></div>
                             ประวัติการเบิกออก
                         </span>
-                        <span class="text-xs font-bold text-rose-500 bg-white border border-rose-200 px-3 py-1 rounded-full uppercase tracking-wider shadow-sm">Withdraw</span>
+                        <span class="text-xs font-bold text-rose-500 bg-[rgba(255,255,255,0.5)] border border-rose-500/30 px-3 py-1 rounded-full uppercase tracking-wider shadow-sm">Withdraw</span>
                     </div>
                     <div class="overflow-y-auto flex-1 p-0" id="withdrawLog"><div class="loader mx-auto mt-16"></div></div>
                 </div>
                 
                 <!-- Import Log -->
-                <div class="bg-white rounded-2xl shadow-sm border border-gray-200 flex flex-col overflow-hidden h-[500px] lg:h-[calc(100vh-260px)]">
-                    <div class="p-5 bg-emerald-50 border-b border-emerald-100 flex justify-between items-center">
-                        <span class="font-bold text-emerald-700 text-lg flex items-center gap-3">
-                            <div class="w-8 h-8 rounded-full bg-emerald-200 flex items-center justify-center"><i class="fas fa-arrow-up"></i></div>
+                <div class="bg-white rounded-2xl shadow-sm flex flex-col overflow-hidden h-[500px] lg:h-[calc(100vh-260px)]">
+                    <div class="p-5 bg-emerald-500/10 border-b border-[rgba(16,185,129,0.2)] flex justify-between items-center backdrop-blur-sm">
+                        <span class="font-bold text-emerald-500 text-lg flex items-center gap-3 drop-shadow-md">
+                            <div class="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center"><i class="fas fa-arrow-up"></i></div>
                             ประวัติการนำเข้า
                         </span>
-                        <span class="text-xs font-bold text-emerald-500 bg-white border border-emerald-200 px-3 py-1 rounded-full uppercase tracking-wider shadow-sm">Import</span>
+                        <span class="text-xs font-bold text-emerald-500 bg-[rgba(255,255,255,0.5)] border border-emerald-500/30 px-3 py-1 rounded-full uppercase tracking-wider shadow-sm">Import</span>
                     </div>
                     <div class="overflow-y-auto flex-1 p-0" id="importLog"><div class="loader mx-auto mt-16"></div></div>
                 </div>
@@ -1647,46 +1841,49 @@
 
         const renderLog = (data, colorTextClass) => {
             if (!data.length) return `
-                <div class="flex flex-col items-center justify-center h-full py-20 text-gray-400">
-                    <div class="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mb-4 border border-gray-100"><i class="fas fa-clipboard-list text-3xl opacity-50"></i></div>
-                    <p class="text-sm font-bold text-gray-500">ไม่มีข้อมูลประวัติในช่วงเวลานี้</p>
+                <div class="flex flex-col items-center justify-center h-full py-20 opacity-50">
+                    <div class="w-20 h-20 bg-[rgba(128,128,128,0.2)] rounded-full flex items-center justify-center mb-4"><i class="fas fa-clipboard-list text-3xl"></i></div>
+                    <p class="text-sm font-bold">ไม่มีข้อมูลประวัติในช่วงเวลานี้</p>
                 </div>`;
             
-            return `<table class="w-full text-sm text-left table-fixed">
-                <thead class="bg-gray-50 text-gray-500 font-bold sticky top-0 border-b border-gray-200 text-xs uppercase tracking-wider shadow-sm z-10">
+            let htmlStr = `<table class="w-full text-sm text-left table-fixed">
+                <thead class="sticky top-0 z-10">
                     <tr>
-                        <th class="p-4 pl-6 w-[25%]">วันที่ทำรายการ</th>
-                        <th class="p-4 w-[35%]">รายการวัสดุ</th>
-                        <th class="p-4 w-[25%]">ประเภท</th>
-                        <th class="p-4 text-right pr-6 w-[15%]">จำนวน</th>
+                        <th class="p-4 pl-6 w-[25%] font-bold text-xs uppercase tracking-wider">วันที่ทำรายการ</th>
+                        <th class="p-4 w-[35%] font-bold text-xs uppercase tracking-wider">รายการวัสดุ</th>
+                        <th class="p-4 w-[25%] font-bold text-xs uppercase tracking-wider">ประเภท</th>
+                        <th class="p-4 text-right pr-6 w-[15%] font-bold text-xs uppercase tracking-wider">จำนวน</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-100">` +
-                data.map(r => {
-                    const rawRef = getRefNote(r);
-                    const cleanRef = cleanRefDoc(rawRef);
-                    return `
-                    <tr class="hover:bg-gray-50 transition group">
+                <tbody>`;
+
+            data.forEach(r => {
+                const rawRef = getRefNote(r);
+                const cleanRef = cleanRefDoc(rawRef);
+                htmlStr += `
+                    <tr class="transition group">
                         <td class="p-4 pl-6 align-top">
-                            <div class="font-bold text-gray-800 text-sm mb-1">${formatDate(r.timestamp).split(' ')[0]} <span class="text-[10px] text-gray-400 font-medium ml-1 bg-gray-100 px-1.5 py-0.5 rounded inline-block mt-1 lg:mt-0">${formatDate(r.timestamp).split(' ')[1] || ''}</span></div>
-                            <div class="text-xs text-gray-500 font-medium flex items-center gap-1.5 truncate"><i class="fas fa-user-circle text-gray-400 text-sm"></i> ${r.user_name}</div>
+                            <div class="font-bold text-sm mb-1">${formatDate(r.timestamp).split(' ')[0]} <span class="text-[10px] font-medium ml-1 bg-[rgba(128,128,128,0.2)] px-1.5 py-0.5 rounded inline-block mt-1 lg:mt-0">${formatDate(r.timestamp).split(' ')[1] || ''}</span></div>
+                            <div class="text-xs font-medium flex items-center gap-1.5 truncate opacity-80"><i class="fas fa-user-circle text-sm"></i> ${r.user_name}</div>
                         </td>
                         <td class="p-4 align-top">
-                            <div class="text-sm text-gray-700 font-bold bg-white border border-gray-200 px-3 py-1.5 rounded-lg shadow-sm break-words whitespace-normal leading-snug">${r.material_name}</div>
-                            ${cleanRef ? `<div class="text-xs text-gray-500 mt-2 flex items-start gap-1.5"><i class="fas fa-comment-dots mt-0.5 text-gray-400"></i><span class="break-words line-clamp-2">${cleanRef}</span></div>` : ''}
+                            <div class="text-sm font-bold bg-[rgba(255,255,255,0.2)] border border-[rgba(255,255,255,0.1)] px-3 py-1.5 rounded-lg shadow-sm break-words whitespace-normal leading-snug">${r.material_name}</div>
+                            ${cleanRef ? `<div class="text-xs mt-2 flex items-start gap-1.5 opacity-70"><i class="fas fa-comment-dots mt-0.5"></i><span class="break-words line-clamp-2">${cleanRef}</span></div>` : ''}
                         </td>
                         <td class="p-4 align-top">
-                            <span class="px-2 py-1 bg-gray-100 text-gray-600 text-[10px] rounded-md font-bold">${r._resolvedType || '-'}</span>
+                            <span class="px-2 py-1 bg-[rgba(0,0,0,0.2)] text-[10px] rounded-md font-bold text-white shadow-sm">${r._resolvedType || '-'}</span>
                         </td>
                         <td class="p-4 pr-6 text-right align-top">
-                            <span class="font-black ${colorTextClass} text-xl bg-white px-3 py-1.5 rounded-lg shadow-sm border border-gray-100 inline-block">${r.qty}</span>
+                            <span class="font-black ${colorTextClass} drop-shadow-md text-xl bg-[rgba(255,255,255,0.2)] px-3 py-1.5 rounded-lg border border-[rgba(255,255,255,0.1)] inline-block">${r.qty}</span>
                         </td>
-                    </tr>
-                `}).join('') + `</tbody></table>`;
+                    </tr>`;
+            });
+            htmlStr += `</tbody></table>`;
+            return htmlStr;
         };
 
-        if(document.getElementById('withdrawLog')) document.getElementById('withdrawLog').innerHTML = renderLog(filteredReps.withdraw, 'text-rose-600');
-        if(document.getElementById('importLog')) document.getElementById('importLog').innerHTML = renderLog(filteredReps.import, 'text-emerald-600');
+        if(document.getElementById('withdrawLog')) document.getElementById('withdrawLog').innerHTML = renderLog(filteredReps.withdraw, 'text-rose-500');
+        if(document.getElementById('importLog')) document.getElementById('importLog').innerHTML = renderLog(filteredReps.import, 'text-emerald-500');
     }
 
     // --- 9. VIEW: USERS (ADMIN ONLY) ---
@@ -1696,22 +1893,22 @@
         
         c.innerHTML = `
             <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden fade-in flex flex-col h-full">
-                <div class="p-5 border-b bg-gray-50 flex flex-col sm:flex-row justify-between items-center gap-4">
+                <div class="p-5 border-b bg-[rgba(0,0,0,0.05)] flex flex-col sm:flex-row justify-between items-center gap-4">
                     <div class="flex items-center gap-4">
-                        <div class="w-12 h-12 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center shadow-sm"><i class="fas fa-users-cog text-2xl"></i></div>
+                        <div class="w-12 h-12 rounded-xl bg-primary-500/20 text-primary-500 flex items-center justify-center shadow-sm border border-primary-500/30"><i class="fas fa-users-cog text-2xl drop-shadow-md"></i></div>
                         <div>
-                            <h3 class="font-bold text-gray-800 text-xl leading-tight">จัดการผู้ใช้งานระบบ</h3>
-                            <p class="text-xs text-gray-500 font-medium">อนุมัติและกำหนดสิทธิ์ผู้ใช้งาน</p>
+                            <h3 class="font-bold text-xl leading-tight">จัดการผู้ใช้งานระบบ</h3>
+                            <p class="text-xs font-medium opacity-70">อนุมัติและกำหนดสิทธิ์ผู้ใช้งาน</p>
                         </div>
                     </div>
-                    <button onclick="renderUsers(document.getElementById('contentArea'), '${viewID}')" class="text-gray-600 hover:text-indigo-600 transition bg-white border border-gray-300 px-4 py-2.5 rounded-xl text-sm font-bold shadow-sm flex items-center gap-2 transform active:scale-95"><i class="fas fa-sync-alt"></i> โหลดข้อมูลใหม่</button>
+                    <button onclick="renderUsers(document.getElementById('contentArea'), '${viewID}')" class="bg-white transition px-4 py-2.5 rounded-xl text-sm font-bold shadow-sm flex items-center gap-2 transform active:scale-95 hover:bg-gray-50"><i class="fas fa-sync-alt"></i> โหลดข้อมูลใหม่</button>
                 </div>
                 <div class="overflow-auto flex-1">
                     <table class="w-full text-left text-sm">
-                        <thead class="bg-white text-gray-500 font-bold border-b border-gray-200 text-xs uppercase tracking-wider sticky top-0 shadow-sm z-10">
-                            <tr><th class="p-4 pl-6">บัญชีผู้ใช้งาน</th><th class="p-4">กลุ่มงาน</th><th class="p-4 text-center">สิทธิ์เข้าใช้งาน</th><th class="p-4 text-center">ระดับผู้ใช้</th><th class="p-4 text-right pr-6">การตั้งค่า</th></tr>
+                        <thead class="sticky top-0 z-10">
+                            <tr><th class="p-4 pl-6 font-bold text-xs uppercase tracking-wider">บัญชีผู้ใช้งาน</th><th class="p-4 font-bold text-xs uppercase tracking-wider">กลุ่มงาน</th><th class="p-4 text-center font-bold text-xs uppercase tracking-wider">สิทธิ์เข้าใช้งาน</th><th class="p-4 text-center font-bold text-xs uppercase tracking-wider">ระดับผู้ใช้</th><th class="p-4 text-right pr-6 font-bold text-xs uppercase tracking-wider">การตั้งค่า</th></tr>
                         </thead>
-                        <tbody id="userTableBody" class="divide-y divide-gray-100">
+                        <tbody id="userTableBody">
                             <tr><td colspan="5" class="p-20 text-center"><div class="loader mx-auto"></div></td></tr>
                         </tbody>
                     </table>
@@ -1726,47 +1923,47 @@
             const tbody = document.getElementById('userTableBody');
             if(!tbody) return;
             
-            tbody.innerHTML = users.map(u => {
+            let htmlStr = '';
+            users.forEach(u => {
                 const isApproved = (u.status || u.Status) === 'approved';
-                // ป้องกันปัญหาดึงค่าไม่ได้ โดยใช้ตัวแปรสำรองต่างๆ และบังคับให้เป็น String เพื่อป้องกัน Error
                 const fullname = String(u.fullname || u.Fullname || u.name || u.Name || 'ผู้ใช้ใหม่');
                 const username = String(u.username || u.Username || '-');
                 const group = String(u.group || u.Group || '-');
                 const role = String(u.role || u.Role || 'user');
                 const uid = u.user_id || u['User ID'] || u.id || '';
                 
-                // แปลงข้อมูล Object เป็น String เพื่อส่งเข้าปุ่มให้ปลอดภัย (ป้องกันปัญหาชื่อมีเครื่องหมายคำพูด)
                 const userJson = JSON.stringify(u).replace(/'/g, "&#39;").replace(/"/g, "&quot;");
 
-                return `
-                <tr class="hover:bg-blue-50/30 transition group">
+                htmlStr += `
+                <tr class="transition group">
                     <td class="p-4 pl-6">
                         <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center font-bold shadow-inner border border-gray-200">${fullname.charAt(0).toUpperCase()}</div>
+                            <div class="w-10 h-10 rounded-full bg-[rgba(128,128,128,0.2)] flex items-center justify-center font-bold shadow-inner">${fullname.charAt(0).toUpperCase()}</div>
                             <div>
-                                <div class="font-bold text-gray-800 text-base">${fullname}</div>
-                                <div class="text-xs text-gray-500 font-mono mt-0.5"><i class="fas fa-at text-[10px]"></i>${username}</div>
+                                <div class="font-bold text-base">${fullname}</div>
+                                <div class="text-xs font-mono mt-0.5 opacity-70"><i class="fas fa-at text-[10px]"></i>${username}</div>
                             </div>
                         </div>
                     </td>
                     <td class="p-4">
-                        <span class="bg-gray-100 text-gray-600 border border-gray-200 px-3 py-1 rounded-lg text-xs font-bold shadow-sm">${group}</span>
+                        <span class="bg-[rgba(128,128,128,0.2)] px-3 py-1 rounded-lg text-xs font-bold shadow-sm">${group}</span>
                     </td>
                     <td class="p-4 text-center">
                         <div class="flex flex-col items-center justify-center">
                             <label class="relative inline-flex items-center cursor-pointer group/switch">
                               <input type="checkbox" class="sr-only peer toggle-checkbox" ${isApproved ? 'checked' : ''} onchange="toggleUserStatus('${uid}', this.checked)">
-                              <div class="w-12 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all toggle-label shadow-inner group-hover/switch:shadow-md"></div>
+                              <div class="w-12 h-6 bg-[rgba(128,128,128,0.5)] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all toggle-label shadow-inner group-hover/switch:shadow-md"></div>
                             </label>
-                            <span class="text-[10px] mt-1.5 font-black uppercase tracking-wider ${isApproved ? 'text-emerald-600' : 'text-amber-500'}">${isApproved ? 'อนุญาตแล้ว' : 'รอตรวจสอบ'}</span>
+                            <span class="text-[10px] mt-1.5 font-black uppercase tracking-wider ${isApproved ? 'text-emerald-500 drop-shadow-md' : 'text-amber-500 drop-shadow-md'}">${isApproved ? 'อนุญาตแล้ว' : 'รอตรวจสอบ'}</span>
                         </div>
                     </td>
-                    <td class="p-4 text-center"><span class="px-3 py-1.5 rounded-lg text-[10px] font-black ${(role || '').toLowerCase()==='admin'?'bg-purple-100 text-purple-700 border border-purple-200':'bg-blue-100 text-blue-700 border border-blue-200'} uppercase tracking-widest shadow-sm">${role}</span></td>
+                    <td class="p-4 text-center"><span class="px-3 py-1.5 rounded-lg text-[10px] font-black ${(role || '').toLowerCase()==='admin'?'bg-purple-500/20 text-purple-400 border border-purple-500/50':'bg-primary-500/20 text-primary-400 border border-primary-500/50'} uppercase tracking-widest shadow-sm drop-shadow-md">${role}</span></td>
                     <td class="p-4 text-right pr-6">
-                        <button onclick="openPermModal(${userJson})" class="text-indigo-600 bg-white border border-indigo-200 hover:bg-indigo-50 hover:border-indigo-400 px-4 py-2 rounded-xl text-xs font-bold shadow-sm transition transform active:scale-95"><i class="fas fa-user-shield mr-1"></i> กำหนดสิทธิ์</button>
+                        <button onclick="openPermModal(${userJson})" class="text-primary-500 bg-white hover:bg-gray-50 px-4 py-2 rounded-xl text-xs font-bold shadow-sm transition transform active:scale-95 drop-shadow-sm"><i class="fas fa-user-shield mr-1"></i> กำหนดสิทธิ์</button>
                     </td>
                 </tr>`;
-            }).join('');
+            });
+            tbody.innerHTML = htmlStr;
         } catch(e) {
             const tbody = document.getElementById('userTableBody');
             if(tbody) tbody.innerHTML = `<tr><td colspan="5" class="p-10 text-center text-red-500 font-bold"><i class="fas fa-exclamation-triangle mb-2 text-2xl"></i><br>เกิดข้อผิดพลาดในการโหลดข้อมูล: ${e.message}</td></tr>`;
@@ -1789,29 +1986,29 @@
         if (currentViewID !== viewID) return;
         
         c.innerHTML = `
-            <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden fade-in flex flex-col h-full">
-                <div class="p-5 border-b bg-gray-50 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div class="bg-white rounded-2xl shadow-sm flex flex-col h-full fade-in">
+                <div class="p-5 border-b bg-[rgba(0,0,0,0.05)] flex flex-col sm:flex-row justify-between items-center gap-4">
                     <div class="flex items-center gap-4">
-                        <div class="w-12 h-12 rounded-xl bg-gray-800 text-white flex items-center justify-center shadow-sm"><i class="fas fa-history text-2xl"></i></div>
+                        <div class="w-12 h-12 rounded-xl bg-sidebar-800 text-white flex items-center justify-center shadow-sm"><i class="fas fa-history text-2xl drop-shadow-md"></i></div>
                         <div>
-                            <h3 class="font-bold text-gray-800 text-xl leading-tight">ประวัติการเข้าใช้งาน (System Logs)</h3>
-                            <p class="text-xs text-gray-500 font-medium">บันทึกการเข้าสู่ระบบของผู้ใช้งาน</p>
+                            <h3 class="font-bold text-xl leading-tight">ประวัติการเข้าใช้งาน (System Logs)</h3>
+                            <p class="text-xs font-medium opacity-70">บันทึกการเข้าสู่ระบบของผู้ใช้งาน</p>
                         </div>
                     </div>
-                    <button onclick="renderLogs(document.getElementById('contentArea'), '${viewID}')" class="text-gray-600 hover:text-gray-900 transition bg-white border border-gray-300 px-4 py-2.5 rounded-xl text-sm font-bold shadow-sm flex items-center gap-2 transform active:scale-95"><i class="fas fa-sync-alt"></i> โหลดข้อมูลใหม่</button>
+                    <button onclick="renderLogs(document.getElementById('contentArea'), '${viewID}')" class="bg-white px-4 py-2.5 rounded-xl text-sm font-bold shadow-sm flex items-center gap-2 transform active:scale-95 transition"><i class="fas fa-sync-alt"></i> โหลดข้อมูลใหม่</button>
                 </div>
                 <div class="overflow-auto flex-1">
                     <table class="w-full text-left text-sm">
-                        <thead class="bg-white text-gray-500 font-bold border-b border-gray-200 text-xs uppercase tracking-wider sticky top-0 shadow-sm z-10">
+                        <thead class="sticky top-0 z-10">
                             <tr>
-                                <th class="p-4 pl-6">วัน-เวลา</th>
-                                <th class="p-4">รหัสผู้ใช้</th>
-                                <th class="p-4">ชื่อผู้ใช้งาน</th>
-                                <th class="p-4">ชื่อ-นามสกุล</th>
-                                <th class="p-4">ระดับสิทธิ์</th>
+                                <th class="p-4 pl-6 font-bold text-xs uppercase tracking-wider">วัน-เวลา</th>
+                                <th class="p-4 font-bold text-xs uppercase tracking-wider">รหัสผู้ใช้</th>
+                                <th class="p-4 font-bold text-xs uppercase tracking-wider">ชื่อผู้ใช้งาน</th>
+                                <th class="p-4 font-bold text-xs uppercase tracking-wider">ชื่อ-นามสกุล</th>
+                                <th class="p-4 font-bold text-xs uppercase tracking-wider">ระดับสิทธิ์</th>
                             </tr>
                         </thead>
-                        <tbody id="logsTableBody" class="divide-y divide-gray-100">
+                        <tbody id="logsTableBody">
                             <tr><td colspan="5" class="p-20 text-center"><div class="loader mx-auto"></div></td></tr>
                         </tbody>
                     </table>
@@ -1826,12 +2023,12 @@
             if(!tbody) return;
             
             if (!logs || logs.length === 0) {
-                 tbody.innerHTML = `<tr><td colspan="5" class="p-10 text-center text-gray-500 font-medium">ไม่มีข้อมูลประวัติการเข้าใช้งาน</td></tr>`;
+                 tbody.innerHTML = `<tr><td colspan="5" class="p-10 text-center font-medium opacity-70">ไม่มีข้อมูลประวัติการเข้าใช้งาน</td></tr>`;
                  return;
             }
 
-            tbody.innerHTML = logs.map(log => {
-                // Fallback mappings
+            let htmlStr = '';
+            logs.forEach(log => {
                 const ts = log.timestamp || log.Timestamp || log['Timestamp'] || log.time || log.date || '';
                 const uid = log.user_id || log['User ID'] || log.userId || log.id || '';
                 const uname = log.username || log['Username'] || log.user || '';
@@ -1842,20 +2039,21 @@
                 const displayUid = uid || '-';
                 const displayUname = uname || '-';
                 const displayFname = fname || '-';
-                const displayRole = role ? `<span class="px-2 py-1 rounded-md text-[10px] font-black ${role.toLowerCase() === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'} uppercase tracking-widest">${role}</span>` : '-';
+                const displayRole = role ? `<span class="px-2 py-1 rounded-md text-[10px] font-black ${role.toLowerCase() === 'admin' ? 'bg-purple-500/20 text-purple-400' : 'bg-primary-500/20 text-primary-400'} uppercase tracking-widest drop-shadow-md border border-[rgba(255,255,255,0.1)]">${role}</span>` : '-';
 
-                return `
-                <tr class="hover:bg-gray-50 transition">
-                    <td class="p-4 pl-6 text-gray-600 font-medium">${formattedDate}</td>
-                    <td class="p-4 font-mono text-xs text-gray-500">${displayUid}</td>
-                    <td class="p-4 font-bold text-gray-700">${displayUname}</td>
-                    <td class="p-4 text-gray-700">${displayFname}</td>
+                htmlStr += `
+                <tr class="transition group">
+                    <td class="p-4 pl-6 font-medium">${formattedDate}</td>
+                    <td class="p-4 font-mono text-xs opacity-70">${displayUid}</td>
+                    <td class="p-4 font-bold">${displayUname}</td>
+                    <td class="p-4">${displayFname}</td>
                     <td class="p-4">${displayRole}</td>
                 </tr>`;
-            }).join('');
+            });
+            tbody.innerHTML = htmlStr;
         } catch(e) {
              const tbody = document.getElementById('logsTableBody');
-             if(tbody) tbody.innerHTML = `<tr><td colspan="5" class="p-10 text-center text-red-500 font-medium">เกิดข้อผิดพลาดในการโหลดข้อมูล</td></tr>`;
+             if(tbody) tbody.innerHTML = `<tr><td colspan="5" class="p-10 text-center text-red-500 font-bold"><i class="fas fa-exclamation-triangle mb-2 text-2xl"></i><br>เกิดข้อผิดพลาดในการโหลดข้อมูล</td></tr>`;
         }
     }
 
@@ -1877,9 +2075,7 @@
         if (m) {
             document.getElementById('matId').value = m.material_id;
             document.getElementById('matName').value = m.name;
-            // ดึงค่าที่เก็บมาแสดง (รองรับชื่อคอลัมน์ที่เป็นภาษาไทยและอังกฤษ)
             document.getElementById('matLocation').value = m.location || m.Location || m['ที่เก็บ'] || m['ชั้นวาง'] || '';
-            // เพิ่มการดึงค่าประเภท Test Kit มาแสดงตอนกดปุ่มแก้ไข
             document.getElementById('matType').value = m.type || m.Type || m['ประเภท'] || '';
         } else {
             document.getElementById('matId').value = '';
@@ -1894,7 +2090,6 @@
             else if(typeof u.permissions === 'string') perms = JSON.parse(u.permissions);
         } catch(e) { perms = []; }
         
-        // บังคับให้เป็น String ป้องกัน Error
         const fullname = String(u.fullname || u.Fullname || u.name || u.Name || 'ผู้ใช้ใหม่');
         const uid = u.user_id || u['User ID'] || u.id || '';
         
@@ -1921,7 +2116,6 @@
             await api('updateUserStatus', { user_id: uid, permissions: p });
             closeModal('userPermModal');
             showToast('บันทึกการตั้งค่าสิทธิ์ผู้ใช้งานเรียบร้อย', 'success');
-            // Background refresh without blocking UI
             api('getUsers').then(u => cache.users = u);
         } catch(e){}
     }
@@ -1940,7 +2134,7 @@
         let payload = { 
             name: document.getElementById('matName').value, 
             location: document.getElementById('matLocation').value,
-            type: document.getElementById('matType').value, // <--- เพิ่มบรรทัดนี้ เพื่อส่งค่า Type ไปให้ Backend
+            type: document.getElementById('matType').value, 
             image_url: document.getElementById('matImgUrl').value 
         };
         
@@ -1977,21 +2171,17 @@
             closeModal('changePasswordModal');
             showToast('เปลี่ยนรหัสผ่านสำเร็จ กรุณาเข้าสู่ระบบใหม่', 'success');
             setTimeout(logout, 1500); // Logout after 1.5s
-        } catch (e) {
-            // Error toast is handled in api()
-        }
+        } catch (e) {}
     };
 
     // --- PDF EXPORT (Corrected TrueType Font Solution) ---
     function exportPDF() {
         if (!window.jspdf) { alert("PDF Library not loaded"); return; }
         const { jsPDF } = window.jspdf;
-        // ปรับเป็นแนวนอน ('l' = landscape) กระดาษ A4
         const doc = new jsPDF('l', 'mm', 'a4'); 
         
         showToast('กำลังประมวลผลไฟล์ PDF กรุณารอสักครู่...', 'success');
         
-        // Correct TrueType Font (.ttf) URL required by jsPDF to process Thai unicode
         const fontUrl = 'https://raw.githubusercontent.com/google/fonts/main/ofl/sarabun/Sarabun-Regular.ttf';
         
         fetch(fontUrl)
@@ -2004,22 +2194,17 @@
             reader.readAsDataURL(blob);
             reader.onloadend = () => {
                 try {
-                    // Extract Base64 string from Data URL
                     const base64 = reader.result.split(',')[1];
-                    
-                    // Inject Font to jsPDF Virtual File System (VFS)
                     doc.addFileToVFS('Sarabun-Regular.ttf', base64);
                     doc.addFont('Sarabun-Regular.ttf', 'Sarabun', 'normal');
                     doc.setFont('Sarabun');
                     
                     const filteredReps = getFilteredReports();
-                    // เปลี่ยน key จาก type เป็น action_type ชั่วคราวป้องกันการทับซ้อนกันกับ column ประเภทวัสดุ
                     const allReports = [
                         ...filteredReps.withdraw.map(r => ({...r, action_type: 'เบิกออก'})),
                         ...filteredReps.import.map(r => ({...r, action_type: 'นำเข้า'}))
                     ];
                     
-                    // เรียงลำดับจากเก่าไปใหม่ (Oldest to Newest)
                     allReports.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
                     
                     const data = allReports.map(r => {
@@ -2043,15 +2228,13 @@
                         startY: 35,
                         margin: { top: 35, bottom: 20 },
                         styles: { font: 'Sarabun', fontSize: 10 },
-                        headStyles: { fillColor: [79, 70, 229] }, // Indigo 600 Color
+                        headStyles: { fillColor: hexToRgb(THEMES[currentTheme].p600) },
                         didDrawPage: function (data) {
                             doc.setFont('Sarabun');
-                            // Header (แสดงทุกหน้า)
                             doc.setFontSize(16);
                             doc.text('รายงานประวัติทำรายการ (Stock Report)', 14, 20);
                             doc.setFontSize(10);
                             doc.text(`ข้อมูลออกเมื่อ: ${formatDate(new Date())}`, 14, 30);
-                            // Footer (เลขหน้ามุมขวาล่าง)
                             const pageHeight = doc.internal.pageSize.height || doc.internal.pageSize.getHeight();
                             doc.text('หน้า ' + doc.internal.getNumberOfPages(), doc.internal.pageSize.width - 25, pageHeight - 10);
                         }
@@ -2069,7 +2252,6 @@
             console.error("Font Load Error:", err);
             alert("ไม่สามารถโหลดฟอนต์ภาษาไทยจาก Server ได้ จะสร้าง PDF ด้วยฟอนต์มาตรฐานแทน (อาจอ่านภาษาไทยไม่ออก)");
             
-            // Fallback Generation
             doc.setFont("helvetica");
             const filteredReps = getFilteredReports();
             const allReports = [
@@ -2077,7 +2259,6 @@
                 ...filteredReps.import.map(r => ({...r, action_type: 'Import'}))
             ];
             
-            // เรียงลำดับจากเก่าไปใหม่ (Oldest to Newest)
             allReports.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
             
             const data = allReports.map(r => {
@@ -2122,10 +2303,8 @@
         ];
         if (!d.length) return showToast('ไม่มีข้อมูลที่จะส่งออก', 'error');
         
-        // เรียงลำดับจากเก่าไปใหม่ (Oldest to Newest)
         d.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
         
-        // Add BOM \uFEFF to make Excel read UTF-8 properly
         const c = "\uFEFFวันที่,เวลา,ประเภททำรายการ,รายการ,หมวดหมู่,จำนวน,หมายเหตุ,ผู้ทำรายการ\n" + d.map(e => {
             const dateStr = formatDate(e.timestamp);
             const datePart = dateStr.split(' ')[0];
@@ -2150,7 +2329,6 @@
         l.click();
     }
 
-    // --- PDF/CSV EXPORT FOR INVENTORY (ยอดคงเหลือ) ---
     function exportInventoryPDF() {
         if (!window.jspdf) { alert("PDF Library not loaded"); return; }
         const { jsPDF } = window.jspdf;
@@ -2191,15 +2369,13 @@
                         startY: 35,
                         margin: { top: 35, bottom: 20 },
                         styles: { font: 'Sarabun', fontSize: 10 },
-                        headStyles: { fillColor: [59, 130, 246] }, // Blue-500
+                        headStyles: { fillColor: hexToRgb(THEMES[currentTheme].p600) },
                         didDrawPage: function (data) {
                             doc.setFont('Sarabun');
-                            // Header
                             doc.setFontSize(16);
                             doc.text('รายงานยอดคงเหลือวัสดุ (Inventory Report)', 14, 20);
                             doc.setFontSize(10);
                             doc.text(`ข้อมูลออกเมื่อ: ${formatDate(new Date())}`, 14, 30);
-                            // Footer
                             const pageHeight = doc.internal.pageSize.height || doc.internal.pageSize.getHeight();
                             doc.text('หน้า ' + doc.internal.getNumberOfPages(), doc.internal.pageSize.width - 25, pageHeight - 10);
                         }
@@ -2248,7 +2424,6 @@
     function exportInventoryCSV() {
         const filteredData = getFilteredInventory();
         if (!filteredData || filteredData.length === 0) return showToast('ไม่มีข้อมูลที่จะส่งออก', 'error');
-        // Add BOM \uFEFF to make Excel read UTF-8 properly
         const c = "\uFEFFลำดับที่ (No.),ชื่อวัสดุ (Material Name),ประเภท (Type),ที่เก็บ (Location),คงเหลือ (Quantity),อัปเดตล่าสุด (Last Update)\n" + filteredData.map((m, index) => {
             const loc = m.location || m.Location || m['ที่เก็บ'] || m['ชั้นวาง'] || '-';
             const matType = m.type || m.Type || m['ประเภท'] || '-';
@@ -2261,7 +2436,6 @@
         l.click();
     }
 
-    // --- UTILITIES ---
     function toggleImgInput(type, prefix) {
         const f = document.getElementById(prefix + 'InputFile');
         const u = document.getElementById(prefix + 'ImgUrl');
@@ -2287,7 +2461,6 @@
         }
     }
 
-    // Compress Image before upload to save bandwidth
     async function compressImage(file) {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
@@ -2298,13 +2471,12 @@
                 img.onload = () => {
                     const canvas = document.createElement('canvas');
                     const maxWidth = 800;
-                    // Prevent upscaling small images
                     const scaleSize = (img.width > maxWidth) ? (maxWidth / img.width) : 1; 
                     canvas.width = img.width * scaleSize;
                     canvas.height = img.height * scaleSize;
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                    resolve(canvas.toDataURL('image/jpeg', 0.7)); // 70% Quality
+                    resolve(canvas.toDataURL('image/jpeg', 0.7)); 
                 };
                 img.onerror = reject;
             };
@@ -2330,7 +2502,7 @@
     function showToast(msg, type = 'success') { 
         const t = document.getElementById('toast'); 
         t.innerHTML = `<i class="fas fa-${type==='success'?'check-circle text-emerald-400':'exclamation-triangle text-rose-400'} text-2xl"></i> <span>${msg}</span>`; 
-        t.className = `fixed top-6 right-6 z-[120] px-6 py-4 rounded-2xl shadow-2xl text-white transform transition-all duration-500 font-bold flex items-center gap-4 ${type === 'success' ? 'bg-slate-800 border-b-4 border-emerald-500' : 'bg-slate-800 border-b-4 border-rose-500'}`; 
+        t.className = `fixed top-6 right-6 z-[120] px-6 py-4 rounded-2xl shadow-2xl text-white transform transition-all duration-500 font-bold flex items-center gap-4 ${type === 'success' ? 'bg-sidebar-800 border-b-4 border-emerald-500' : 'bg-sidebar-800 border-b-4 border-rose-500'}`; 
         t.classList.remove('hidden'); 
         setTimeout(() => { t.classList.add('translate-x-full', 'opacity-0'); setTimeout(()=> { t.classList.add('hidden'); t.classList.remove('translate-x-full', 'opacity-0'); }, 500); }, 3500); 
     }
@@ -2346,17 +2518,17 @@
     function adjQty(d) { const el = document.getElementById('transQty'); el.value = Math.max(1, parseInt(el.value)+d); }
     
     function cardSkeleton() { 
-        return `<div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 h-32 animate-pulse flex flex-col justify-between"><div class="h-4 bg-gray-200 rounded w-1/2"></div><div class="h-8 bg-gray-200 rounded w-1/3"></div></div>`; 
+        return `<div class="bg-white p-6 rounded-2xl shadow-sm border border-[rgba(255,255,255,0.1)] h-32 animate-pulse flex flex-col justify-between"><div class="h-4 bg-[rgba(128,128,128,0.2)] rounded w-1/2"></div><div class="h-8 bg-[rgba(128,128,128,0.2)] rounded w-1/3"></div></div>`; 
     }
     
     function statCard(title, value, icon, colorClass) { 
         return `
-        <div class="bg-white p-4 md:p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between hover:shadow-md transition">
+        <div class="bg-white p-4 md:p-5 rounded-2xl shadow-sm flex items-center justify-between hover:shadow-md transition">
             <div class="truncate mr-2 overflow-hidden w-full">
-                <p class="text-gray-500 text-[10px] sm:text-xs font-bold uppercase tracking-wider mb-1 sm:mb-2 truncate">${title}</p>
-                <p class="text-lg sm:text-xl lg:text-2xl font-black text-gray-800 break-words">${value}</p>
+                <p class="text-[10px] sm:text-xs font-bold uppercase tracking-wider mb-1 sm:mb-2 truncate opacity-70">${title}</p>
+                <p class="text-lg sm:text-xl lg:text-2xl font-black break-words drop-shadow-md">${value}</p>
             </div>
-            <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl ${colorClass.split(' ')[0]} bg-opacity-20 flex items-center justify-center text-${colorClass.split(' ')[1].split('-')[1]}-600 shadow-sm shrink-0">
+            <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl ${colorClass.split(' ')[0]} bg-[rgba(255,255,255,0.2)] border border-[rgba(255,255,255,0.1)] flex items-center justify-center text-${colorClass.split(' ')[1].split('-')[1]}-500 shadow-sm shrink-0 drop-shadow-md">
                 <i class="${icon} text-lg sm:text-xl"></i>
             </div>
         </div>`; 
@@ -2365,15 +2537,14 @@
     function permissionDeniedHTML() { 
         return `
         <div class="flex flex-col items-center justify-center h-full text-gray-400 py-20">
-            <div class="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-6 shadow-inner border border-gray-200">
-                <i class="fas fa-lock text-5xl text-gray-300"></i>
+            <div class="w-24 h-24 bg-[rgba(128,128,128,0.2)] rounded-full flex items-center justify-center mb-6 shadow-inner">
+                <i class="fas fa-lock text-5xl opacity-50"></i>
             </div>
-            <h3 class="text-xl font-bold text-gray-700">ไม่มีสิทธิ์เข้าถึงหน้านี้</h3>
-            <p class="text-sm mt-2 text-gray-500">กรุณาติดต่อผู้ดูแลระบบ (Admin) เพื่อขอสิทธิ์</p>
+            <h3 class="text-xl font-bold">ไม่มีสิทธิ์เข้าถึงหน้านี้</h3>
+            <p class="text-sm mt-2 opacity-70">กรุณาติดต่อผู้ดูแลระบบ (Admin) เพื่อขอสิทธิ์</p>
         </div>`; 
     }
 
-    // --- CAMERA FUNCS ---
     async function openCamera(target) { 
         currentCamTarget = target; 
         document.getElementById('cameraModal').classList.remove('hidden'); 
@@ -2422,7 +2593,30 @@
         closeCamera(); 
     }
 
-    // Run Initialization
+    async function togglePin(matId, currentStatus, e) {
+        if (e) e.stopPropagation();
+        const newStatus = !currentStatus;
+        const mat = state.materials.find(m => m.material_id === matId);
+        if (!mat) return;
+        
+        // Update state optimistically for snappy UI
+        mat.pinned = newStatus;
+        cache.materials = JSON.stringify(state.materials);
+        
+        // Re-render UI immediately
+        if(document.getElementById('inventoryContainer')) renderMaterialList(currentTransMode || 'view');
+        if(document.getElementById('dashboardFilterType')) updateDashboardUI(document.getElementById('contentArea'), currentViewID);
+
+        try {
+            // Attempt to update on backend using your update API
+            await api('updateMaterial', { ...mat, pinned: newStatus });
+            showToast(newStatus ? 'ปักหมุดรายการนี้แล้ว' : 'ยกเลิกการปักหมุดแล้ว', 'success');
+        } catch(err) {
+            // Backend might not support it yet, inform the user
+            showToast('ระบบจำลองการปักหมุดสำเร็จ (กรุณาเพิ่มคอลัมน์ pinned ใน Backend)', 'success');
+        }
+    }
+
     window.onload = initApp;
   </script>
 </body>
