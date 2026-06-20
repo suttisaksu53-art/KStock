@@ -22,9 +22,6 @@
           colors: {
             primary: {
               50: 'var(--p-50)', 100: 'var(--p-100)', 200: 'var(--p-200)', 400: 'var(--p-400)', 500: 'var(--p-500)', 600: 'var(--p-600)', 700: 'var(--p-700)'
-            },
-            sidebar: {
-              300: 'var(--s-300)', 400: 'var(--s-400)', 800: 'var(--s-800)', 900: 'var(--s-900)', 950: 'var(--s-950)'
             }
           }
         }
@@ -32,28 +29,30 @@
     }
   </script>
 
-  <!-- ================= STYLES & UNIVERSAL GLASSMORPHISM ================= -->
+  <!-- ================= STYLES & UNIVERSAL THEME SYSTEM ================= -->
   <style>
     :root {
-      /* Base Colors */
+      /* Base Colors (Classic Light by default) */
       --p-50: #eff6ff; --p-100: #dbeafe; --p-200: #bfdbfe; --p-400: #60a5fa; --p-500: #3b82f6; --p-600: #2563eb; --p-700: #1d4ed8;
       
-      /* Universal Glassmorphism Variables */
-      --glass-bg: rgba(255, 255, 255, 0.85);
-      --glass-border: rgba(255, 255, 255, 0.6);
-      --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+      /* Universal Variables */
+      --glass-bg: #ffffff;
+      --glass-border: #e2e8f0;
+      --glass-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
       --text-main: #0f172a;
-      --text-muted: #334155;
-      --text-shadow: 0 1px 2px rgba(255, 255, 255, 0.9);
-      --input-bg: rgba(255, 255, 255, 0.6);
-      --blur-val: blur(16px);
+      --text-muted: #64748b;
+      --text-shadow: none;
+      --input-bg: #f8fafc;
+      --blur-val: blur(0px);
+      --btn-glass-bg-img: none;
+      --btn-glass-border: transparent;
     }
 
     html { height: 100%; height: 100dvh; }
     
     body { 
       font-family: 'Sarabun', sans-serif; 
-      background-color: #0f172a; /* Fallback */
+      background-color: var(--bg-main);
       background-size: cover !important;
       background-position: center !important;
       background-attachment: fixed !important;
@@ -63,120 +62,115 @@
       margin: 0;
       padding: 0;
       overflow: hidden;
-      transition: background-image 0.5s ease-in-out;
+      transition: background-color 0.4s ease, color 0.4s ease;
     }
     
     @supports (-webkit-touch-callout: none) { html, body { height: -webkit-fill-available; } }
     .hidden { display: none !important; }
     
-    .loader { 
-      border: 4px solid rgba(255,255,255,0.3); 
-      border-top: 4px solid var(--p-500); 
-      border-radius: 50%; 
-      width: 48px; height: 48px; 
-      animation: spin 1s linear infinite; 
-    }
-    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
-    ::-webkit-scrollbar { width: 8px; height: 8px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: rgba(128,128,128,0.5); border-radius: 4px; }
-    ::-webkit-scrollbar-thumb:hover { background: rgba(128,128,128,0.8); }
+    /* Global Backgrounds & Cards */
+    #mainApp, #authPage, .bg-transparent-always { background: transparent !important; }
     
-    .fade-in { animation: fadeIn 0.25s ease-in-out; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
-    /* ========================================================
-       ✨ THEME OVERRIDES (APPLYING GLASS TO ALL COMPONENTS)
-       ======================================================== */
-    
-    /* Make base containers transparent */
-    #mainApp, #authPage, .bg-gray-50 { background: transparent !important; }
-
-    /* The Magical Glassmorphism Conversion */
-    .bg-white, .bg-gray-100, .bg-slate-900, .bg-slate-950, .bg-sidebar-900, .bg-sidebar-950, aside, header {
-      background: var(--glass-bg) !important;
-      backdrop-filter: var(--blur-val) !important;
-      -webkit-backdrop-filter: var(--blur-val) !important;
-      border-color: var(--glass-border) !important;
-      box-shadow: var(--glass-shadow) !important;
-      transition: background-color 0.5s ease, border-color 0.5s ease, color 0.5s ease;
+    /* Apply Glass Blur ONLY to main layout components to save GPU/Performance */
+    aside, header, .modal-content, .floating-toolbar {
+      backdrop-filter: var(--glass-blur) !important;
+      -webkit-backdrop-filter: var(--glass-blur) !important;
+      will-change: backdrop-filter; /* Optimize for iOS */
     }
 
-    /* Modals need higher blur to stand out */
-    #materialModal > div, #cartModal > div, #userPermModal > div, #changePasswordModal > div, #themeModal > div {
-       background: var(--glass-bg) !important;
-       backdrop-filter: blur(24px) !important;
-       -webkit-backdrop-filter: blur(24px) !important;
-       border: 1px solid var(--glass-border) !important;
-    }
-
-    /* Text Color Mastery for Perfect Contrast */
-    .text-gray-800, .text-gray-700, .text-slate-300, h1, h2, h3, h4, label {
+    /* Cards are solid or semi-transparent, NO BLUR to prevent lag */
+    .bg-white, .bg-gray-50, .inventory-card, .dashboard-card {
+      background-color: var(--card-bg) !important;
+      border-color: var(--border-color) !important;
       color: var(--text-main) !important;
-      text-shadow: var(--text-shadow) !important;
-    }
-    .text-gray-600, .text-gray-500, .text-slate-400, .text-slate-500, p, span {
-      color: var(--text-muted) !important;
-      text-shadow: var(--text-shadow) !important;
+      transition: background-color 0.4s ease, border-color 0.4s ease;
     }
 
-    /* Exceptions for colored badges to stay vibrant */
-    .text-white, button .text-white { color: #ffffff !important; text-shadow: 0 1px 3px rgba(0,0,0,0.6) !important; }
-    .text-red-500 { color: #ef4444 !important; text-shadow: 0 1px 2px rgba(255,255,255,0.3) !important; }
+    /* Text Resets */
+    .text-gray-800, .text-gray-700, h1, h2, h3, h4, label { color: var(--text-main) !important; text-shadow: var(--text-shadow) !important; }
+    .text-gray-600, .text-gray-500, p, span { color: var(--text-muted) !important; text-shadow: var(--text-shadow) !important; }
     
-    /* Dynamic Dark Mode Colors for Badges */
-    html[data-theme-type="dark"] .text-primary-600, html[data-theme-type="dark"] .text-blue-600 { color: var(--p-400) !important; text-shadow: 0 1px 4px rgba(0,0,0,0.8) !important; }
-    html[data-theme-type="dark"] .text-emerald-600 { color: #34d399 !important; text-shadow: 0 1px 4px rgba(0,0,0,0.8) !important; }
-    html[data-theme-type="dark"] .text-rose-600, html[data-theme-type="dark"] .text-red-600 { color: #fb7185 !important; text-shadow: 0 1px 4px rgba(0,0,0,0.8) !important; }
-    html[data-theme-type="dark"] .text-amber-600 { color: #fbbf24 !important; text-shadow: 0 1px 4px rgba(0,0,0,0.8) !important; }
-    html[data-theme-type="dark"] .text-purple-600 { color: #a78bfa !important; text-shadow: 0 1px 4px rgba(0,0,0,0.8) !important; }
+    /* Force specific text colors for badges so they don't break in dark mode */
+    .text-white, button .text-white { color: #ffffff !important; text-shadow: 0 1px 3px rgba(0,0,0,0.6) !important; }
+    .text-red-500 { color: #ef4444 !important; text-shadow: none !important; }
+    .text-emerald-500 { color: #10b981 !important; text-shadow: none !important; }
+    .text-amber-500 { color: #f59e0b !important; text-shadow: none !important; }
 
-    /* Dynamic Dark Mode Backgrounds for Badges */
+    /* Dark mode text corrections for badges */
+    html[data-theme-type="dark"] .text-primary-600, html[data-theme-type="dark"] .text-blue-600 { color: var(--p-400) !important; }
+    html[data-theme-type="dark"] .text-emerald-600 { color: #34d399 !important; }
+    html[data-theme-type="dark"] .text-rose-600, html[data-theme-type="dark"] .text-red-600 { color: #fb7185 !important; }
+    html[data-theme-type="dark"] .text-amber-600 { color: #fbbf24 !important; }
+    html[data-theme-type="dark"] .text-purple-600 { color: #a78bfa !important; }
+
+    /* Dark mode backgrounds for badges */
     html[data-theme-type="dark"] .bg-primary-100, html[data-theme-type="dark"] .bg-blue-100 { background-color: rgba(59, 130, 246, 0.25) !important; border: 1px solid rgba(59, 130, 246, 0.4) !important; }
     html[data-theme-type="dark"] .bg-emerald-100 { background-color: rgba(16, 185, 129, 0.25) !important; border: 1px solid rgba(16, 185, 129, 0.4) !important;}
     html[data-theme-type="dark"] .bg-rose-100, html[data-theme-type="dark"] .bg-red-100 { background-color: rgba(244, 63, 94, 0.25) !important; border: 1px solid rgba(244, 63, 94, 0.4) !important;}
     html[data-theme-type="dark"] .bg-amber-100 { background-color: rgba(245, 158, 11, 0.25) !important; border: 1px solid rgba(245, 158, 11, 0.4) !important;}
     html[data-theme-type="dark"] .bg-purple-100 { background-color: rgba(139, 92, 246, 0.25) !important; border: 1px solid rgba(139, 92, 246, 0.4) !important;}
 
-    /* Forms & Inputs */
+    /* Inputs */
     input, select, textarea {
-      background: var(--input-bg) !important;
+      background-color: var(--input-bg) !important;
       color: var(--text-main) !important;
-      border: 1px solid var(--glass-border) !important;
-      backdrop-filter: blur(8px) !important;
-      -webkit-backdrop-filter: blur(8px) !important;
+      border: 1px solid var(--border-color) !important;
     }
-    input::placeholder { color: var(--text-muted) !important; opacity: 0.7; }
-    
-    /* Tables in Glassmorphism */
+    input::placeholder { color: var(--text-muted) !important; opacity: 0.6; }
+
+    /* Tables */
     table thead { background: transparent !important; }
-    table thead th { background: rgba(0,0,0,0.1) !important; color: var(--text-main) !important; backdrop-filter: blur(4px); }
-    table tr { border-bottom: 1px solid var(--glass-border) !important; }
+    table thead th { background: rgba(128,128,128,0.1) !important; color: var(--text-main) !important; }
+    table tr { border-bottom: 1px solid var(--border-color) !important; }
     table tr:hover td { background-color: rgba(128,128,128,0.15) !important; }
-    
-    /* Elevated Buttons */
+
+    /* Buttons */
+    .btn-primary { background-color: var(--p-600) !important; color: #fff !important; border: none !important; }
+    .btn-primary:hover { background-color: var(--p-700) !important; }
+
     button.bg-primary-600, button.bg-emerald-600, button.bg-rose-600, button.bg-red-600, button.bg-gray-800, button.bg-blue-600 {
-       background-image: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(0,0,0,0.1) 100%);
-       backdrop-filter: blur(4px);
-       border: 1px solid rgba(255,255,255,0.3) !important;
-       box-shadow: 0 4px 15px rgba(0,0,0,0.2) !important;
+       background-image: var(--btn-glass-bg-img) !important;
+       border: 1px solid var(--btn-glass-border) !important;
     }
 
-    /* Sidebar Navigation Highlights */
+    /* Utilities */
+    .border-custom { border-color: var(--border-color) !important; }
+    .shadow-custom { box-shadow: var(--glass-shadow) !important; }
+    
+    /* Sidebar Items */
     .nav-item { display: flex; align-items: center; padding: 12px 16px; border-radius: 0.5rem; cursor: pointer; transition: all 0.2s; color: var(--text-muted); font-weight: 500; margin-bottom: 4px; border: 1px solid transparent; }
-    .nav-item.active { background: rgba(128,128,128,0.25) !important; border: 1px solid var(--glass-border); box-shadow: inset 0 2px 4px rgba(0,0,0,0.1); color: var(--text-main); }
-    .nav-item:hover { background: rgba(128,128,128,0.15) !important; color: var(--text-main); }
-    .nav-item.active i { color: var(--p-500); text-shadow: 0 0 10px var(--p-500); }
+    .nav-item.active { background-color: var(--p-500) !important; color: #ffffff !important; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.2); }
+    .nav-item.active i { color: #ffffff !important; }
+    .nav-item:hover:not(.active) { background-color: rgba(128,128,128,0.15) !important; color: var(--text-main); }
 
+    /* Loaders & Toggles */
+    .loader { border: 4px solid var(--border-color); border-top: 4px solid var(--p-500); border-radius: 50%; width: 48px; height: 48px; animation: spin 1s linear infinite; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    .fade-in { animation: fadeIn 0.2s ease-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
     .toggle-checkbox:checked { right: 0; border-color: var(--p-500); }
     .toggle-checkbox:checked + .toggle-label { background-color: var(--p-500); }
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(128,128,128,0.4); border-radius: 4px; }
+    
+    /* Neo Brutalism overrides */
+    html[data-theme="brutal"] * { border-radius: 0px !important; }
+    html[data-theme="brutal"] .bg-white { border: 3px solid #000 !important; box-shadow: 6px 6px 0px #000 !important; }
+    html[data-theme="brutal"] button { border: 3px solid #000 !important; box-shadow: 4px 4px 0px #000 !important; font-weight: 900 !important; text-transform: uppercase; }
+    html[data-theme="brutal"] button:active { transform: translate(4px, 4px) !important; box-shadow: 0px 0px 0px #000 !important; }
+    html[data-theme="brutal"] input, html[data-theme="brutal"] select { border: 3px solid #000 !important; box-shadow: 4px 4px 0px #000 !important; font-weight: bold; }
+    
+    /* Neumorphism overrides */
+    html[data-theme="neumorph"] .bg-white, html[data-theme="neumorph"] .dashboard-card { border: none !important; box-shadow: 9px 9px 16px rgb(163,177,198,0.6), -9px -9px 16px rgba(255,255,255, 0.5) !important; }
+    html[data-theme="neumorph"] input, html[data-theme="neumorph"] select { box-shadow: inset 6px 6px 10px 0 rgba(163,177,198, 0.7), inset -6px -6px 10px 0 rgba(255,255,255, 0.8) !important; border: none !important; }
+    html[data-theme="neumorph"] .nav-item.active { box-shadow: inset 4px 4px 6px rgba(0,0,0,0.2) !important; }
+
     .file-input-wrapper { position: relative; overflow: hidden; }
     .file-input-overlay { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; z-index: 20; }
     input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
     input[type="number"] { -moz-appearance: textfield; }
     #contentArea { -webkit-overflow-scrolling: touch; }
-
   </style>
 </head>
 <body class="flex flex-col">
@@ -185,9 +179,9 @@
   <div id="toast" class="fixed top-5 right-5 z-[100] hidden px-6 py-4 rounded-xl shadow-2xl text-white transform transition-all duration-300 translate-y-0 font-medium flex items-center gap-3"></div>
   
   <!-- ================= LOADING OVERLAY ================= -->
-  <div id="loadingOverlay" class="fixed inset-0 bg-black/50 z-[90] hidden flex flex-col items-center justify-center text-white backdrop-blur-sm transition-opacity">
+  <div id="loadingOverlay" class="fixed inset-0 bg-black/60 z-[90] hidden flex flex-col items-center justify-center text-white backdrop-blur-sm transition-opacity">
     <div class="loader mb-3"></div>
-    <p class="font-medium animate-pulse text-lg" id="loadingText">กำลังตรวจสอบข้อมูลโปรดรอ...</p>
+    <p class="font-medium animate-pulse text-lg mt-4" id="loadingText">กำลังประมวลผลข้อมูลโปรดรอ...</p>
   </div>
 
   <!-- ================= CAMERA MODAL ================= -->
@@ -204,8 +198,8 @@
   </div>
 
   <!-- ================= AUTHENTICATION PAGE ================= -->
-  <div id="authPage" class="fixed inset-0 z-50 bg-gray-100 flex items-center justify-center p-4 overflow-y-auto">
-    <div class="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-md border-t-4 border-primary-600">
+  <div id="authPage" class="fixed inset-0 z-50 bg-transparent-always flex items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-white p-8 rounded-3xl shadow-custom w-full max-w-md border-t-4 border-custom modal-content border-t-primary-500">
       <div class="text-center mb-8">
         <div class="w-20 h-20 bg-gradient-to-tr from-primary-600 to-primary-400 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg text-white transform rotate-3">
             <i class="fas fa-cubes-stacked text-4xl"></i>
@@ -220,18 +214,18 @@
           <label class="block text-sm font-bold text-gray-700 mb-1">ชื่อผู้ใช้งาน</label>
           <div class="relative">
             <i class="fas fa-user absolute left-4 top-3.5 text-gray-400"></i>
-            <input type="text" id="loginUser" class="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none transition" placeholder="Username" required>
+            <input type="text" id="loginUser" class="w-full pl-11 pr-4 py-3 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none transition border-custom" placeholder="Username" required>
           </div>
         </div>
         <div>
           <label class="block text-sm font-bold text-gray-700 mb-1">รหัสผ่าน</label>
           <div class="relative">
             <i class="fas fa-lock absolute left-4 top-3.5 text-gray-400"></i>
-            <input type="password" id="loginPass" class="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none transition" placeholder="Password" required>
+            <input type="password" id="loginPass" class="w-full pl-11 pr-4 py-3 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none transition border-custom" placeholder="Password" required>
           </div>
         </div>
-        <button type="submit" class="w-full bg-primary-600 hover:bg-primary-700 text-white font-bold py-3.5 rounded-xl shadow-lg transition transform active:scale-95 text-lg">เข้าสู่ระบบ</button>
-        <div class="text-center pt-4 border-t mt-4">
+        <button type="submit" class="w-full btn-primary font-bold py-3.5 rounded-xl shadow-lg transition transform active:scale-95 text-lg">เข้าสู่ระบบ</button>
+        <div class="text-center pt-4 border-t border-custom mt-4">
           <button type="button" onclick="toggleAuth('register')" class="text-sm text-primary-600 hover:underline font-bold">ลงทะเบียนผู้ใช้งานใหม่</button>
         </div>
       </form>
@@ -241,19 +235,19 @@
         <h2 class="text-xl font-bold text-center text-gray-800 mb-4">สมัครสมาชิก</h2>
         <div>
            <label class="block text-xs font-bold text-gray-700 mb-1">Username</label>
-           <input type="text" id="regUser" class="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-emerald-500" placeholder="ตั้งชื่อผู้ใช้งาน" required>
+           <input type="text" id="regUser" class="w-full px-4 py-2 rounded-lg outline-none focus:ring-2 focus:ring-primary-500 border-custom" placeholder="ตั้งชื่อผู้ใช้งาน" required>
         </div>
         <div>
            <label class="block text-xs font-bold text-gray-700 mb-1">Password</label>
-           <input type="password" id="regPass" class="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-emerald-500" placeholder="ตั้งรหัสผ่าน" required>
+           <input type="password" id="regPass" class="w-full px-4 py-2 rounded-lg outline-none focus:ring-2 focus:ring-primary-500 border-custom" placeholder="ตั้งรหัสผ่าน" required>
         </div>
         <div>
            <label class="block text-xs font-bold text-gray-700 mb-1">ชื่อ-นามสกุล</label>
-           <input type="text" id="regName" class="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-emerald-500" placeholder="ชื่อจริง นามสกุลจริง" required>
+           <input type="text" id="regName" class="w-full px-4 py-2 rounded-lg outline-none focus:ring-2 focus:ring-primary-500 border-custom" placeholder="ชื่อจริง นามสกุลจริง" required>
         </div>
         <div>
            <label class="block text-xs font-bold text-gray-700 mb-1">กลุ่มงาน</label>
-           <select id="regGroup" class="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-emerald-500" required>
+           <select id="regGroup" class="w-full px-4 py-2 rounded-lg outline-none focus:ring-2 focus:ring-primary-500 border-custom" required>
               <option value="" disabled selected>-- เลือกกลุ่มงานที่สังกัด --</option>
               <option value="กลุ่มวิจัยเคมีดิน">กลุ่มวิจัยเคมีดิน</option>
               <option value="กลุ่มวิทยบริการ">กลุ่มวิทยบริการ</option>
@@ -266,7 +260,7 @@
               <option value="อื่นๆ">อื่นๆ</option>
            </select>
         </div>
-        <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl shadow-md transition mt-2">ยืนยันการสมัคร</button>
+        <button type="submit" class="w-full btn-primary font-bold py-3 rounded-xl shadow-md transition mt-2">ยืนยันการสมัคร</button>
         <div class="text-center mt-3">
           <button type="button" onclick="toggleAuth('login')" class="text-sm text-gray-500 hover:text-gray-700 font-medium">กลับไปหน้าเข้าสู่ระบบ</button>
         </div>
@@ -275,30 +269,30 @@
   </div>
 
   <!-- ================= MAIN APPLICATION LAYOUT ================= -->
-  <div id="mainApp" class="hidden fixed inset-0 flex bg-gray-50">
+  <div id="mainApp" class="hidden fixed inset-0 flex bg-transparent-always">
     
     <!-- UNIFIED SIDEBAR (For both Mobile & Desktop) -->
-    <aside id="sidebar" class="fixed inset-y-0 left-0 z-40 w-72 bg-white shadow-2xl flex flex-col transition-transform duration-300 transform -translate-x-full md:translate-x-0 border-r border-gray-200">
+    <aside id="sidebar" class="fixed inset-y-0 left-0 z-40 w-72 bg-white shadow-custom flex flex-col transition-transform duration-300 transform -translate-x-full md:translate-x-0 border-r border-custom modal-content">
       
       <!-- Sidebar Header & Logo -->
-      <div class="h-16 flex items-center justify-between px-6 border-b border-gray-200 bg-white shrink-0">
+      <div class="h-16 flex items-center justify-between px-6 border-b border-custom shrink-0">
          <div class="flex items-center gap-3">
             <div class="w-9 h-9 bg-primary-600 rounded-lg flex items-center justify-center text-white shadow-md">
                 <i class="fas fa-flask"></i>
             </div>
             <div>
-              <h2 class="font-bold text-lg leading-tight tracking-wide">CHMStockPro</h2>
-              <p class="text-[10px] font-medium uppercase tracking-widest">Inventory System</p>
+              <h2 class="font-bold text-lg leading-tight tracking-wide text-gray-800">CHMStockPro</h2>
+              <p class="text-[10px] font-medium uppercase tracking-widest text-gray-500">Inventory System</p>
             </div>
          </div>
-         <button class="md:hidden hover:text-primary-500" onclick="toggleSidebar(false)">
+         <button class="md:hidden text-gray-500 hover:text-primary-500" onclick="toggleSidebar(false)">
              <i class="fas fa-times text-xl"></i>
          </button>
       </div>
       
       <!-- Menus -->
       <nav class="flex-1 overflow-y-auto p-4 space-y-1">
-        <p class="px-3 text-xs font-bold uppercase tracking-widest mb-2 mt-2 opacity-70">Main Menu</p>
+        <p class="px-3 text-xs font-bold uppercase tracking-widest mb-2 mt-2 opacity-70 text-gray-500">Main Menu</p>
         <a onclick="route('dashboard')" class="nav-item" data-page="dashboard">
           <i class="fas fa-chart-pie w-8 text-center text-lg"></i> <span>ภาพรวม (Dashboard)</span>
         </a>
@@ -306,7 +300,7 @@
           <i class="fas fa-boxes-stacked w-8 text-center text-lg"></i> <span>รายการวัสดุ (Inventory)</span>
         </a>
         
-        <p class="px-3 text-xs font-bold uppercase tracking-widest mb-2 mt-6 opacity-70">Transactions</p>
+        <p class="px-3 text-xs font-bold uppercase tracking-widest mb-2 mt-6 opacity-70 text-gray-500">Transactions</p>
         <a onclick="route('withdraw')" class="nav-item" data-page="withdraw">
           <i class="fas fa-hand-holding w-8 text-center text-lg"></i> <span>เบิกวัสดุ (Withdraw)</span>
         </a>
@@ -314,15 +308,15 @@
           <i class="fas fa-truck-loading w-8 text-center text-lg"></i> <span>นำเข้าสต๊อก (Import)</span>
         </a>
         
-        <p class="px-3 text-xs font-bold uppercase tracking-widest mb-2 mt-6 opacity-70">Analytics</p>
+        <p class="px-3 text-xs font-bold uppercase tracking-widest mb-2 mt-6 opacity-70 text-gray-500">Analytics</p>
         <a onclick="route('reports')" class="nav-item" data-page="reports">
           <i class="fas fa-file-contract w-8 text-center text-lg"></i> <span>รายงาน & ประวัติ</span>
         </a>
         
         <!-- Admin Menu -->
         <div id="adminMenuSection" class="hidden">
-           <div class="my-4 border-t border-gray-200"></div>
-           <p class="px-3 text-xs font-bold uppercase tracking-widest mb-2 opacity-70">Administration</p>
+           <div class="my-4 border-t border-custom"></div>
+           <p class="px-3 text-xs font-bold uppercase tracking-widest mb-2 opacity-70 text-gray-500">Administration</p>
            <a onclick="route('users')" class="nav-item" data-page="users">
              <i class="fas fa-users-cog w-8 text-center text-lg"></i> <span>จัดการผู้ใช้งาน</span>
            </a>
@@ -330,31 +324,26 @@
              <i class="fas fa-history w-8 text-center text-lg"></i> <span>ประวัติการเข้าใช้งาน</span>
            </a>
            <a onclick="openThemeModal()" class="nav-item" data-page="theme">
-             <i class="fas fa-palette w-8 text-center text-lg text-primary-500"></i> <span>ตั้งค่ารูปแบบธีมระบบ</span>
+             <i class="fas fa-palette w-8 text-center text-lg text-primary-500"></i> <span class="text-primary-600 font-bold">ตั้งค่ารูปแบบธีมระบบ</span>
            </a>
         </div>
       </nav>
       
       <!-- Profile Section (Bottom) -->
-      <div class="p-4 border-t border-gray-200 bg-white">
+      <div class="p-4 border-t border-custom">
         <div class="flex items-center gap-3 p-2 rounded-lg transition cursor-default">
           <div class="w-10 h-10 rounded-full bg-gradient-to-r from-primary-500 to-primary-700 flex items-center justify-center text-white font-bold shadow-md" id="avatarInitials">U</div>
-          <div class="flex-1 min-w-0">
+          <div class="flex-1 min-w-0 text-gray-800">
             <p class="text-sm font-bold truncate" id="sidebarName">Username</p>
-            <p class="text-xs truncate uppercase opacity-70" id="sidebarRole">Role</p>
+            <p class="text-xs truncate uppercase opacity-70 text-gray-500" id="sidebarRole">Role</p>
           </div>
-          <button onclick="openChangePasswordModal()" class="hover:text-primary-400 transition p-1" title="เปลี่ยนรหัสผ่าน">
+          <button onclick="openChangePasswordModal()" class="text-gray-500 hover:text-primary-500 transition p-1" title="เปลี่ยนรหัสผ่าน">
              <i class="fas fa-key"></i>
           </button>
-          <button onclick="logout()" class="hover:text-red-400 transition p-1" title="ออกจากระบบ">
+          <button onclick="logout()" class="text-gray-500 hover:text-red-500 transition p-1" title="ออกจากระบบ">
              <i class="fas fa-sign-out-alt"></i>
           </button>
         </div>
-      </div>
-      
-      <!-- Credit Footer -->
-      <div class="text-center py-2 bg-white border-t border-gray-200 pb-4 opacity-50">
-        <span class="text-[10px] font-medium tracking-widest">Design by AAAMACKY</span>
       </div>
     </aside>
 
@@ -362,26 +351,26 @@
     <div id="sidebarOverlay" class="fixed inset-0 bg-black/60 z-30 hidden md:hidden backdrop-blur-sm transition-opacity" onclick="toggleSidebar(false)"></div>
 
     <!-- Main Content Wrapper -->
-    <div class="flex-1 flex flex-col min-w-0 h-full md:ml-72 transition-all duration-300 relative">
+    <div class="flex-1 flex flex-col min-w-0 h-full md:ml-72 transition-all duration-300 relative bg-transparent-always">
       
       <!-- Top Header -->
-      <header class="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 md:px-8 z-20 shrink-0 sticky top-0 shadow-sm transition-colors duration-500">
+      <header class="h-16 bg-white border-b border-custom flex items-center justify-between px-4 md:px-8 z-20 shrink-0 sticky top-0 shadow-sm modal-content">
         <div class="flex items-center gap-4">
           <!-- Hamburger Button (Mobile Only) -->
-          <button class="md:hidden hover:text-primary-600 p-2 rounded-lg transition" onclick="toggleSidebar(true)">
+          <button class="md:hidden text-gray-600 hover:text-primary-600 p-2 rounded-lg transition" onclick="toggleSidebar(true)">
             <i class="fas fa-bars text-xl"></i>
           </button>
-          <h2 class="text-xl font-black tracking-tight" id="pageTitle">ภาพรวมระบบ</h2>
+          <h2 class="text-xl font-black tracking-tight text-gray-800" id="pageTitle">ภาพรวมระบบ</h2>
         </div>
         
         <div class="flex items-center gap-3">
           <!-- Real-time Clock -->
-          <div id="topClock" class="hidden md:flex items-center px-3 py-1.5 bg-gray-100 rounded-full text-xs font-bold border border-gray-200 shadow-inner">
+          <div id="topClock" class="hidden md:flex items-center px-3 py-1.5 rounded-full text-xs font-bold border border-custom shadow-inner text-gray-600" style="background: var(--input-bg);">
              <i class="far fa-clock text-primary-500 mr-2"></i> <span>กำลังโหลด...</span>
           </div>
-          <div class="hidden sm:flex items-center px-4 py-1.5 bg-primary-50 border border-primary-100 rounded-full text-gray-800">
-            <i class="fas fa-building text-primary-400 text-xs mr-2"></i>
-            <span class="text-sm font-bold text-primary-700" id="headerGroupName">กลุ่มงาน</span>
+          <div class="hidden sm:flex items-center px-4 py-1.5 border border-primary-500/20 rounded-full" style="background: rgba(59, 130, 246, 0.1);">
+            <i class="fas fa-building text-primary-500 text-xs mr-2 drop-shadow-md"></i>
+            <span class="text-sm font-bold text-primary-600 drop-shadow-sm" id="headerGroupName">กลุ่มงาน</span>
           </div>
         </div>
       </header>
@@ -391,10 +380,10 @@
          <!-- Content will be dynamically injected here -->
       </main>
       
-      <!-- 6. CART FAB (Floating Action Button) -->
+      <!-- CART FAB (Floating Action Button) -->
       <div id="cartFab" class="fixed bottom-6 right-6 z-[60] hidden transition-all duration-300">
-        <button onclick="openCartModal()" class="relative flex items-center justify-center w-16 h-16 rounded-full shadow-2xl border-4 border-white transition transform active:scale-95 bg-primary-600 hover:bg-primary-700 text-white">
-            <i class="fas fa-shopping-cart text-2xl"></i>
+        <button onclick="openCartModal()" class="relative flex items-center justify-center w-16 h-16 rounded-full shadow-2xl border-4 border-white transition transform active:scale-95 btn-primary">
+            <i class="fas fa-shopping-cart text-2xl text-white"></i>
             <span id="cartBadge" class="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-black px-2 py-0.5 rounded-full shadow-lg border-2 border-white min-w-[24px] text-center">0</span>
         </button>
       </div>
@@ -405,57 +394,66 @@
 
   <!-- 1. ADD/EDIT MATERIAL MODAL -->
   <div id="materialModal" class="fixed inset-0 bg-black/60 z-[70] hidden flex items-center justify-center p-4 backdrop-blur-sm">
-    <div class="bg-white rounded-2xl w-full max-w-lg shadow-2xl flex flex-col max-h-[90vh]">
-      <div class="p-5 border-b flex justify-between items-center bg-gray-50 rounded-t-2xl">
-        <h3 class="text-lg font-bold"><i class="fas fa-box text-primary-500 mr-2"></i> จัดการข้อมูลวัสดุ</h3>
-        <button type="button" onclick="closeModal('materialModal')" class="hover:text-primary-500 transition"><i class="fas fa-times text-xl"></i></button>
+    <div class="bg-white rounded-2xl w-full max-w-lg shadow-2xl flex flex-col max-h-[90vh] border-custom modal-content">
+      <div class="p-5 border-b border-custom flex justify-between items-center bg-gray-50 rounded-t-2xl">
+        <h3 class="text-lg font-bold text-gray-800"><i class="fas fa-box text-primary-500 mr-2"></i> จัดการข้อมูลวัสดุ</h3>
+        <button type="button" onclick="closeModal('materialModal')" class="text-gray-500 hover:text-primary-500 transition"><i class="fas fa-times text-xl"></i></button>
       </div>
       <form id="materialForm" class="p-6 space-y-5 overflow-y-auto">
         <input type="hidden" id="matId">
         
         <div>
-          <label class="block text-sm font-bold mb-1">ประเภท Test Kit <span class="text-red-500">*</span></label>
-          <select id="matType" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none transition" required>
-            <option value="" disabled selected>-- เลือกประเภท --</option>
-            <option value="pH Test Kit">pH Test Kit</option>
-            <option value="NPK Test Kit">NPK Test Kit</option>
-            <option value="Saline Soil Test Kit">Saline Soil Test Kit</option>
-            <option value="อื่นๆ">อื่นๆ</option>
-          </select>
+          <label class="block text-sm font-bold mb-1 text-gray-700">ประเภท (Type) <span class="text-red-500">*</span></label>
+          <div class="flex flex-col gap-2">
+              <select id="matTypeSelect" onchange="handleModalTypeChange()" class="w-full px-4 py-2 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none transition border-custom" required>
+                <!-- Injected via JS -->
+              </select>
+              <input type="text" id="matTypeNew" class="hidden w-full px-4 py-2 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none transition border-custom" placeholder="ระบุประเภทใหม่...">
+          </div>
         </div>
 
         <div>
-          <label class="block text-sm font-bold mb-1">ชื่อวัสดุ <span class="text-red-500">*</span></label>
-          <input type="text" id="matName" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none transition" placeholder="ระบุชื่อวัสดุ / อุปกรณ์" required>
+          <label class="block text-sm font-bold mb-1 text-gray-700">หมวดหมู่ย่อย (Category) <span class="text-red-500">*</span></label>
+          <div class="flex flex-col gap-2">
+              <select id="matCatSelect" onchange="handleModalCatChange()" class="w-full px-4 py-2 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none transition border-custom" required>
+                <!-- Injected via JS based on Type -->
+              </select>
+              <input type="text" id="matCatNew" class="hidden w-full px-4 py-2 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none transition border-custom" placeholder="ระบุหมวดหมู่ใหม่...">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-sm font-bold mb-1 text-gray-700">ชื่อวัสดุ <span class="text-red-500">*</span></label>
+          <input type="text" id="matName" class="w-full px-4 py-2 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none transition border-custom" placeholder="ระบุชื่อวัสดุ / อุปกรณ์" required>
         </div>
         
         <div>
-          <label class="block text-sm font-bold mb-1">ชั้นวาง / ที่เก็บ</label>
-          <input type="text" id="matLocation" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none transition" placeholder="ระบุพิกัดที่เก็บ เช่น ตู้ A ชั้น 2" required>
+          <label class="block text-sm font-bold mb-1 text-gray-700">ชั้นวาง / ที่เก็บ</label>
+          <input type="text" id="matLocation" class="w-full px-4 py-2 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none transition border-custom" placeholder="ระบุพิกัดที่เก็บ เช่น ตู้ A ชั้น 2" required>
         </div>
 
         <div>
-          <label class="block text-sm font-bold mb-2">รูปภาพประกอบ</label>
+          <label class="block text-sm font-bold mb-2 text-gray-700">รูปภาพประกอบ</label>
           <div class="flex gap-2 mb-3">
-            <button type="button" onclick="toggleImgInput('file', 'mat')" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 border border-gray-200 rounded-xl text-xs font-bold transition">อัปโหลดไฟล์</button>
-            <button type="button" onclick="toggleImgInput('url', 'mat')" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 border border-gray-200 rounded-xl text-xs font-bold transition">ใช้ลิงก์ URL</button>
-            <button type="button" onclick="openCamera('mat')" class="px-4 py-2 bg-primary-50 hover:bg-primary-100 text-primary-700 border border-primary-200 rounded-xl text-xs font-bold transition flex items-center gap-2"><i class="fas fa-camera"></i> ถ่ายรูป</button>
+            <button type="button" onclick="toggleImgInput('file', 'mat')" class="px-4 py-2 border border-custom rounded-xl text-xs font-bold transition text-gray-700" style="background: var(--input-bg);">อัปโหลดไฟล์</button>
+            <button type="button" onclick="toggleImgInput('url', 'mat')" class="px-4 py-2 border border-custom rounded-xl text-xs font-bold transition text-gray-700" style="background: var(--input-bg);">ใช้ลิงก์ URL</button>
+            <button type="button" onclick="openCamera('mat')" class="px-4 py-2 text-primary-600 border border-primary-500/30 rounded-xl text-xs font-bold transition flex items-center gap-2" style="background: rgba(59,130,246,0.1);"><i class="fas fa-camera"></i> ถ่ายรูป</button>
           </div>
           
-          <div id="matInputFile" class="file-input-wrapper border-2 border-dashed border-gray-300 rounded-xl p-4 h-40 flex flex-col items-center justify-center bg-gray-50 hover:bg-gray-100 transition relative">
+          <div id="matInputFile" class="file-input-wrapper border-2 border-dashed rounded-xl p-4 h-40 flex flex-col items-center justify-center transition relative border-custom" style="background: var(--input-bg);">
             <input type="file" id="matImgFile" accept="image/*" class="file-input-overlay" onchange="previewImage(this, 'mat')">
-            <div id="matPreview" class="absolute inset-0 bg-contain bg-center bg-no-repeat rounded-xl hidden z-10 bg-white"></div>
+            <div id="matPreview" class="absolute inset-0 bg-contain bg-center bg-no-repeat rounded-xl hidden z-10" style="background-color: var(--card-bg);"></div>
             <div id="matPlaceholder" class="text-center pointer-events-none z-0">
-                <i class="fas fa-cloud-upload-alt text-4xl text-primary-400 mb-2"></i>
-                <p class="text-sm font-bold mt-2">คลิกเพื่อเลือกไฟล์รูปภาพ</p>
-                <p class="text-xs opacity-70 mt-1">รองรับ JPG, PNG</p>
+                <i class="fas fa-cloud-upload-alt text-4xl text-primary-500 mb-2 drop-shadow-md"></i>
+                <p class="text-sm font-bold mt-2 text-gray-700">คลิกเพื่อเลือกไฟล์รูปภาพ</p>
+                <p class="text-xs opacity-70 mt-1 text-gray-500">รองรับ JPG, PNG</p>
             </div>
           </div>
-          <input type="url" id="matImgUrl" class="hidden w-full px-4 py-2 border border-gray-300 rounded-xl mt-2 outline-none focus:ring-2 focus:ring-primary-500" placeholder="https://example.com/image.jpg">
+          <input type="url" id="matImgUrl" class="hidden w-full px-4 py-2 rounded-xl mt-2 outline-none focus:ring-2 focus:ring-primary-500 border-custom" placeholder="https://example.com/image.jpg">
         </div>
         
-        <div class="pt-4 border-t border-gray-100">
-            <button type="submit" class="w-full bg-primary-600 hover:bg-primary-700 text-white font-bold py-3.5 rounded-xl shadow-lg transition transform active:scale-95 text-lg">บันทึกข้อมูล</button>
+        <div class="pt-4 border-t border-custom">
+            <button type="submit" class="w-full btn-primary font-bold py-3.5 rounded-xl shadow-lg transition transform active:scale-95 text-lg">บันทึกข้อมูล</button>
         </div>
       </form>
     </div>
@@ -463,33 +461,33 @@
 
   <!-- 2. CART TRANSACTIONS MODAL -->
   <div id="cartModal" class="fixed inset-0 bg-black/60 z-[80] hidden flex items-center justify-center p-4 backdrop-blur-sm">
-    <div class="bg-white rounded-2xl w-full max-w-2xl shadow-2xl flex flex-col max-h-[90vh]">
-        <div class="p-5 border-b flex justify-between items-center bg-gray-50 rounded-t-2xl">
-            <h3 id="cartModalTitle" class="text-lg font-bold"><i class="fas fa-list-check text-primary-500 mr-2"></i> รายการที่เลือก</h3>
-            <button type="button" onclick="closeModal('cartModal')" class="hover:text-primary-500 transition"><i class="fas fa-times text-xl"></i></button>
+    <div class="bg-white rounded-2xl w-full max-w-2xl shadow-2xl flex flex-col max-h-[90vh] border-custom modal-content">
+        <div class="p-5 border-b border-custom flex justify-between items-center bg-gray-50 rounded-t-2xl">
+            <h3 id="cartModalTitle" class="text-lg font-bold text-gray-800"><i class="fas fa-list-check text-primary-500 mr-2"></i> รายการที่เลือก</h3>
+            <button type="button" onclick="closeModal('cartModal')" class="text-gray-500 hover:text-primary-500 transition"><i class="fas fa-times text-xl"></i></button>
         </div>
         
-        <div class="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50/50" id="cartItemsContainer">
+        <div class="flex-1 overflow-y-auto p-4 space-y-3" id="cartItemsContainer" style="background: rgba(0,0,0,0.02);">
             <!-- Dynamically injected -->
         </div>
         
-        <form id="cartForm" class="p-4 sm:p-5 border-t border-gray-200 bg-white rounded-b-2xl">
+        <form id="cartForm" class="p-4 sm:p-5 border-t border-custom bg-white rounded-b-2xl">
             <div class="flex flex-col sm:flex-row gap-4 mb-5">
                 <div class="w-full sm:w-1/2">
-                    <label class="block text-[11px] sm:text-xs font-bold mb-1">วันที่ทำรายการ </label>
-                    <input type="date" id="cartDate" class="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-primary-500 outline-none transition box-border">
+                    <label class="block text-[11px] sm:text-xs font-bold mb-1 text-gray-700">วันที่ทำรายการ </label>
+                    <input type="date" id="cartDate" class="w-full px-3 py-2 rounded-xl text-sm focus:ring-2 focus:ring-primary-500 outline-none transition box-border border-custom">
                 </div>
                 <div class="w-full sm:w-1/2">
-                    <label id="cartRefLabel" class="block text-[11px] sm:text-xs font-bold mb-1">อ้างอิงเอกสาร / หมายเหตุ</label>
-                    <input type="text" id="cartRef" class="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-primary-500 outline-none transition box-border" placeholder="ระบุเลขที่ใบสั่งซื้อ หรือที่มา">
+                    <label id="cartRefLabel" class="block text-[11px] sm:text-xs font-bold mb-1 text-gray-700">อ้างอิงเอกสาร / หมายเหตุ</label>
+                    <input type="text" id="cartRef" class="w-full px-3 py-2 rounded-xl text-sm focus:ring-2 focus:ring-primary-500 outline-none transition box-border border-custom" placeholder="ระบุเลขที่ใบสั่งซื้อ หรือที่มา">
                 </div>
             </div>
             
             <div class="flex gap-3">
                 <button type="button" id="btnExportCartPDF" onclick="exportCartPDF()" class="w-1/3 py-3.5 rounded-xl font-bold text-white shadow-lg transition transform active:scale-95 text-sm bg-gray-800 hover:bg-gray-900 flex items-center justify-center gap-2">
-                    <i class="fas fa-file-pdf text-lg"></i> ใบรายการ
+                    <i class="fas fa-file-pdf text-lg text-white"></i> ใบรายการ
                 </button>
-                <button type="submit" id="btnCartSubmit" class="w-2/3 py-3.5 rounded-xl font-bold text-white shadow-lg transition transform active:scale-95 text-lg bg-primary-600 hover:bg-primary-700">
+                <button type="submit" id="btnCartSubmit" class="w-2/3 py-3.5 rounded-xl font-bold text-white shadow-lg transition transform active:scale-95 text-lg btn-primary">
                     ยืนยันทำรายการทั้งหมด
                 </button>
             </div>
@@ -499,16 +497,16 @@
 
   <!-- 3. USER PERMISSIONS MODAL -->
   <div id="userPermModal" class="fixed inset-0 bg-black/60 z-[80] hidden flex items-center justify-center p-4 backdrop-blur-sm">
-    <div class="bg-white rounded-2xl w-full max-w-md shadow-2xl flex flex-col max-h-[90vh]">
-      <div class="p-5 border-b flex justify-between items-center bg-gray-50 rounded-t-2xl">
-        <h3 class="text-lg font-bold"><i class="fas fa-shield-alt text-primary-500 mr-2"></i> กำหนดสิทธิ์ผู้ใช้งาน</h3>
-        <button type="button" onclick="closeModal('userPermModal')" class="hover:text-primary-500 transition"><i class="fas fa-times text-xl"></i></button>
+    <div class="bg-white rounded-2xl w-full max-w-md shadow-2xl flex flex-col max-h-[90vh] border-custom modal-content">
+      <div class="p-5 border-b border-custom flex justify-between items-center bg-gray-50 rounded-t-2xl">
+        <h3 class="text-lg font-bold text-gray-800"><i class="fas fa-shield-alt text-primary-500 mr-2"></i> กำหนดสิทธิ์ผู้ใช้งาน</h3>
+        <button type="button" onclick="closeModal('userPermModal')" class="text-gray-500 hover:text-primary-500 transition"><i class="fas fa-times text-xl"></i></button>
       </div>
       <div class="p-6 overflow-y-auto">
-        <div class="flex items-center gap-4 mb-6 p-4 bg-primary-50 rounded-xl border border-primary-100">
+        <div class="flex items-center gap-4 mb-6 p-4 rounded-xl border border-primary-500/20" style="background: rgba(59,130,246,0.05);">
            <div class="w-12 h-12 bg-primary-600 text-white rounded-full flex items-center justify-center font-bold text-xl shadow-md" id="permUserInitials">U</div>
            <div>
-              <h4 class="font-bold text-lg" id="permUserName">User Name</h4>
+              <h4 class="font-bold text-lg text-gray-800" id="permUserName">User Name</h4>
               <p class="text-xs text-primary-500 font-bold uppercase tracking-wider" id="permUserGroup">Group Name</p>
            </div>
         </div>
@@ -516,10 +514,10 @@
         <input type="hidden" id="permUserId">
         <div class="space-y-4">
            <!-- View Stock (Default) -->
-           <label class="flex items-center justify-between p-4 border border-gray-200 rounded-xl bg-gray-50 cursor-not-allowed">
+           <label class="flex items-center justify-between p-4 border border-custom rounded-xl cursor-not-allowed" style="background: var(--input-bg);">
               <div class="flex items-center gap-3">
-                  <i class="fas fa-eye text-lg"></i>
-                  <span class="text-sm font-bold">ดูข้อมูล (View Only)</span>
+                  <i class="fas fa-eye text-lg text-gray-400"></i>
+                  <span class="text-sm font-bold text-gray-600">ดูข้อมูล (View Only)</span>
               </div>
               <div class="relative inline-flex items-center">
                 <input type="checkbox" id="perm_view_stock" class="sr-only peer toggle-checkbox" checked disabled>
@@ -528,44 +526,44 @@
            </label>
            
            <!-- Withdraw -->
-           <label class="flex items-center justify-between p-4 border border-gray-200 rounded-xl hover:bg-gray-100 hover:border-gray-300 cursor-pointer transition group">
+           <label class="flex items-center justify-between p-4 border border-custom rounded-xl cursor-pointer transition group hover:border-rose-500/50" style="background: var(--card-bg);">
               <div class="flex items-center gap-3">
-                  <i class="fas fa-hand-holding group-hover:text-rose-500 text-lg transition"></i>
-                  <span class="text-sm font-bold">สิทธิ์เบิกวัสดุ (Withdraw)</span>
+                  <i class="fas fa-hand-holding text-gray-400 group-hover:text-rose-500 text-lg transition"></i>
+                  <span class="text-sm font-bold text-gray-700">สิทธิ์เบิกวัสดุ (Withdraw)</span>
               </div>
               <div class="relative inline-flex items-center cursor-pointer">
                 <input type="checkbox" id="perm_withdraw_material" class="sr-only peer toggle-checkbox">
-                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500 toggle-label shadow-inner"></div>
+                <div class="w-11 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500 toggle-label shadow-inner"></div>
               </div>
            </label>
 
            <!-- Import -->
-           <label class="flex items-center justify-between p-4 border border-gray-200 rounded-xl hover:bg-gray-100 hover:border-gray-300 cursor-pointer transition group">
+           <label class="flex items-center justify-between p-4 border border-custom rounded-xl cursor-pointer transition group hover:border-emerald-500/50" style="background: var(--card-bg);">
               <div class="flex items-center gap-3">
-                  <i class="fas fa-truck-loading group-hover:text-emerald-500 text-lg transition"></i>
-                  <span class="text-sm font-bold">สิทธิ์นำเข้าสต๊อก (Import)</span>
+                  <i class="fas fa-truck-loading text-gray-400 group-hover:text-emerald-500 text-lg transition"></i>
+                  <span class="text-sm font-bold text-gray-700">สิทธิ์นำเข้าสต๊อก (Import)</span>
               </div>
               <div class="relative inline-flex items-center cursor-pointer">
                 <input type="checkbox" id="perm_import_material" class="sr-only peer toggle-checkbox">
-                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500 toggle-label shadow-inner"></div>
+                <div class="w-11 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500 toggle-label shadow-inner"></div>
               </div>
            </label>
 
            <!-- Manage -->
-           <label class="flex items-center justify-between p-4 border border-gray-200 rounded-xl hover:bg-gray-100 hover:border-gray-300 cursor-pointer transition group">
+           <label class="flex items-center justify-between p-4 border border-custom rounded-xl cursor-pointer transition group hover:border-amber-500/50" style="background: var(--card-bg);">
               <div class="flex items-center gap-3">
-                  <i class="fas fa-edit group-hover:text-amber-500 text-lg transition"></i>
-                  <span class="text-sm font-bold">จัดการรายการวัสดุ (Add/Edit)</span>
+                  <i class="fas fa-edit text-gray-400 group-hover:text-amber-500 text-lg transition"></i>
+                  <span class="text-sm font-bold text-gray-700">จัดการรายการวัสดุ (Add/Edit)</span>
               </div>
               <div class="relative inline-flex items-center cursor-pointer">
                 <input type="checkbox" id="perm_manage_material" class="sr-only peer toggle-checkbox">
-                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500 toggle-label shadow-inner"></div>
+                <div class="w-11 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500 toggle-label shadow-inner"></div>
               </div>
            </label>
         </div>
 
-        <div class="pt-6 border-t border-gray-100 mt-6">
-            <button onclick="savePermissions()" class="w-full bg-primary-600 hover:bg-primary-700 text-white py-3.5 rounded-xl font-bold shadow-lg transition transform active:scale-95 text-lg">
+        <div class="pt-6 border-t border-custom mt-6">
+            <button onclick="savePermissions()" class="w-full btn-primary text-white py-3.5 rounded-xl font-bold shadow-lg transition transform active:scale-95 text-lg">
                 บันทึกการตั้งค่าสิทธิ์
             </button>
         </div>
@@ -575,26 +573,26 @@
 
   <!-- 4. CHANGE PASSWORD MODAL -->
   <div id="changePasswordModal" class="fixed inset-0 bg-black/60 z-[80] hidden flex items-center justify-center p-4 backdrop-blur-sm">
-    <div class="bg-white rounded-2xl w-full max-w-sm shadow-2xl flex flex-col">
-      <div class="p-5 border-b flex justify-between items-center bg-gray-50 rounded-t-2xl">
-        <h3 class="text-lg font-bold"><i class="fas fa-key text-primary-500 mr-2"></i> เปลี่ยนรหัสผ่าน</h3>
-        <button type="button" onclick="closeModal('changePasswordModal')" class="hover:text-primary-500 transition"><i class="fas fa-times text-xl"></i></button>
+    <div class="bg-white rounded-2xl w-full max-w-sm shadow-2xl flex flex-col border-custom modal-content">
+      <div class="p-5 border-b border-custom flex justify-between items-center bg-gray-50 rounded-t-2xl">
+        <h3 class="text-lg font-bold text-gray-800"><i class="fas fa-key text-primary-500 mr-2"></i> เปลี่ยนรหัสผ่าน</h3>
+        <button type="button" onclick="closeModal('changePasswordModal')" class="text-gray-500 hover:text-primary-500 transition"><i class="fas fa-times text-xl"></i></button>
       </div>
       <form id="changePasswordForm" class="p-6 space-y-4">
         <div>
-          <label class="block text-sm font-bold mb-1">รหัสผ่านเดิม</label>
-          <input type="password" id="oldPassword" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none transition" required>
+          <label class="block text-sm font-bold mb-1 text-gray-700">รหัสผ่านเดิม</label>
+          <input type="password" id="oldPassword" class="w-full px-4 py-2 border-custom rounded-xl focus:ring-2 focus:ring-primary-500 outline-none transition" required>
         </div>
         <div>
-          <label class="block text-sm font-bold mb-1">รหัสผ่านใหม่</label>
-          <input type="password" id="newPassword" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none transition" required>
+          <label class="block text-sm font-bold mb-1 text-gray-700">รหัสผ่านใหม่</label>
+          <input type="password" id="newPassword" class="w-full px-4 py-2 border-custom rounded-xl focus:ring-2 focus:ring-primary-500 outline-none transition" required>
         </div>
         <div>
-          <label class="block text-sm font-bold mb-1">ยืนยันรหัสผ่านใหม่</label>
-          <input type="password" id="confirmNewPassword" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none transition" required>
+          <label class="block text-sm font-bold mb-1 text-gray-700">ยืนยันรหัสผ่านใหม่</label>
+          <input type="password" id="confirmNewPassword" class="w-full px-4 py-2 border-custom rounded-xl focus:ring-2 focus:ring-primary-500 outline-none transition" required>
         </div>
-        <div class="pt-4 border-t border-gray-100">
-            <button type="submit" class="w-full bg-primary-600 hover:bg-primary-700 text-white font-bold py-3 rounded-xl shadow-lg transition transform active:scale-95">บันทึกรหัสผ่านใหม่</button>
+        <div class="pt-4 border-t border-custom">
+            <button type="submit" class="w-full btn-primary text-white font-bold py-3 rounded-xl shadow-lg transition transform active:scale-95">บันทึกรหัสผ่านใหม่</button>
         </div>
       </form>
     </div>
@@ -610,16 +608,16 @@
   
   <!-- 6. THEME SETTINGS MODAL (Admin Only) -->
   <div id="themeModal" class="fixed inset-0 bg-black/60 z-[80] hidden flex items-center justify-center p-4 backdrop-blur-sm">
-      <div class="bg-white rounded-2xl w-full max-w-4xl shadow-2xl flex flex-col max-h-[90vh]">
-        <div class="p-5 border-b flex justify-between items-center bg-gray-50 rounded-t-2xl">
-          <h3 class="text-lg font-bold"><i class="fas fa-palette text-primary-500 mr-2"></i> ตั้งค่ารูปแบบ UI/UX (Themes)</h3>
-          <button type="button" onclick="closeModal('themeModal')" class="hover:text-primary-500 transition"><i class="fas fa-times text-xl"></i></button>
+      <div class="bg-white rounded-2xl w-full max-w-4xl shadow-2xl flex flex-col max-h-[90vh] border-custom modal-content">
+        <div class="p-5 border-b border-custom flex justify-between items-center bg-gray-50 rounded-t-2xl">
+          <h3 class="text-lg font-bold text-gray-800"><i class="fas fa-palette text-primary-500 mr-2"></i> ตั้งค่ารูปแบบ UI/UX (Themes)</h3>
+          <button type="button" onclick="closeModal('themeModal')" class="text-gray-500 hover:text-primary-500 transition"><i class="fas fa-times text-xl"></i></button>
         </div>
         <div class="p-6 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 overflow-y-auto max-h-[65vh]" id="themeContainer">
            <!-- Generated via JS -->
         </div>
-        <div class="p-4 border-t border-gray-100 bg-gray-50 rounded-b-2xl">
-            <p class="text-[11px] font-bold text-center"><i class="fas fa-info-circle mr-1"></i> การเปลี่ยนธีมจะเปลี่ยนรูปร่างและหน้าตาของทั้งระบบ และมีผลกับทุกคนทันที</p>
+        <div class="p-4 border-t border-custom bg-gray-50 rounded-b-2xl">
+            <p class="text-[11px] font-bold text-center text-gray-600"><i class="fas fa-info-circle mr-1"></i> การเปลี่ยนธีมจะเปลี่ยนรูปร่างและหน้าตาของทั้งระบบ และมีผลกับทุกคนทันที</p>
         </div>
       </div>
   </div>
@@ -629,69 +627,110 @@
     // --- 1. CONFIGURATION & THEMES ---
     var WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxdK7zgf3YLbUPUEEgBhfe2jP2g6J4jvgGLhNUJnTd4WGlL9OJUVL5wJFBI6iMV9d4o/exec";
     
+    // รวมมิตร 16 ธีมระดับพรีเมียม!
     var THEMES = {
-        'modern': { name: 'Modern Blue', type: 'light', bg: 'https://images.unsplash.com/photo-1557682250-33bd709cbe85?q=80&w=2564&auto=format&fit=crop', icon: 'fas fa-layer-group', desc: 'คลีน มินิมอล', p50: '#eff6ff', p100: '#dbeafe', p200: '#bfdbfe', p400: '#60a5fa', p500: '#3b82f6', p600: '#2563eb', p700: '#1d4ed8' },
-        'dark': { name: 'Dark Mode', type: 'dark', bg: 'https://images.unsplash.com/photo-1519608487953-e999c86e7455?q=80&w=2564&auto=format&fit=crop', icon: 'fas fa-moon', desc: 'โหมดกลางคืน', p50: '#f8fafc', p100: '#f1f5f9', p200: '#e2e8f0', p400: '#94a3b8', p500: '#64748b', p600: '#475569', p700: '#334155' },
-        'glass': { name: 'Vibrant Glass', type: 'dark', bg: 'https://images.unsplash.com/photo-1579546929518-9e396f3cc809?q=80&w=2564&auto=format&fit=crop', icon: 'fas fa-droplet', desc: 'กระจกใสสีสดใส', p50: '#f5f3ff', p100: '#ede9fe', p200: '#ddd6fe', p400: '#a78bfa', p500: '#8b5cf6', p600: '#7c3aed', p700: '#6d28d9' },
-        'brutal': { name: 'Abstract Art', type: 'light', bg: 'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?q=80&w=2564&auto=format&fit=crop', icon: 'fas fa-shapes', desc: 'ศิลปะป๊อปอาร์ต', p50: '#fef08a', p100: '#fde047', p200: '#facc15', p400: '#eab308', p500: '#ca8a04', p600: '#a16207', p700: '#713f12' },
-        'neumorph': { name: 'Neumorphism', type: 'light', bg: 'https://images.unsplash.com/photo-1586075010923-2dd4570fb338?q=80&w=2564&auto=format&fit=crop', icon: 'fas fa-dot-circle', desc: 'นูนลึกเนียนตา', p50: '#f1f5f9', p100: '#e2e8f0', p200: '#cbd5e1', p400: '#94a3b8', p500: '#64748b', p600: '#475569', p700: '#334155' },
-        'forest': { name: 'Forest', type: 'dark', bg: 'https://images.unsplash.com/photo-1511497584788-876760111969?q=80&w=2564&auto=format&fit=crop', icon: 'fas fa-tree', desc: 'ป่าธรรมชาติ', p50: '#f0fdf4', p100: '#dcfce7', p200: '#bbf7d0', p400: '#4ade80', p500: '#22c55e', p600: '#16a34a', p700: '#15803d' },
-        'ocean': { name: 'Deep Ocean', type: 'dark', bg: 'https://images.unsplash.com/photo-1518837695005-2083093ee35b?q=80&w=2564&auto=format&fit=crop', icon: 'fas fa-water', desc: 'โทนสีฟ้าคราม', p50: '#ecfeff', p100: '#cffafe', p200: '#a5f3fc', p400: '#22d3ee', p500: '#06b6d4', p600: '#0891b2', p700: '#0e7490' },
-        'sunset': { name: 'Sunset Warm', type: 'dark', bg: 'https://images.unsplash.com/photo-1472120435266-53107fd0fd68?q=80&w=2564&auto=format&fit=crop', icon: 'fas fa-sun', desc: 'โทนสีส้มอบอุ่น', p50: '#fff7ed', p100: '#ffedd5', p200: '#fed7aa', p400: '#fb923c', p500: '#f97316', p600: '#ea580c', p700: '#c2410c' },
-        'coffee': { name: 'Coffee Mocha', type: 'dark', bg: 'https://images.unsplash.com/photo-1497935586351-b67a49e012bf?q=80&w=2564&auto=format&fit=crop', icon: 'fas fa-mug-hot', desc: 'โทนสีน้ำตาลกาแฟ', p50: '#fdf8f6', p100: '#f2e8e5', p200: '#eaddd7', p400: '#c5a89f', p500: '#a98074', p600: '#8a655b', p700: '#6a4a42' },
-        'sakura': { name: 'Pink Sakura', type: 'light', bg: 'https://images.unsplash.com/photo-1522383225653-ed111181a951?q=80&w=2564&auto=format&fit=crop', icon: 'fas fa-fan', desc: 'ดอกซากุระ', p50: '#fdf2f8', p100: '#fce7f3', p200: '#fbcfe8', p400: '#f472b6', p500: '#ec4899', p600: '#db2777', p700: '#be185d' },
-        'cyberpunk': { name: 'Cyberpunk', type: 'dark', bg: 'https://images.unsplash.com/photo-1515630278258-407f66498911?q=80&w=2564&auto=format&fit=crop', icon: 'fas fa-city', desc: 'นีออนกลางคืน', p50: '#fdf4ff', p100: '#fae8ff', p200: '#f5d0fe', p400: '#e879f9', p500: '#d946ef', p600: '#c026d3', p700: '#a21caf' },
-        'minimal': { name: 'Monochrome', type: 'light', bg: 'https://images.unsplash.com/photo-1476304884326-cd2c88572c5f?q=80&w=2564&auto=format&fit=crop', icon: 'fas fa-square', desc: 'ขาวดำเรียบง่าย', p50: '#f4f4f5', p100: '#e4e4e7', p200: '#d4d4d8', p400: '#a1a1aa', p500: '#71717a', p600: '#52525b', p700: '#3f3f46' },
-        'retro': { name: '80s Retro', type: 'dark', bg: 'https://images.unsplash.com/photo-1550684376-efcbd6e3f031?q=80&w=2564&auto=format&fit=crop', icon: 'fas fa-compact-disc', desc: 'วินเทจซินธ์เวฟ', p50: '#fdf4ff', p100: '#fae8ff', p200: '#f5d0fe', p400: '#e879f9', p500: '#d946ef', p600: '#c026d3', p700: '#a21caf' },
-        'terminal': { name: 'Terminal', type: 'dark', bg: 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?q=80&w=2564&auto=format&fit=crop', icon: 'fas fa-terminal', desc: 'แฮกเกอร์', p50: '#f0fdf4', p100: '#dcfce7', p200: '#bbf7d0', p400: '#4ade80', p500: '#22c55e', p600: '#16a34a', p700: '#15803d' },
-        'luxury': { name: 'Gold Luxury', type: 'dark', bg: 'https://images.unsplash.com/photo-1605806616949-1e87b487cb2a?q=80&w=2564&auto=format&fit=crop', icon: 'fas fa-crown', desc: 'หรูหราดำ-ทอง', p50: '#fefce8', p100: '#fef9c3', p200: '#fef08a', p400: '#facc15', p500: '#eab308', p600: '#ca8a04', p700: '#a16207' }
+        // --- หมวดทางการ / เรียบง่าย (Formal / Solid) ---
+        'classic_light': { name: 'Classic Blue', type: 'light', glass: false, bg: '#f3f4f6', card: '#ffffff', text: '#0f172a', border: '#e2e8f0', p500: '#3b82f6', icon: 'fas fa-briefcase', desc: 'ทางการ คลาสสิก', input: '#f8fafc' },
+        'corporate': { name: 'Corporate Dark', type: 'dark', glass: false, bg: '#0f172a', card: '#1e293b', text: '#f8fafc', border: '#334155', p500: '#3b82f6', icon: 'fas fa-building', desc: 'สุขุม ดูเป็นมืออาชีพ', input: '#0f172a' },
+        'lab_clean': { name: 'Lab Clean', type: 'light', glass: false, bg: '#f0fdfa', card: '#ffffff', text: '#0f766e', border: '#ccfbf1', p500: '#0d9488', icon: 'fas fa-vial', desc: 'สะอาดตา โทนห้องแล็บ', input: '#ffffff' },
+        'minimal': { name: 'Minimal White', type: 'light', glass: false, bg: '#ffffff', card: '#f8fafc', text: '#1e293b', border: '#e2e8f0', p500: '#64748b', icon: 'fas fa-square', desc: 'ขาวสะอาดตา', input: '#ffffff' },
+        'paper_warm': { name: 'Warm Paper', type: 'light', glass: false, bg: '#fdfbf7', card: '#ffffff', text: '#57534e', border: '#e7e5e4', p500: '#d97706', icon: 'fas fa-scroll', desc: 'สีนวลถนอมสายตา', input: '#ffffff' },
+        'soft_gray': { name: 'Soft Gray', type: 'light', glass: false, bg: '#e5e7eb', card: '#ffffff', text: '#3f3f46', border: '#d4d4d8', p500: '#52525b', icon: 'fas fa-desktop', desc: 'เทาอ่อน เรียบง่ายสุด', input: '#f4f4f5' },
+        'emerald': { name: 'Emerald Solid', type: 'light', glass: false, bg: '#f0fdf4', card: '#ffffff', text: '#064e3b', border: '#bbf7d0', p500: '#10b981', icon: 'fas fa-leaf', desc: 'โทนเขียวสบายตา', input: '#f0fdf4' },
+        'rose': { name: 'Rose Solid', type: 'light', glass: false, bg: '#fff1f2', card: '#ffffff', text: '#881337', border: '#fecdd3', p500: '#f43f5e', icon: 'fas fa-heart', desc: 'โทนแดงชมพูสดใส', input: '#fff1f2' },
+        'purple': { name: 'Purple Violet', type: 'light', glass: false, bg: '#f5f3ff', card: '#ffffff', text: '#4c1d95', border: '#ddd6fe', p500: '#8b5cf6', icon: 'fas fa-gem', desc: 'โทนม่วงเรียบหรู', input: '#f5f3ff' },
+        'coffee': { name: 'Coffee Earth', type: 'light', glass: false, bg: '#faf6f0', card: '#ffffff', text: '#4a362f', border: '#eaddd7', p500: '#8a655b', icon: 'fas fa-mug-hot', desc: 'น้ำตาลเอิร์ธโทน', input: '#faf6f0' },
+        'ocean_solid': { name: 'Ocean Teal', type: 'light', glass: false, bg: '#ecfeff', card: '#ffffff', text: '#164e63', border: '#a5f3fc', p500: '#06b6d4', icon: 'fas fa-water', desc: 'ฟ้าครามเย็นตา', input: '#ecfeff' },
+        
+        // --- หมวดกระจกโปร่งแสง (Optimized Glassmorphism) ---
+        'glass_blue': { name: 'Glass Blue', type: 'glass', bgImg: 'https://images.unsplash.com/photo-1557682250-33bd709cbe85?q=80&w=2564', card: 'rgba(255,255,255,0.9)', text: '#0f172a', border: 'rgba(255,255,255,0.6)', p500: '#3b82f6', icon: 'fas fa-droplet', desc: 'กระจกใส สีฟ้า' },
+        'glass_dark': { name: 'Glass Dark', type: 'glass_dark', bgImg: 'https://images.unsplash.com/photo-1519608487953-e999c86e7455?q=80&w=2564', card: 'rgba(15,23,42,0.9)', text: '#f8fafc', border: 'rgba(255,255,255,0.15)', p500: '#3b82f6', icon: 'fas fa-moon', desc: 'กระจกฝ้า โหมดมืด' },
+        'sakura': { name: 'Pink Sakura', type: 'glass', bgImg: 'https://images.unsplash.com/photo-1522383225653-ed111181a951?q=80&w=2564', card: 'rgba(255,255,255,0.9)', text: '#831843', border: 'rgba(244,114,182,0.4)', p500: '#ec4899', icon: 'fas fa-fan', desc: 'กระจก ดอกซากุระ' },
+        'sunset': { name: 'Sunset Glass', type: 'glass_dark', bgImg: 'https://images.unsplash.com/photo-1472120435266-53107fd0fd68?q=80&w=2564', card: 'rgba(24,24,27,0.9)', text: '#fff7ed', border: 'rgba(249,115,22,0.3)', p500: '#f97316', icon: 'fas fa-sun', desc: 'กระจก พระอาทิตย์ตก' },
+
+        // --- หมวดพิเศษ (Specialty) ---
+        'neumorph': { name: 'Neumorphism', type: 'neumorph', glass: false, bg: '#e0e5ec', card: '#e0e5ec', text: '#4a5568', border: 'transparent', p500: '#3b82f6', icon: 'fas fa-dot-circle', desc: 'นูนลึก เนียนตา', input: '#e0e5ec' },
+        'brutal': { name: 'Neo Brutalism', type: 'brutal', glass: false, bg: '#fef08a', card: '#ffffff', text: '#000000', border: '#000000', p500: '#ca8a04', icon: 'fas fa-shapes', desc: 'ขอบดำ ศิลปะป๊อป', input: '#ffffff' },
+        'cyberpunk': { name: 'Cyberpunk', type: 'dark', glass: false, bg: '#020617', card: '#0f172a', text: '#fdf4ff', border: '#d946ef', p500: '#d946ef', icon: 'fas fa-city', desc: 'นีออน ล้ำยุค', input: '#1e1b4b' },
+        'luxury': { name: 'Gold Luxury', type: 'dark', glass: false, bg: '#0c0a09', card: '#1c1917', text: '#fef08a', border: '#ca8a04', p500: '#eab308', icon: 'fas fa-crown', desc: 'หรูหรา ดำ-ทอง', input: '#292524' }
     };
-    var currentTheme = 'modern';
+    var currentTheme = 'classic_light';
 
     function applyTheme(themeId) {
-        const t = THEMES[themeId] || THEMES['modern'];
+        const t = THEMES[themeId] || THEMES['classic_light'];
         const root = document.documentElement;
         
-        root.setAttribute('data-theme-type', t.type);
+        root.setAttribute('data-theme', themeId);
+        root.setAttribute('data-theme-type', t.type.includes('dark') ? 'dark' : 'light');
         
-        // Update Primary Colors
-        root.style.setProperty('--p-50', t.p50);
-        root.style.setProperty('--p-100', t.p100);
-        root.style.setProperty('--p-200', t.p200);
-        root.style.setProperty('--p-400', t.p400);
+        // --- Colors Setup ---
         root.style.setProperty('--p-500', t.p500);
-        root.style.setProperty('--p-600', t.p600);
-        root.style.setProperty('--p-700', t.p700);
+        root.style.setProperty('--p-600', t.type.includes('dark') ? t.p500 : shadeColor(t.p500, -10));
+        root.style.setProperty('--p-700', t.type.includes('dark') ? t.p500 : shadeColor(t.p500, -20));
         
-        // Base Background Image
-        document.body.style.backgroundImage = `url('${t.bg}')`;
-
-        // Apply Global Glassmorphism with contrast management
-        if (t.type === 'dark') {
-            root.style.setProperty('--glass-bg', 'rgba(15, 23, 42, 0.75)'); 
-            root.style.setProperty('--glass-border', 'rgba(255, 255, 255, 0.15)');
-            root.style.setProperty('--glass-shadow', '0 8px 32px 0 rgba(0, 0, 0, 0.4)');
-            root.style.setProperty('--text-main', '#f8fafc');
-            root.style.setProperty('--text-muted', '#cbd5e1');
-            root.style.setProperty('--text-shadow', '0 2px 4px rgba(0,0,0,0.8)');
-            root.style.setProperty('--input-bg', 'rgba(0, 0, 0, 0.4)');
-            Chart.defaults.color = '#cbd5e1'; 
-            Chart.defaults.borderColor = 'rgba(255,255,255,0.15)';
+        // --- Backgrounds & Cards Setup ---
+        if (t.type.includes('glass')) {
+            document.body.style.backgroundImage = `url('${t.bgImg}')`;
+            document.body.style.backgroundColor = '#0f172a'; 
+            
+            root.style.setProperty('--glass-blur', 'blur(16px)');
+            root.style.setProperty('--card-bg', t.card); // Semi-transparent solid color (no blur on cards to save performance)
+            root.style.setProperty('--border-color', t.border);
+            root.style.setProperty('--text-main', t.text);
+            root.style.setProperty('--text-muted', t.type === 'glass_dark' ? '#cbd5e1' : '#334155');
+            root.style.setProperty('--text-shadow', t.type === 'glass_dark' ? '0 2px 4px rgba(0,0,0,0.8)' : 'none');
+            root.style.setProperty('--input-bg', t.type === 'glass_dark' ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.6)');
+            root.style.setProperty('--shadow-color', 'rgba(0,0,0,0.2)');
+            
+            Chart.defaults.color = t.type === 'glass_dark' ? '#cbd5e1' : '#334155'; 
+            Chart.defaults.borderColor = t.type === 'glass_dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)';
         } else {
-            root.style.setProperty('--glass-bg', 'rgba(255, 255, 255, 0.85)'); 
-            root.style.setProperty('--glass-border', 'rgba(255, 255, 255, 0.6)');
-            root.style.setProperty('--glass-shadow', '0 8px 32px 0 rgba(31, 38, 135, 0.15)');
-            root.style.setProperty('--text-main', '#0f172a');
-            root.style.setProperty('--text-muted', '#334155');
-            root.style.setProperty('--text-shadow', '0 1px 2px rgba(255,255,255,0.9)');
-            root.style.setProperty('--input-bg', 'rgba(255, 255, 255, 0.6)');
-            Chart.defaults.color = '#334155'; 
-            Chart.defaults.borderColor = 'rgba(0,0,0,0.1)';
+            // Solid Themes
+            document.body.style.backgroundImage = 'none';
+            document.body.style.backgroundColor = t.bg;
+            
+            root.style.setProperty('--glass-blur', 'blur(0px)');
+            root.style.setProperty('--card-bg', t.card);
+            root.style.setProperty('--border-color', t.border);
+            root.style.setProperty('--text-main', t.text);
+            root.style.setProperty('--text-muted', t.type === 'dark' || t.type === 'cyber' ? '#94a3b8' : '#64748b');
+            root.style.setProperty('--text-shadow', 'none');
+            root.style.setProperty('--input-bg', t.input);
+            
+            if(themeId === 'brutal') {
+               root.style.setProperty('--shadow-color', '#000000');
+               root.style.setProperty('--text-muted', '#000000');
+            } else {
+               root.style.setProperty('--shadow-color', 'rgba(0,0,0,0.1)');
+            }
+            
+            Chart.defaults.color = (t.type === 'dark' || t.type === 'cyber') ? '#94a3b8' : '#64748b'; 
+            Chart.defaults.borderColor = t.border;
         }
+
+        // Force specific chart colors for special themes
+        if(themeId === 'terminal') Chart.defaults.color = '#22c55e';
+        if(themeId === 'luxury') Chart.defaults.color = '#fde047';
+        if(themeId === 'cyberpunk') Chart.defaults.color = '#f0abfc';
+        if(themeId === 'brutal') Chart.defaults.color = '#000000';
         
         if (window.stockChartInstance) window.stockChartInstance.update();
         if (window.bottomChartInstance) window.bottomChartInstance.update();
         if (window.statusChartInstance) window.statusChartInstance.update();
+    }
+
+    function shadeColor(color, percent) {
+        var R = parseInt(color.substring(1,3),16);
+        var G = parseInt(color.substring(3,5),16);
+        var B = parseInt(color.substring(5,7),16);
+        R = parseInt(R * (100 + percent) / 100);
+        G = parseInt(G * (100 + percent) / 100);
+        B = parseInt(B * (100 + percent) / 100);
+        R = (R<255)?R:255;  G = (G<255)?G:255;  B = (B<255)?B:255;
+        var RR = ((R.toString(16).length==1)?"0"+R.toString(16):R.toString(16));
+        var GG = ((G.toString(16).length==1)?"0"+G.toString(16):G.toString(16));
+        var BB = ((B.toString(16).length==1)?"0"+B.toString(16):B.toString(16));
+        return "#"+RR+GG+BB;
     }
     
     async function loadGlobalTheme() {
@@ -721,25 +760,29 @@
             showToast('บันทึกธีมระบบเรียบร้อยแล้ว', 'success');
         } catch(e) {
             localStorage.setItem('global_theme', themeId);
-            showToast('เปลี่ยนธีมสำเร็จ (โหมดออฟไลน์)', 'success');
+            showToast('เปลี่ยนธีมสำเร็จ (โหมดจำลองออฟไลน์)', 'success');
         }
     }
 
     function openThemeModal() {
         const container = document.getElementById('themeContainer');
-        container.innerHTML = Object.keys(THEMES).map(k => `
-            <button onclick="saveTheme('${k}')" class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border transition-all duration-300 outline-none ${currentTheme === k ? 'border-primary-500 bg-[rgba(59,130,246,0.2)] scale-105 shadow-md ring-2 ring-primary-500/30' : 'border-[rgba(128,128,128,0.2)] hover:bg-[rgba(128,128,128,0.1)] hover:-translate-y-1 shadow-sm'}">
-                <div class="w-12 h-12 flex items-center justify-center rounded-xl bg-gradient-to-tr from-[rgba(0,0,0,0.6)] to-[rgba(0,0,0,0.8)] text-white shadow-sm text-xl relative overflow-hidden" style="background: url('${THEMES[k].bg}') center/cover;">
-                    <div class="absolute inset-0 bg-black/40"></div>
-                    <i class="${THEMES[k].icon} relative z-10 drop-shadow-md"></i>
-                    ${currentTheme === k ? '<div class="absolute inset-0 bg-[rgba(59,130,246,0.5)] flex items-center justify-center"><i class="fas fa-check text-white text-2xl drop-shadow-md z-20"></i></div>' : ''}
+        container.innerHTML = Object.keys(THEMES).map(k => {
+            const t = THEMES[k];
+            const isGlass = t.type.includes('glass');
+            const bgStyle = isGlass ? `background: url('${t.bgImg}') center/cover;` : `background: ${t.bg}; border: 1px solid ${t.border};`;
+            return `
+            <button onclick="saveTheme('${k}')" class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border transition-all duration-300 outline-none ${currentTheme === k ? 'border-primary-500 bg-primary-500/10 scale-105 shadow-md ring-2 ring-primary-500/30' : 'border-custom hover:bg-black/5 hover:-translate-y-1 shadow-sm'}">
+                <div class="w-12 h-12 flex items-center justify-center rounded-xl text-white shadow-sm text-xl relative overflow-hidden" style="${bgStyle}">
+                    ${isGlass ? '<div class="absolute inset-0 bg-black/40"></div>' : ''}
+                    <i class="${t.icon} relative z-10 drop-shadow-md" style="color: ${isGlass ? '#fff' : t.p500}"></i>
+                    ${currentTheme === k ? '<div class="absolute inset-0 bg-primary-500/50 flex items-center justify-center"><i class="fas fa-check text-white text-2xl drop-shadow-md z-20"></i></div>' : ''}
                 </div>
-                <div class="text-center">
-                    <p class="font-bold text-sm leading-tight">${THEMES[k].name}</p>
-                    <p class="text-[10px] mt-0.5 leading-tight opacity-80">${THEMES[k].desc}</p>
+                <div class="text-center text-gray-800">
+                    <p class="font-bold text-sm leading-tight">${t.name}</p>
+                    <p class="text-[10px] mt-0.5 leading-tight opacity-80 text-gray-500">${t.desc}</p>
                 </div>
             </button>
-        `).join('');
+        `}).join('');
         document.getElementById('themeModal').classList.remove('hidden');
     }
 
@@ -800,7 +843,7 @@
     }
     setInterval(updateClock, 1000);
 
-    // --- 3. API HANDLER (Robust Fetch) ---
+    // --- 3. API HANDLER & SHARED PROMISE ---
     async function api(action, payload = {}) {
         const showOverlay = !['getMaterials', 'getReports', 'getGlobalTheme'].includes(action);
         if(showOverlay) document.getElementById('loadingOverlay').classList.remove('hidden');
@@ -834,6 +877,14 @@
             showToast(err.message, 'error');
             throw err;
         }
+    }
+
+    // OPTIMIZATION: Prevent overlapping identical API calls causing freeze
+    let materialsPromise = null;
+    async function fetchMaterialsData() {
+        if (materialsPromise) return materialsPromise; // Return pending request if already fetching
+        materialsPromise = api('getMaterials').finally(() => { materialsPromise = null; });
+        return materialsPromise;
     }
 
     // --- 4. AUTHENTICATION & INIT ---
@@ -953,6 +1004,7 @@
     async function route(page) {
         if(page === 'theme') return; 
         
+        // Prevent Race Condition: Generate a unique ID for this specific route instance
         currentViewID = Date.now().toString();
         const viewID = currentViewID;
         sessionStorage.setItem('last_view', page);
@@ -973,9 +1025,12 @@
         
         toggleSidebar(false);
 
-        if (window.stockChartInstance) { window.stockChartInstance.destroy(); window.stockChartInstance = null; }
-        if (window.statusChartInstance) { window.statusChartInstance.destroy(); window.statusChartInstance = null; }
-        if (window.bottomChartInstance) { window.bottomChartInstance.destroy(); window.bottomChartInstance = null; }
+        // OPTIMIZATION: Safety check before destroying charts
+        try {
+            if (window.stockChartInstance) { window.stockChartInstance.destroy(); window.stockChartInstance = null; }
+            if (window.statusChartInstance) { window.statusChartInstance.destroy(); window.statusChartInstance = null; }
+            if (window.bottomChartInstance) { window.bottomChartInstance.destroy(); window.bottomChartInstance = null; }
+        } catch(e) { console.warn("Chart destroy ignored during rapid switch"); }
 
         const container = document.getElementById('contentArea');
         if (!container) return;
@@ -995,6 +1050,139 @@
         }
     }
 
+    // --- DATA EXTRACTION HELPER FOR TYPE/CATEGORY ---
+    // Returns { "Type1": ["Cat1", "Cat2"], "Type2": ["Cat3"] }
+    function getUniqueTypesAndCategories() {
+        let map = {};
+        if(!state.materials) return map;
+        state.materials.forEach(m => {
+            let t = String(m.type || m.Type || m['ประเภท'] || m['type'] || '').trim();
+            let c = String(m.category || m.Category || m['หมวดหมู่'] || m['category'] || '').trim();
+            
+            if (t) {
+                if (!map[t]) map[t] = new Set();
+                if (c) map[t].add(c);
+            }
+        });
+        return map;
+    }
+
+    // Update the dropdowns in the filters based on current data
+    function updateFilterDropdowns(selectedType = 'all') {
+        const typeSelect = document.getElementById('filterType');
+        const catSelect = document.getElementById('filterCategory');
+        if (!typeSelect || !catSelect) return;
+
+        const map = getUniqueTypesAndCategories();
+        const types = Object.keys(map).sort();
+
+        // 1. Rebuild Type Dropdown
+        let typeHtml = `<option value="all">ทุกประเภท (All Types)</option>`;
+        types.forEach(t => {
+            typeHtml += `<option value="${t}" ${selectedType === t ? 'selected' : ''}>${t}</option>`;
+        });
+        typeSelect.innerHTML = typeHtml;
+
+        // 2. Rebuild Category Dropdown based on selected type
+        let catHtml = `<option value="all">ทุกหมวดหมู่ (All Categories)</option>`;
+        if (selectedType !== 'all' && map[selectedType]) {
+            const cats = Array.from(map[selectedType]).sort();
+            cats.forEach(c => {
+                catHtml += `<option value="${c}">${c}</option>`;
+            });
+        } else if (selectedType === 'all') {
+             // If all types selected, show all unique categories
+             let allCats = new Set();
+             Object.values(map).forEach(catSet => catSet.forEach(c => allCats.add(c)));
+             Array.from(allCats).sort().forEach(c => {
+                 catHtml += `<option value="${c}">${c}</option>`;
+             });
+        }
+        catSelect.innerHTML = catHtml;
+    }
+
+    // Update the dropdowns in the Add/Edit Modal
+    function updateModalDropdowns(selectedType = '', selectedCat = '') {
+        const typeSelect = document.getElementById('matTypeSelect');
+        const typeInput = document.getElementById('matTypeNew');
+        const catSelect = document.getElementById('matCatSelect');
+        const catInput = document.getElementById('matCatNew');
+        
+        if(!typeSelect || !catSelect) return;
+
+        const map = getUniqueTypesAndCategories();
+        const types = Object.keys(map).sort();
+
+        // Populate Types
+        let typeHtml = `<option value="" disabled ${!selectedType ? 'selected' : ''}>-- เลือกประเภท --</option>`;
+        types.forEach(t => {
+            typeHtml += `<option value="${t}" ${selectedType === t ? 'selected' : ''}>${t}</option>`;
+        });
+        typeHtml += `<option value="NEW_TYPE">+ เพิ่มประเภทใหม่...</option>`;
+        typeSelect.innerHTML = typeHtml;
+        
+        // Hide/Show custom type input
+        if(selectedType && !types.includes(selectedType)) {
+             typeSelect.value = 'NEW_TYPE';
+             typeInput.value = selectedType;
+             typeInput.classList.remove('hidden');
+        } else {
+             typeInput.value = '';
+             typeInput.classList.add('hidden');
+        }
+
+        // Populate Categories based on selected Type
+        let activeType = typeSelect.value === 'NEW_TYPE' ? typeInput.value.trim() : typeSelect.value;
+        let catHtml = `<option value="" disabled ${!selectedCat ? 'selected' : ''}>-- เลือกหมวดหมู่ --</option>`;
+        
+        if (activeType && map[activeType]) {
+            Array.from(map[activeType]).sort().forEach(c => {
+                catHtml += `<option value="${c}" ${selectedCat === c ? 'selected' : ''}>${c}</option>`;
+            });
+        }
+        catHtml += `<option value="NEW_CAT">+ เพิ่มหมวดหมู่ใหม่...</option>`;
+        catSelect.innerHTML = catHtml;
+
+        // Hide/Show custom cat input
+        let availableCats = (activeType && map[activeType]) ? Array.from(map[activeType]) : [];
+        if(selectedCat && !availableCats.includes(selectedCat)) {
+             catSelect.value = 'NEW_CAT';
+             catInput.value = selectedCat;
+             catInput.classList.remove('hidden');
+        } else {
+             catInput.value = '';
+             catInput.classList.add('hidden');
+        }
+    }
+
+    function handleModalTypeChange() {
+        const select = document.getElementById('matTypeSelect');
+        const input = document.getElementById('matTypeNew');
+        if (select.value === 'NEW_TYPE') {
+            input.classList.remove('hidden');
+            input.focus();
+            // Clear category since it's a new type
+            updateModalDropdowns('NEW_TYPE', ''); 
+        } else {
+            input.classList.add('hidden');
+            input.value = '';
+            // Refresh categories for selected type
+            updateModalDropdowns(select.value, ''); 
+        }
+    }
+
+    function handleModalCatChange() {
+        const select = document.getElementById('matCatSelect');
+        const input = document.getElementById('matCatNew');
+        if (select.value === 'NEW_CAT') {
+            input.classList.remove('hidden');
+            input.focus();
+        } else {
+            input.classList.add('hidden');
+            input.value = '';
+        }
+    }
+
     // --- 6. VIEW: DASHBOARD ---
     async function renderDashboard(c, viewID) {
         c.innerHTML = `
@@ -1002,17 +1190,19 @@
                 ${cardSkeleton().repeat(4)}
             </div>
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div class="lg:col-span-2 h-80 bg-white rounded-2xl shadow-sm flex items-center justify-center"><div class="loader"></div></div>
-                <div class="h-80 bg-white rounded-2xl shadow-sm flex items-center justify-center"><div class="loader"></div></div>
+                <div class="lg:col-span-2 h-80 bg-white rounded-2xl shadow-custom flex items-center justify-center"><div class="loader"></div></div>
+                <div class="h-80 bg-white rounded-2xl shadow-custom flex items-center justify-center"><div class="loader"></div></div>
             </div>`;
         
+        // Show cache first
         if (cache.materials) { 
             state.materials = JSON.parse(cache.materials); 
             updateDashboardUI(c, viewID); 
         }
         
         try {
-            const data = await api('getMaterials');
+            // Background update using optimized safe fetch
+            const data = await fetchMaterialsData();
             if (currentViewID !== viewID) return; 
             state.materials = data;
             cache.materials = JSON.stringify(data);
@@ -1054,13 +1244,13 @@
              pinnedMaterials.forEach(m => {
                  const isOut = parseInt(m.qty || 0) === 0;
                  cards += `
-                 <div class="bg-white p-4 rounded-2xl shadow-sm border border-[rgba(255,255,255,0.1)] flex items-center gap-4 cursor-pointer hover:-translate-y-1 transition transform" onclick="route('inventory')">
-                     <div class="w-12 h-12 rounded-xl bg-[rgba(0,0,0,0.05)] p-1 flex items-center justify-center shrink-0">
-                         <img src="${m.image_url || 'https://via.placeholder.com/150'}" class="max-w-full max-h-full object-contain drop-shadow-sm">
+                 <div class="dashboard-card p-4 rounded-2xl shadow-custom border border-custom flex items-center gap-4 cursor-pointer hover:-translate-y-1 transition transform" onclick="route('inventory')">
+                     <div class="w-12 h-12 rounded-xl p-1 flex items-center justify-center shrink-0" style="background: rgba(128,128,128,0.1);">
+                         <img src="${m.image_url || 'https://via.placeholder.com/150'}" class="max-w-full max-h-full object-contain drop-shadow-sm" onerror="this.src='https://via.placeholder.com/150?text=No+Image'">
                      </div>
                      <div class="flex-1 min-w-0">
-                         <p class="font-bold text-sm truncate">${m.name}</p>
-                         <p class="text-[10px] opacity-70 truncate">${m.type || m.Type || '-'}</p>
+                         <p class="font-bold text-sm text-gray-800 truncate">${m.name}</p>
+                         <p class="text-[10px] text-gray-500 truncate">${m.type || m.Type || '-'} ${m.category ? `> ${m.category}` : ''}</p>
                      </div>
                      <div class="text-right shrink-0">
                          <span class="text-xl font-black ${isOut ? 'text-red-500' : 'text-primary-500'} drop-shadow-md">${m.qty}</span>
@@ -1072,8 +1262,8 @@
              pinnedHtml = `
              <div class="mb-8 fade-in">
                  <div class="flex items-center gap-2 mb-4">
-                     <i class="fas fa-thumbtack text-amber-400 text-xl drop-shadow-md -rotate-45"></i>
-                     <h3 class="font-bold text-lg">รายการที่ผลิตเสร็จ</h3>
+                     <i class="fas fa-thumbtack text-amber-500 text-xl drop-shadow-md -rotate-45"></i>
+                     <h3 class="font-bold text-lg text-gray-800">รายการวัสดุที่ปักหมุด</h3>
                  </div>
                  <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                      ${cards}
@@ -1082,45 +1272,46 @@
              `;
          }
 
+         const map = getUniqueTypesAndCategories();
+         const typeOptions = Object.keys(map).sort().map(t => `<option value="${t}" ${typeVal === t ? 'selected' : ''}>${t}</option>`).join('');
+
          c.innerHTML = `
             <div class="flex justify-between items-center mb-4 fade-in">
-                <h2 class="text-xl font-bold">สรุปข้อมูล</h2>
-                <select id="dashboardFilterType" onchange="updateDashboardUI(document.getElementById('contentArea'), '${viewID}')" class="py-2 px-3 rounded-xl text-sm font-medium focus:ring-2 focus:ring-primary-500 outline-none shadow-sm cursor-pointer">
-                    <option value="all" ${typeVal === 'all' ? 'selected' : ''}>ทุกประเภท (Test Kit)</option>
-                    <option value="pH Test Kit" ${typeVal === 'pH Test Kit' ? 'selected' : ''}>pH Test Kit</option>
-                    <option value="NPK Test Kit" ${typeVal === 'NPK Test Kit' ? 'selected' : ''}>NPK Test Kit</option>
-                    <option value="Saline Soil Test Kit" ${typeVal === 'Saline Soil Test Kit' ? 'selected' : ''}>Saline Soil Test Kit</option>
+                <h2 class="text-xl font-bold text-gray-800">สรุปข้อมูล</h2>
+                <select id="dashboardFilterType" onchange="updateDashboardUI(document.getElementById('contentArea'), '${viewID}')" class="py-2 px-3 rounded-xl text-sm font-medium focus:ring-2 focus:ring-primary-500 outline-none shadow-custom cursor-pointer border border-custom" style="background: var(--card-bg); color: var(--text-main);">
+                    <option value="all" ${typeVal === 'all' ? 'selected' : ''}>ทุกประเภท (All Types)</option>
+                    ${typeOptions}
                 </select>
             </div>
             ${pinnedHtml}
             <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6 mb-8 fade-in">
-                ${statCard('ทั้งหมด', total, 'fas fa-boxes', 'bg-primary-100 text-primary-600')}
-                ${statCard('ปกติ', normal, 'fas fa-check-circle', 'bg-emerald-100 text-emerald-600')}
-                ${statCard('ใกล้หมด', low, 'fas fa-exclamation-triangle', 'bg-amber-100 text-amber-600')}
-                ${statCard('หมด', outOfStock, 'fas fa-times-circle', 'bg-red-100 text-red-600')}
-                ${statCard('อัปเดตล่าสุด', last, 'fas fa-clock', 'bg-primary-100 text-primary-600')}
+                ${statCard('ทั้งหมด', total, 'fas fa-boxes', 'text-primary-600')}
+                ${statCard('ปกติ', normal, 'fas fa-check-circle', 'text-emerald-600')}
+                ${statCard('ใกล้หมด', low, 'fas fa-exclamation-triangle', 'text-amber-500')}
+                ${statCard('หมด', outOfStock, 'fas fa-times-circle', 'text-red-500')}
+                ${statCard('อัปเดตล่าสุด', last, 'fas fa-clock', 'text-primary-600')}
             </div>
             
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 fade-in mb-8">
                 <!-- TOP 5 Chart -->
-                <div class="bg-white p-5 md:p-6 rounded-2xl flex flex-col">
+                <div class="bg-white p-5 md:p-6 rounded-2xl flex flex-col shadow-custom border-custom dashboard-card">
                     <div class="flex justify-between items-center mb-4">
-                        <h3 class="font-bold text-base"><i class="fas fa-arrow-up text-emerald-500 mr-2 drop-shadow-md"></i> คงเหลือสูงสุด 5 อันดับ</h3>
+                        <h3 class="font-bold text-base text-gray-800"><i class="fas fa-arrow-up text-emerald-500 mr-2 drop-shadow-md"></i> คงเหลือสูงสุด 5 อันดับ</h3>
                     </div>
                     <div class="relative flex-1 min-h-[240px] w-full"><canvas id="stockChart"></canvas></div>
                 </div>
                 
                 <!-- BOTTOM 5 Chart -->
-                 <div class="bg-white p-5 md:p-6 rounded-2xl flex flex-col">
+                 <div class="bg-white p-5 md:p-6 rounded-2xl flex flex-col shadow-custom border-custom dashboard-card">
                     <div class="flex justify-between items-center mb-4">
-                        <h3 class="font-bold text-base"><i class="fas fa-arrow-down text-rose-500 mr-2 drop-shadow-md"></i> คงเหลือน้อยสุด 5 อันดับ</h3>
+                        <h3 class="font-bold text-base text-gray-800"><i class="fas fa-arrow-down text-rose-500 mr-2 drop-shadow-md"></i> คงเหลือน้อยสุด 5 อันดับ</h3>
                     </div>
                     <div class="relative flex-1 min-h-[240px] w-full"><canvas id="bottomStockChart"></canvas></div>
                 </div>
                 
                 <!-- STATUS Doughnut -->
-                <div class="bg-white p-5 md:p-6 rounded-2xl flex flex-col">
-                    <h3 class="font-bold text-base mb-4"><i class="fas fa-chart-pie text-primary-500 mr-2 drop-shadow-md"></i> สถานะความพร้อมสต๊อก</h3>
+                <div class="bg-white p-5 md:p-6 rounded-2xl flex flex-col shadow-custom border-custom dashboard-card">
+                    <h3 class="font-bold text-base mb-4 text-gray-800"><i class="fas fa-chart-pie text-primary-500 mr-2 drop-shadow-md"></i> สถานะความพร้อมสต๊อก</h3>
                     <div class="relative flex-1 min-h-[240px] w-full flex items-center justify-center"><canvas id="statusChart"></canvas></div>
                 </div>
             </div>
@@ -1132,92 +1323,100 @@
          const top5 = sortedByQtyDesc.slice(0, 5);
          const bottom5 = sortedByQtyAsc.slice(0, 5);
 
-         const ctx1 = document.getElementById('stockChart');
-         if(ctx1) {
-             if (window.stockChartInstance) { window.stockChartInstance.destroy(); }
-             window.stockChartInstance = new Chart(ctx1, { 
-                 type: 'bar', 
-                 data: { 
-                     labels: top5.map(m => String(m.name || '').length > 15 ? String(m.name || '').substring(0,15)+'...' : String(m.name || '')), 
-                     datasets: [{ 
-                         label: 'จำนวนคงเหลือ', 
-                         data: top5.map(m => parseInt(m.qty || 0)), 
-                         backgroundColor: 'rgba(16, 185, 129, 0.8)', 
-                         hoverBackgroundColor: 'rgba(16, 185, 129, 1)',
-                         borderRadius: 6 
-                     }] 
-                 }, 
-                 options: { 
-                     maintainAspectRatio: false, 
-                     plugins: { legend: { display: false } }, 
-                     scales: { 
-                         y: { beginAtZero: true, grid: { borderDash: [4, 4] } }, 
-                         x: { grid: { display: false } } 
+         // Ensure charts load after DOM paints using setTimeout
+         setTimeout(() => {
+             const ctx1 = document.getElementById('stockChart');
+             if(ctx1) {
+                 if (window.stockChartInstance) { window.stockChartInstance.destroy(); }
+                 window.stockChartInstance = new Chart(ctx1, { 
+                     type: 'bar', 
+                     data: { 
+                         labels: top5.map(m => String(m.name || '').length > 15 ? String(m.name || '').substring(0,15)+'...' : String(m.name || '')), 
+                         datasets: [{ 
+                             label: 'จำนวนคงเหลือ', 
+                             data: top5.map(m => parseInt(m.qty || 0)), 
+                             backgroundColor: 'rgba(16, 185, 129, 0.8)', 
+                             hoverBackgroundColor: 'rgba(16, 185, 129, 1)',
+                             borderRadius: 6 
+                         }] 
+                     }, 
+                     options: { 
+                         animation: false, // Save performance
+                         maintainAspectRatio: false, 
+                         plugins: { legend: { display: false } }, 
+                         scales: { 
+                             y: { beginAtZero: true, grid: { borderDash: [4, 4] } }, 
+                             x: { grid: { display: false } } 
+                         } 
                      } 
-                 } 
-             });
-         }
-         
-         const ctxBottom = document.getElementById('bottomStockChart');
-         if(ctxBottom) {
-             if (window.bottomChartInstance) { window.bottomChartInstance.destroy(); }
-             window.bottomChartInstance = new Chart(ctxBottom, { 
-                 type: 'bar', 
-                 data: { 
-                     labels: bottom5.map(m => String(m.name || '').length > 15 ? String(m.name || '').substring(0,15)+'...' : String(m.name || '')), 
-                     datasets: [{ 
-                         label: 'จำนวนคงเหลือ', 
-                         data: bottom5.map(m => parseInt(m.qty || 0)), 
-                         backgroundColor: 'rgba(244, 63, 94, 0.8)', 
-                         hoverBackgroundColor: 'rgba(244, 63, 94, 1)',
-                         borderRadius: 6 
-                     }] 
-                 }, 
-                 options: { 
-                     maintainAspectRatio: false, 
-                     plugins: { legend: { display: false } }, 
-                     scales: { 
-                         y: { beginAtZero: true, grid: { borderDash: [4, 4] } }, 
-                         x: { grid: { display: false } } 
+                 });
+             }
+             
+             const ctxBottom = document.getElementById('bottomStockChart');
+             if(ctxBottom) {
+                 if (window.bottomChartInstance) { window.bottomChartInstance.destroy(); }
+                 window.bottomChartInstance = new Chart(ctxBottom, { 
+                     type: 'bar', 
+                     data: { 
+                         labels: bottom5.map(m => String(m.name || '').length > 15 ? String(m.name || '').substring(0,15)+'...' : String(m.name || '')), 
+                         datasets: [{ 
+                             label: 'จำนวนคงเหลือ', 
+                             data: bottom5.map(m => parseInt(m.qty || 0)), 
+                             backgroundColor: 'rgba(244, 63, 94, 0.8)', 
+                             hoverBackgroundColor: 'rgba(244, 63, 94, 1)',
+                             borderRadius: 6 
+                         }] 
+                     }, 
+                     options: { 
+                         animation: false, // Save performance
+                         maintainAspectRatio: false, 
+                         plugins: { legend: { display: false } }, 
+                         scales: { 
+                             y: { beginAtZero: true, grid: { borderDash: [4, 4] } }, 
+                             x: { grid: { display: false } } 
+                         } 
                      } 
-                 } 
-             });
-         }
-         
-         const ctx2 = document.getElementById('statusChart');
-         if(ctx2) {
-             if (window.statusChartInstance) { window.statusChartInstance.destroy(); }
-             window.statusChartInstance = new Chart(ctx2, { 
-                 type: 'doughnut', 
-                 data: { 
-                     labels: ['ปกติ', 'ใกล้หมด', 'หมด'], 
-                     datasets: [{ 
-                         data: [normal, low, outOfStock], 
-                         backgroundColor: ['rgba(16, 185, 129, 0.8)', 'rgba(245, 158, 11, 0.8)', 'rgba(239, 68, 68, 0.8)'], 
-                         borderWidth: 0,
-                         hoverOffset: 4
-                     }] 
-                 }, 
-                 options: { 
-                     maintainAspectRatio: false, 
-                     cutout: '75%', 
-                     plugins: { 
-                         legend: { position: 'bottom', labels: { padding: 20, usePointStyle: true } } 
+                 });
+             }
+             
+             const ctx2 = document.getElementById('statusChart');
+             if(ctx2) {
+                 if (window.statusChartInstance) { window.statusChartInstance.destroy(); }
+                 window.statusChartInstance = new Chart(ctx2, { 
+                     type: 'doughnut', 
+                     data: { 
+                         labels: ['ปกติ', 'ใกล้หมด', 'หมด'], 
+                         datasets: [{ 
+                             data: [normal, low, outOfStock], 
+                             backgroundColor: ['rgba(16, 185, 129, 0.8)', 'rgba(245, 158, 11, 0.8)', 'rgba(239, 68, 68, 0.8)'], 
+                             borderWidth: 0,
+                             hoverOffset: 4
+                         }] 
+                     }, 
+                     options: { 
+                         animation: false, // Save performance
+                         maintainAspectRatio: false, 
+                         cutout: '75%', 
+                         plugins: { 
+                             legend: { position: 'bottom', labels: { padding: 20, usePointStyle: true } } 
+                         } 
                      } 
-                 } 
-             });
-         }
+                 });
+             }
+         }, 50);
     }
 
     function getFilteredInventory() {
         const searchInput = document.getElementById('searchInput');
         const filterStatus = document.getElementById('filterStatus');
         const filterType = document.getElementById('filterType');
+        const filterCategory = document.getElementById('filterCategory');
         const sortQty = document.getElementById('sortQty');
 
         const txt = searchInput ? searchInput.value.toLowerCase() : '';
         const status = filterStatus ? filterStatus.value : 'all';
         const typeVal = filterType ? filterType.value : 'all';
+        const catVal = filterCategory ? filterCategory.value : 'all';
         const sort = sortQty ? sortQty.value : 'desc';
 
         let filtered = state.materials.filter(m => {
@@ -1228,13 +1427,13 @@
             if (status === 'low') matchStatus = q > 0 && q < 150;
             if (status === 'out') matchStatus = q === 0;
 
-            let matchType = true;
             const matType = String(m.type || m.Type || m['ประเภท'] || m['type'] || '');
-            if (typeVal !== 'all') {
-                matchType = matType === typeVal;
-            }
+            const matchType = (typeVal === 'all') || (matType === typeVal);
+            
+            const matCat = String(m.category || m.Category || m['หมวดหมู่'] || m['category'] || '');
+            const matchCategory = (catVal === 'all') || (matCat === catVal);
 
-            return matchName && matchStatus && matchType;
+            return matchName && matchStatus && matchType && matchCategory;
         });
 
         filtered.sort((a,b) => {
@@ -1267,9 +1466,9 @@
         const icons = { 'view': 'box-open', 'withdraw': 'hand-holding', 'import': 'truck-loading' };
         
         const colorClasses = {
-            'view': { bg: 'bg-primary-100', text: 'text-primary-600', border: 'border-primary-500', btn: 'bg-primary-600 hover:bg-primary-700' },
-            'withdraw': { bg: 'bg-rose-100', text: 'text-rose-600', border: 'border-rose-500', btn: 'bg-rose-600 hover:bg-rose-700' },
-            'import': { bg: 'bg-emerald-100', text: 'text-emerald-600', border: 'border-emerald-500', btn: 'bg-emerald-600 hover:bg-emerald-700' }
+            'view': { bg: 'bg-[rgba(59,130,246,0.1)]', text: 'text-blue-500', border: 'border-blue-500', btn: 'bg-blue-600 hover:bg-blue-700' },
+            'withdraw': { bg: 'bg-[rgba(244,63,94,0.1)]', text: 'text-rose-500', border: 'border-rose-500', btn: 'bg-rose-600 hover:bg-rose-700' },
+            'import': { bg: 'bg-[rgba(16,185,129,0.1)]', text: 'text-emerald-500', border: 'border-emerald-500', btn: 'bg-emerald-600 hover:bg-emerald-700' }
         };
 
         const title = titles[mode];
@@ -1279,28 +1478,28 @@
         c.innerHTML = `
             <div class="flex flex-col min-h-full fade-in">
                 <!-- Toolbar -->
-                <div class="bg-white p-4 rounded-2xl shadow-sm flex flex-col md:flex-row justify-between items-center mb-6 gap-4 sticky top-0 z-10">
+                <div class="bg-white p-4 rounded-2xl shadow-custom flex flex-col md:flex-row justify-between items-center mb-6 gap-4 sticky top-0 z-10 border-custom modal-content">
                     
                     <div class="flex items-center gap-4 w-full md:w-auto">
-                        <div class="w-12 h-12 rounded-xl ${uiColor.bg} ${uiColor.text} flex items-center justify-center shadow-sm">
+                        <div class="w-12 h-12 rounded-xl ${uiColor.bg} ${uiColor.text} flex items-center justify-center border border-[rgba(255,255,255,0.1)] shadow-sm">
                             <i class="fas fa-${icon} text-2xl drop-shadow-md"></i>
                         </div>
                         <div>
-                            <h2 class="font-bold text-xl">${title}</h2>
-                            <p class="text-xs font-medium opacity-70">ค้นหาและทำรายการได้ที่นี่</p>
+                            <h2 class="font-bold text-xl text-gray-800">${title}</h2>
+                            <p class="text-xs font-medium text-gray-500">ค้นหาและทำรายการได้ที่นี่</p>
                         </div>
                     </div>
                     
                     <div class="flex flex-wrap justify-start md:justify-end items-center gap-2 w-full md:w-auto mt-3 md:mt-0">
                         <div class="relative flex-1 min-w-[150px]">
-                            <i class="fas fa-search absolute left-4 top-3 opacity-50"></i>
+                            <i class="fas fa-search absolute left-4 top-3 text-gray-500 opacity-70"></i>
                             <input type="text" id="searchInput" placeholder="ค้นหาชื่อ..." class="w-full pl-10 pr-4 py-2.5 rounded-xl text-sm font-medium focus:ring-2 focus:ring-primary-500 outline-none transition" onkeyup="renderMaterialList('${mode}')">
                         </div>
-                        <select id="filterType" onchange="renderMaterialList('${mode}')" class="py-2.5 px-3 rounded-xl text-sm font-medium focus:ring-2 focus:ring-primary-500 outline-none transition cursor-pointer">
-                            <option value="all">ทุกประเภท (Test Kit)</option>
-                            <option value="pH Test Kit">pH Test Kit</option>
-                            <option value="NPK Test Kit">NPK Test Kit</option>
-                            <option value="Saline Soil Test Kit">Saline Soil Test Kit</option>
+                        <select id="filterType" onchange="document.getElementById('filterCategory').value='all'; updateFilterDropdowns(this.value); renderMaterialList('${mode}');" class="py-2.5 px-3 rounded-xl text-sm font-medium focus:ring-2 focus:ring-primary-500 outline-none transition cursor-pointer">
+                            <option value="all">ทุกประเภท (All Types)</option>
+                        </select>
+                        <select id="filterCategory" onchange="renderMaterialList('${mode}')" class="py-2.5 px-3 rounded-xl text-sm font-medium focus:ring-2 focus:ring-primary-500 outline-none transition cursor-pointer">
+                            <option value="all">ทุกหมวดหมู่ (All Categories)</option>
                         </select>
                         <select id="filterStatus" onchange="renderMaterialList('${mode}')" class="py-2.5 px-3 rounded-xl text-sm font-medium focus:ring-2 focus:ring-primary-500 outline-none transition cursor-pointer">
                             <option value="all">สถานะทั้งหมด</option>
@@ -1312,14 +1511,14 @@
                             <option value="asc">น้อยไปมาก</option>
                         </select>
                         ${mode === 'view' ? `
-                        <button onclick="exportInventoryCSV()" class="bg-gray-800 hover:bg-gray-900 text-white px-3.5 py-2.5 rounded-xl text-sm font-bold shadow-md transition transform active:scale-95" title="Export CSV"><i class="fas fa-file-csv"></i></button>
-                        <button onclick="exportInventoryPDF()" class="bg-red-600 hover:bg-red-700 text-white px-3.5 py-2.5 rounded-xl text-sm font-bold shadow-md transition transform active:scale-95" title="Export PDF"><i class="fas fa-file-pdf"></i></button>
+                        <button onclick="exportInventoryCSV()" class="bg-gray-800 text-white px-3.5 py-2.5 rounded-xl text-sm font-bold shadow-md transition transform active:scale-95" title="Export CSV"><i class="fas fa-file-csv text-white"></i></button>
+                        <button onclick="exportInventoryPDF()" class="bg-red-600 text-white px-3.5 py-2.5 rounded-xl text-sm font-bold shadow-md transition transform active:scale-95" title="Export PDF"><i class="fas fa-file-pdf text-white"></i></button>
                         ` : ''}
                         ${mode === 'view' && canManage ? `
-                        <button onclick="openMaterialModal()" class="${uiColor.btn} text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-md transition transform active:scale-95 whitespace-nowrap">
-                            <i class="fas fa-plus mr-1"></i> เพิ่มรายการ
+                        <button onclick="openMaterialModalById('')" class="btn-primary text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-md transition transform active:scale-95 whitespace-nowrap">
+                            <i class="fas fa-plus mr-1 text-white"></i> เพิ่มรายการ
                         </button>` : ''}
-                        <button onclick="refreshMaterials('${mode}')" class="bg-white hover:bg-gray-50 px-4 py-2.5 rounded-xl shadow-sm transition transform active:scale-95" title="รีเฟรชข้อมูล">
+                        <button onclick="refreshMaterials('${mode}')" class="px-4 py-2.5 rounded-xl shadow-sm transition transform active:scale-95 border-custom" style="background: var(--input-bg); color: var(--text-main);" title="รีเฟรชข้อมูล">
                             <i class="fas fa-sync-alt"></i>
                         </button>
                     </div>
@@ -1331,18 +1530,21 @@
             </div>
         `;
         
-        if (!cache.materials) {
+        // Optimisation: Render instantly if we have cache, DO NOT background fetch here to prevent lag on tab spam
+        if (cache.materials) {
+            state.materials = JSON.parse(cache.materials);
+            updateFilterDropdowns(); // Populate the new dropdowns
+            renderMaterialList(mode);
+        } else {
             try {
-                const data = await api('getMaterials');
+                const data = await fetchMaterialsData();
                 if (currentViewID !== viewID) return;
                 state.materials = data;
                 cache.materials = JSON.stringify(data);
+                updateFilterDropdowns();
+                renderMaterialList(mode);
             } catch(e) {}
-        } else {
-            state.materials = JSON.parse(cache.materials);
         }
-        
-        renderMaterialList(mode);
     }
 
     async function refreshMaterials(mode) {
@@ -1365,10 +1567,10 @@
         
         if (filtered.length === 0) {
             container.innerHTML = `
-                <div style="grid-column: 1 / -1;" class="py-20 flex flex-col items-center justify-center bg-white rounded-2xl shadow-sm">
-                    <i class="fas fa-box-open text-6xl mb-4 opacity-50"></i>
-                    <p class="text-xl font-bold">ไม่พบรายการวัสดุ</p>
-                    <p class="text-sm mt-1 opacity-70">ลองเปลี่ยนคำค้นหา หรือเปลี่ยนตัวกรอง</p>
+                <div style="grid-column: 1 / -1;" class="py-20 flex flex-col items-center justify-center bg-white rounded-2xl shadow-sm border-custom dashboard-card">
+                    <i class="fas fa-box-open text-6xl mb-4 opacity-50 text-gray-500"></i>
+                    <p class="text-xl font-bold text-gray-800">ไม่พบรายการวัสดุ</p>
+                    <p class="text-sm mt-1 text-gray-500">ลองเปลี่ยนคำค้นหา หรือเปลี่ยนตัวกรอง</p>
                 </div>`;
             return;
         }
@@ -1380,90 +1582,112 @@
             const isPinned = m.pinned === true || m.pinned === 'true' || m.pinned === 1 || m.pinned === 'TRUE';
             
             let statusBadge = '';
-            if (isOut) statusBadge = `<div class="absolute top-3 right-3 bg-red-600 text-white text-[10px] font-black px-3 py-1 rounded-full shadow-lg">หมด!</div>`;
+            if (isOut) statusBadge = `<div class="absolute top-3 right-3 bg-red-500 text-white text-[10px] font-black px-3 py-1 rounded-full shadow-lg">หมด!</div>`;
             else if (isLow) statusBadge = `<div class="absolute top-3 right-3 bg-amber-500 text-white text-[10px] font-black px-3 py-1 rounded-full shadow-lg">ใกล้หมด</div>`;
 
             let pinBadge = '';
             if (isAdmin) {
-                pinBadge = `<button onclick="togglePin('${m.material_id}', ${isPinned}, event)" class="absolute top-3 left-3 w-8 h-8 rounded-full flex items-center justify-center shadow-lg transition transform active:scale-95 z-20 ${isPinned ? 'bg-amber-400 text-white border-2 border-white' : 'bg-[rgba(255,255,255,0.5)] text-gray-600 hover:bg-white'}"><i class="fas fa-thumbtack ${isPinned ? '-rotate-45' : ''}"></i></button>`;
+                pinBadge = `<button onclick="togglePin('${m.material_id}', ${isPinned}, event)" class="absolute top-3 left-3 w-8 h-8 rounded-full flex items-center justify-center shadow-lg transition transform active:scale-95 z-20 ${isPinned ? 'bg-amber-500 text-white border-2 border-white' : 'bg-gray-100 text-gray-600 hover:bg-white'}"><i class="fas fa-thumbtack ${isPinned ? '-rotate-45 text-white' : ''}"></i></button>`;
             } else if (isPinned) {
-                pinBadge = `<div class="absolute top-3 left-3 w-8 h-8 rounded-full bg-amber-400 text-white border-2 border-white flex items-center justify-center shadow-lg z-20"><i class="fas fa-thumbtack -rotate-45"></i></div>`;
+                pinBadge = `<div class="absolute top-3 left-3 w-8 h-8 rounded-full bg-amber-500 text-white border-2 border-white flex items-center justify-center shadow-lg z-20"><i class="fas fa-thumbtack -rotate-45 text-white"></i></div>`;
             }
 
             let actionButtons = '';
             const inCart = transCart.some(item => item.material_id === m.material_id);
 
+            // Using openMaterialModalById to prevent JSON stringify syntax errors
             if (mode === 'view') {
                 if (canManage) {
-                    const matJson = JSON.stringify(m).replace(/'/g, "&#39;").replace(/"/g, "&quot;");
                     actionButtons = `
                     <div class="flex gap-3">
-                        <button onclick="openMaterialModal(${matJson})" class="flex-1 py-2.5 text-xs bg-white rounded-xl hover:text-primary-600 font-bold transition shadow-sm transform active:scale-95">แก้ไข</button>
-                        <button onclick="deleteMaterial('${m.material_id}')" class="flex-1 py-2.5 text-xs bg-white rounded-xl hover:text-red-600 font-bold transition shadow-sm transform active:scale-95">ลบ</button>
+                        <button onclick="openMaterialModalById('${m.material_id}')" class="flex-1 py-2.5 text-xs rounded-xl hover:text-primary-500 font-bold transition shadow-sm transform active:scale-95 border-custom" style="background: var(--input-bg); color: var(--text-main);">แก้ไข</button>
+                        <button onclick="deleteMaterial('${m.material_id}')" class="flex-1 py-2.5 text-xs rounded-xl hover:bg-red-50 font-bold transition shadow-sm transform active:scale-95 border-custom text-red-500" style="background: var(--input-bg);">ลบ</button>
                     </div>`;
                 } else {
-                    actionButtons = `<button disabled class="w-full py-2.5 text-xs bg-gray-100 rounded-xl opacity-50 font-bold cursor-not-allowed"><i class="fas fa-lock mr-1"></i> ไม่มีสิทธิ์จัดการข้อมูล</button>`;
+                    actionButtons = `<button disabled class="w-full py-2.5 text-xs rounded-xl opacity-50 font-bold cursor-not-allowed border-custom text-gray-500" style="background: var(--input-bg);"><i class="fas fa-lock mr-1"></i> ไม่มีสิทธิ์จัดการข้อมูล</button>`;
                 }
             } else if (mode === 'withdraw') {
                 if (canWithdraw) {
                     if (inCart) {
-                        actionButtons = `<button onclick='removeFromCart("${m.material_id}", "${mode}")' class="w-full py-3 text-sm font-bold bg-white rounded-xl hover:bg-gray-50 transition flex items-center justify-center gap-2 shadow-sm transform active:scale-95"><i class="fas fa-check text-emerald-500"></i> เลือกแล้ว (ยกเลิก)</button>`;
+                        actionButtons = `<button onclick="removeFromCart('${m.material_id}', '${mode}')" class="w-full py-3 text-sm font-bold rounded-xl transition flex items-center justify-center gap-2 shadow-sm transform active:scale-95 border-custom text-gray-800" style="background: var(--input-bg);"><i class="fas fa-check text-emerald-500"></i> เลือกแล้ว (ยกเลิก)</button>`;
                     } else {
-                        actionButtons = `<button onclick='addToCart("${m.material_id}", "withdraw")' class="w-full py-3 text-sm font-bold bg-rose-600 hover:bg-rose-700 text-white rounded-xl transition transform active:scale-95 flex items-center justify-center gap-2 shadow-sm">
-                            <i class="fas fa-cart-plus"></i> เลือกเพื่อเบิก
+                        actionButtons = `<button onclick="addToCart('${m.material_id}', 'withdraw')" class="w-full py-3 text-sm font-bold bg-rose-600 hover:bg-rose-700 text-white rounded-xl transition transform active:scale-95 flex items-center justify-center gap-2 shadow-sm">
+                            <i class="fas fa-cart-plus text-white"></i> เลือกเพื่อเบิก
                         </button>`;
                     }
                 } else {
-                    actionButtons = `<button disabled class="w-full py-3 text-sm font-bold bg-gray-100 rounded-xl opacity-50 cursor-not-allowed flex items-center justify-center gap-2">
+                    actionButtons = `<button disabled class="w-full py-3 text-sm font-bold rounded-xl opacity-50 cursor-not-allowed flex items-center justify-center gap-2 border-custom text-gray-500" style="background: var(--input-bg);">
                         <i class="fas fa-lock"></i> ไม่มีสิทธิ์เบิกวัสดุ
                     </button>`;
                 }
             } else if (mode === 'import') {
                 if (canImport) {
                     if (inCart) {
-                        actionButtons = `<button onclick='removeFromCart("${m.material_id}", "${mode}")' class="w-full py-3 text-sm font-bold bg-white rounded-xl hover:bg-gray-50 transition flex items-center justify-center gap-2 shadow-sm transform active:scale-95"><i class="fas fa-check text-emerald-500"></i> เลือกแล้ว (ยกเลิก)</button>`;
+                        actionButtons = `<button onclick="removeFromCart('${m.material_id}', '${mode}')" class="w-full py-3 text-sm font-bold rounded-xl transition flex items-center justify-center gap-2 shadow-sm transform active:scale-95 border-custom text-gray-800" style="background: var(--input-bg);"><i class="fas fa-check text-emerald-500"></i> เลือกแล้ว (ยกเลิก)</button>`;
                     } else {
-                        actionButtons = `<button onclick='addToCart("${m.material_id}", "import")' class="w-full py-3 text-sm font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition transform active:scale-95 flex items-center justify-center gap-2 shadow-sm">
-                            <i class="fas fa-cart-plus"></i> เลือกเพื่อนำเข้า
+                        actionButtons = `<button onclick="addToCart('${m.material_id}', 'import')" class="w-full py-3 text-sm font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition transform active:scale-95 flex items-center justify-center gap-2 shadow-sm">
+                            <i class="fas fa-cart-plus text-white"></i> เลือกเพื่อนำเข้า
                         </button>`;
                     }
                 } else {
-                    actionButtons = `<button disabled class="w-full py-3 text-sm font-bold bg-gray-100 rounded-xl opacity-50 cursor-not-allowed flex items-center justify-center gap-2">
+                    actionButtons = `<button disabled class="w-full py-3 text-sm font-bold rounded-xl opacity-50 cursor-not-allowed flex items-center justify-center gap-2 border-custom text-gray-500" style="background: var(--input-bg);">
                         <i class="fas fa-lock"></i> ไม่มีสิทธิ์นำเข้าวัสดุ
                     </button>`;
                 }
             }
 
+            const dispType = m.type || m.Type || m['ประเภท'] || 'ไม่ได้ระบุประเภท';
+            const dispCat = m.category || m.Category || m['หมวดหมู่'] || m['category'];
+            
             htmlString += `
-            <div class="bg-white rounded-2xl shadow-sm overflow-hidden hover:shadow-lg transition-all duration-300 flex flex-col group relative">
-                <div class="h-44 relative overflow-hidden border-b border-[rgba(255,255,255,0.1)] p-2 flex items-center justify-center" style="background: rgba(0,0,0,0.15);">
+            <div class="inventory-card rounded-2xl shadow-custom overflow-hidden hover:-translate-y-1 transition-all duration-300 flex flex-col group relative border-custom">
+                <div class="h-44 relative overflow-hidden border-b border-custom p-2 flex items-center justify-center" style="background: rgba(128,128,128,0.05);">
                     ${pinBadge}
-                    <img src="${m.image_url || 'https://via.placeholder.com/400x300?text=No+Image'}" class="max-w-full max-h-full object-contain transition-transform duration-700 group-hover:scale-105 cursor-pointer drop-shadow-lg" onerror="this.src='https://via.placeholder.com/400x300?text=Image+Error'" onclick="openImageModal('${m.image_url || 'https://via.placeholder.com/800x600?text=No+Image'}')">
+                    <img src="${m.image_url || 'https://via.placeholder.com/400x300?text=No+Image'}" class="max-w-full max-h-full object-contain transition-transform duration-700 group-hover:scale-105 cursor-pointer drop-shadow-md" onerror="this.src='https://via.placeholder.com/400x300?text=Image+Error'" onclick="openImageModal('${m.image_url || 'https://via.placeholder.com/800x600?text=No+Image'}')">
                     ${statusBadge}
                 </div>
                 
                 <div class="p-5 flex-1 flex flex-col">
-                    <span class="px-2 py-0.5 bg-[rgba(0,0,0,0.2)] text-[10px] rounded-md font-bold mb-2 inline-block w-max backdrop-blur-sm border border-[rgba(255,255,255,0.1)] text-white">${m.type || m.Type || m['ประเภท'] || 'ไม่ได้ระบุประเภท'}</span>
-                    <h4 class="font-bold text-base line-clamp-2 mb-1 leading-tight" title="${m.name}">${m.name}</h4>
-                    <p class="text-xs mb-3 flex items-start gap-1 opacity-80"><i class="fas fa-map-marker-alt mt-0.5 text-red-400"></i> <span>${m.location || m.Location || m['ที่เก็บ'] || m['ชั้นวาง'] || 'ไม่ได้ระบุ'}</span></p>
+                    <div class="flex flex-wrap gap-1 mb-2">
+                        <span class="px-2 py-0.5 text-[10px] rounded-md font-bold inline-block w-max text-primary-600 border border-primary-500/30" style="background: rgba(59,130,246,0.1); text-shadow:none;">${dispType}</span>
+                        ${dispCat ? `<span class="px-2 py-0.5 text-[10px] rounded-md font-bold inline-block w-max text-emerald-600 border border-emerald-500/30" style="background: rgba(16,185,129,0.1); text-shadow:none;">${dispCat}</span>` : ''}
+                    </div>
+                    <h4 class="font-bold text-base line-clamp-2 mb-1 leading-tight text-gray-800" title="${m.name}">${m.name}</h4>
+                    <p class="text-xs mb-3 flex items-start gap-1 text-gray-500"><i class="fas fa-map-marker-alt mt-0.5 text-red-500"></i> <span>${m.location || m.Location || m['ที่เก็บ'] || m['ชั้นวาง'] || 'ไม่ได้ระบุ'}</span></p>
                     <div class="mt-auto flex justify-between items-end">
                         <div>
-                            <span class="block text-[10px] font-bold uppercase tracking-widest mb-1 opacity-60">Stock ID</span>
-                            <span class="text-xs font-mono font-bold bg-[rgba(0,0,0,0.1)] px-2 py-1 rounded-md border border-[rgba(255,255,255,0.1)]">#${m.material_id.slice(-5)}</span>
+                            <span class="block text-[10px] font-bold uppercase tracking-widest mb-1 text-gray-500">Stock ID</span>
+                            <span class="text-xs font-mono font-bold px-2 py-1 rounded-md border border-custom text-gray-600" style="background: var(--input-bg);">#${m.material_id.slice(-5)}</span>
                         </div>
                         <div class="text-right">
-                            <span class="block text-[10px] font-bold uppercase tracking-widest mb-1 opacity-60">Quantity</span>
-                            <span class="text-3xl font-black ${isOut ? 'text-red-500' : 'text-primary-500'} leading-none drop-shadow-md">${m.qty}</span>
+                            <span class="block text-[10px] font-bold uppercase tracking-widest mb-1 text-gray-500">Quantity</span>
+                            <span class="text-3xl font-black ${isOut ? 'text-red-500' : 'text-primary-500'} leading-none drop-shadow-sm">${m.qty}</span>
                         </div>
                     </div>
                 </div>
                 
-                <div class="p-4 border-t border-[rgba(255,255,255,0.1)] bg-[rgba(0,0,0,0.05)]">
+                <div class="p-4 border-t border-custom" style="background: rgba(128,128,128,0.02);">
                     ${actionButtons}
                 </div>
             </div>`;
         });
         container.innerHTML = htmlString;
+    }
+
+    // Proxy function to avoid SyntaxError in HTML string
+    function openMaterialModalById(id) {
+        if (!id) {
+            openMaterialModal(null);
+            return;
+        }
+        const m = state.materials.find(x => x.material_id === id);
+        openMaterialModal(m);
+    }
+    
+    function openPermModalById(id) {
+        if (!cache.users) return;
+        const u = cache.users.find(x => (x.user_id || x['User ID'] || x.id) == id);
+        if (u) openPermModal(u);
     }
 
     // --- BULK TRANSACTION LOGIC ---
@@ -1529,7 +1753,7 @@
         
         const title = document.getElementById('cartModalTitle');
         const isImport = currentTransMode === 'import';
-        title.innerHTML = isImport ? '<i class="fas fa-truck-loading text-emerald-500 mr-2"></i> ยืนยันรายการนำเข้า' : '<i class="fas fa-hand-holding text-rose-500 mr-2"></i> ยืนยันรายการเบิกวัสดุ';
+        title.innerHTML = isImport ? '<i class="fas fa-truck-loading text-emerald-500 mr-2 drop-shadow-md"></i> ยืนยันรายการนำเข้า' : '<i class="fas fa-hand-holding text-rose-500 mr-2 drop-shadow-md"></i> ยืนยันรายการเบิกวัสดุ';
         
         const refLabel = document.getElementById('cartRefLabel');
         const refInput = document.getElementById('cartRef');
@@ -1542,8 +1766,8 @@
         }
 
         const btn = document.getElementById('btnCartSubmit');
-        btn.className = `w-full py-3.5 rounded-xl font-bold text-white shadow-lg transition transform active:scale-95 text-lg ${isImport ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-rose-600 hover:bg-rose-700'}`;
-        btn.innerHTML = isImport ? '<i class="fas fa-check-circle mr-2"></i> ยืนยันการนำเข้าทั้งหมด' : '<i class="fas fa-check-circle mr-2"></i> ยืนยันการเบิกทั้งหมด';
+        btn.className = `w-full py-3.5 rounded-xl font-bold text-white shadow-lg transition transform active:scale-95 text-lg ${isImport ? 'bg-emerald-600' : 'bg-rose-600'}`;
+        btn.innerHTML = isImport ? '<i class="fas fa-check-circle mr-2 text-white"></i> ยืนยันการนำเข้าทั้งหมด' : '<i class="fas fa-check-circle mr-2 text-white"></i> ยืนยันการเบิกทั้งหมด';
 
         renderCartItems();
         document.getElementById('cartModal').classList.remove('hidden');
@@ -1555,23 +1779,25 @@
             closeModal('cartModal');
             return;
         }
-        container.innerHTML = transCart.map((item, index) => `
-            <div class="bg-white p-3 rounded-xl shadow-sm border border-[rgba(255,255,255,0.2)] flex flex-wrap sm:flex-nowrap items-center gap-3">
-                <img src="${item.image_url || 'https://via.placeholder.com/150?text=No+Image'}" class="w-12 h-12 object-contain rounded-lg border border-[rgba(255,255,255,0.1)] bg-[rgba(0,0,0,0.1)] p-1 shrink-0">
+        container.innerHTML = transCart.map((item, index) => {
+            const dispCat = item.category || item.Category || item['หมวดหมู่'] || item['category'];
+            return `
+            <div class="bg-white p-3 rounded-xl shadow-sm border border-custom flex flex-wrap sm:flex-nowrap items-center gap-3">
+                <img src="${item.image_url || 'https://via.placeholder.com/150?text=No+Image'}" class="w-12 h-12 object-contain rounded-lg border border-custom p-1 shrink-0" style="background: var(--input-bg);">
                 <div class="flex-1 min-w-[120px]">
-                    <p class="font-bold text-sm truncate" title="${item.name}">${item.name}</p>
-                    <p class="text-[10px] opacity-80 mt-0.5"><i class="fas fa-map-marker-alt text-red-400 mr-1"></i>${item.location || item.Location || item['ที่เก็บ'] || item['ชั้นวาง'] || 'ไม่ได้ระบุ'} | คงเหลือ: <span class="font-bold text-primary-500 drop-shadow-md">${item.qty}</span></p>
+                    <p class="font-bold text-sm truncate text-gray-800" title="${item.name}">${item.name}</p>
+                    <p class="text-[10px] mt-0.5 text-gray-500"><i class="fas fa-map-marker-alt text-red-500 mr-1"></i>${item.location || item.Location || item['ที่เก็บ'] || item['ชั้นวาง'] || 'ไม่ได้ระบุ'} ${dispCat ? `| ${dispCat}` : ''} | คงเหลือ: <span class="font-bold text-primary-500 drop-shadow-md">${item.qty}</span></p>
                 </div>
                 <div class="flex items-center gap-1 sm:gap-2 ml-auto">
-                    <button type="button" onclick="adjCartQty(${index}, -1)" class="w-8 h-8 rounded-full bg-[rgba(128,128,128,0.2)] hover:bg-[rgba(128,128,128,0.4)] flex items-center justify-center font-bold transition shrink-0">-</button>
-                    <input type="number" onchange="updateCartItemQty(${index}, this.value)" value="${item.transQty}" min="1" class="w-16 text-center font-black text-lg py-1 bg-[rgba(0,0,0,0.1)]">
-                    <button type="button" onclick="adjCartQty(${index}, 1)" class="w-8 h-8 rounded-full bg-[rgba(128,128,128,0.2)] hover:bg-[rgba(128,128,128,0.4)] flex items-center justify-center font-bold transition shrink-0">+</button>
+                    <button type="button" onclick="adjCartQty(${index}, -1)" class="w-8 h-8 rounded-full flex items-center justify-center font-bold transition shrink-0 text-gray-600 border-custom" style="background: var(--input-bg);">-</button>
+                    <input type="number" onchange="updateCartItemQty(${index}, this.value)" value="${item.transQty}" min="1" class="w-16 text-center font-black text-lg py-1 border-custom">
+                    <button type="button" onclick="adjCartQty(${index}, 1)" class="w-8 h-8 rounded-full flex items-center justify-center font-bold transition shrink-0 text-gray-600 border-custom" style="background: var(--input-bg);">+</button>
                 </div>
-                <button type="button" onclick="removeCartItem(${index})" class="w-8 h-8 rounded-lg text-red-400 hover:bg-[rgba(239,68,68,0.2)] transition flex items-center justify-center shrink-0 ml-1">
+                <button type="button" onclick="removeCartItem(${index})" class="w-8 h-8 rounded-lg text-red-500 transition flex items-center justify-center shrink-0 ml-1" style="background: rgba(239,68,68,0.1);">
                     <i class="fas fa-trash"></i>
                 </button>
             </div>
-        `).join('');
+        `}).join('');
     }
 
     function updateCartItemQty(index, val) {
@@ -1654,7 +1880,7 @@
         renderInventory(document.getElementById('contentArea'), currentTransMode, currentViewID);
         
         document.getElementById('loadingOverlay').classList.add('hidden');
-        document.getElementById('loadingText').innerText = 'กำลังประมวลผลข้อมูล...';
+        document.getElementById('loadingText').innerText = 'กำลังประมวลผลข้อมูลโปรดรอ...';
 
         if (errorMsgs.length > 0) {
             alert(`ทำรายการสำเร็จ ${successCount} รายการ\n\nเกิดข้อผิดพลาด ${errorMsgs.length} รายการ:\n${errorMsgs.join('\n')}`);
@@ -1772,56 +1998,56 @@
         c.innerHTML = `
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4 fade-in">
                 <div class="flex items-center gap-3">
-                    <div class="w-12 h-12 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center shadow-sm">
+                    <div class="w-12 h-12 rounded-xl text-primary-500 flex items-center justify-center border border-custom shadow-sm bg-white">
                         <i class="fas fa-file-invoice text-2xl drop-shadow-md"></i>
                     </div>
                     <div>
                         <h2 class="text-2xl font-bold text-gray-800">รายงานประวัติ</h2>
-                        <p class="text-xs font-medium opacity-70">ประวัติการนำเข้าและเบิกออกย้อนหลัง</p>
+                        <p class="text-xs font-medium text-gray-500">ประวัติการนำเข้าและเบิกออกย้อนหลัง</p>
                     </div>
                 </div>
 
-                <div class="flex flex-wrap gap-3 items-center bg-white p-2.5 rounded-2xl shadow-sm">
-                    <select id="filterReportType" onchange="filterReports()" class="text-sm font-medium border-none bg-transparent outline-none focus:ring-0 cursor-pointer">
+                <div class="flex flex-wrap gap-3 items-center p-2.5 rounded-2xl shadow-sm border border-custom dashboard-card">
+                    <select id="filterReportType" onchange="filterReports()" class="text-sm font-medium border-none bg-transparent outline-none focus:ring-0 cursor-pointer text-gray-800">
                         <option value="all">ทุกประเภท</option>
                         <option value="pH Test Kit">pH Test Kit</option>
                         <option value="NPK Test Kit">NPK Test Kit</option>
-                        <option value="Saline Soil Test Kit">Saline Soil Test Kit</option>
+                        <option value="EC Test Kit">EC Test Kit</option>
                     </select>
-                    <div class="h-8 w-px bg-[rgba(128,128,128,0.3)] mx-1 hidden sm:block"></div>
-                    <div class="flex items-center bg-[rgba(0,0,0,0.05)] rounded-xl border border-[rgba(128,128,128,0.2)] p-1">
-                        <span class="text-xs font-bold px-2 hidden sm:inline opacity-70"><i class="fas fa-calendar-alt mr-1"></i> ช่วงวันที่</span>
+                    <div class="h-8 w-px bg-gray-300 mx-1 hidden sm:block"></div>
+                    <div class="flex items-center rounded-xl border border-custom p-1" style="background: var(--input-bg);">
+                        <span class="text-xs font-bold px-2 hidden sm:inline text-gray-600"><i class="fas fa-calendar-alt mr-1"></i> ช่วงวันที่</span>
                         <input type="date" id="filterStartDate" class="text-sm font-medium border-none bg-transparent outline-none focus:ring-0" onchange="filterReports()">
-                        <span class="font-bold mx-1 opacity-50">-</span>
+                        <span class="font-bold mx-1 text-gray-400">-</span>
                         <input type="date" id="filterEndDate" class="text-sm font-medium border-none bg-transparent outline-none focus:ring-0 pr-2" onchange="filterReports()">
                     </div>
-                    <div class="h-8 w-px bg-[rgba(128,128,128,0.3)] mx-1 hidden sm:block"></div>
-                    <button onclick="exportCSV()" class="px-4 py-2.5 bg-gray-800 text-white rounded-xl text-xs font-bold shadow-md transition flex items-center gap-2 transform active:scale-95"><i class="fas fa-file-csv text-base"></i> CSV</button>
-                    <button onclick="exportPDF()" class="px-4 py-2.5 bg-red-600 text-white rounded-xl text-xs font-bold shadow-md transition flex items-center gap-2 transform active:scale-95"><i class="fas fa-file-pdf text-base"></i> PDF</button>
+                    <div class="h-8 w-px bg-gray-300 mx-1 hidden sm:block"></div>
+                    <button onclick="exportCSV()" class="px-4 py-2.5 bg-gray-800 text-white rounded-xl text-xs font-bold shadow-md transition flex items-center gap-2 transform active:scale-95"><i class="fas fa-file-csv text-white text-base"></i> CSV</button>
+                    <button onclick="exportPDF()" class="px-4 py-2.5 bg-red-600 text-white rounded-xl text-xs font-bold shadow-md transition flex items-center gap-2 transform active:scale-95"><i class="fas fa-file-pdf text-white text-base"></i> PDF</button>
                 </div>
             </div>
             
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-24 fade-in">
                 <!-- Withdraw Log -->
-                <div class="bg-white rounded-2xl shadow-sm flex flex-col overflow-hidden h-[500px] lg:h-[calc(100vh-260px)]">
-                    <div class="p-5 bg-rose-500/10 border-b border-[rgba(244,63,94,0.2)] flex justify-between items-center backdrop-blur-sm">
+                <div class="rounded-2xl shadow-custom flex flex-col overflow-hidden h-[500px] lg:h-[calc(100vh-260px)] border-custom dashboard-card">
+                    <div class="p-5 border-b border-custom flex justify-between items-center" style="background: rgba(244,63,94,0.1);">
                         <span class="font-bold text-rose-500 text-lg flex items-center gap-3 drop-shadow-md">
-                            <div class="w-8 h-8 rounded-full bg-rose-500/20 flex items-center justify-center"><i class="fas fa-arrow-down"></i></div>
+                            <div class="w-8 h-8 rounded-full flex items-center justify-center border border-rose-500/30 bg-white"><i class="fas fa-arrow-down text-rose-500"></i></div>
                             ประวัติการเบิกออก
                         </span>
-                        <span class="text-xs font-bold text-rose-500 bg-[rgba(255,255,255,0.5)] border border-rose-500/30 px-3 py-1 rounded-full uppercase tracking-wider shadow-sm">Withdraw</span>
+                        <span class="text-xs font-bold text-rose-500 bg-white border border-rose-500/30 px-3 py-1 rounded-full uppercase tracking-wider shadow-sm">Withdraw</span>
                     </div>
                     <div class="overflow-y-auto flex-1 p-0" id="withdrawLog"><div class="loader mx-auto mt-16"></div></div>
                 </div>
                 
                 <!-- Import Log -->
-                <div class="bg-white rounded-2xl shadow-sm flex flex-col overflow-hidden h-[500px] lg:h-[calc(100vh-260px)]">
-                    <div class="p-5 bg-emerald-500/10 border-b border-[rgba(16,185,129,0.2)] flex justify-between items-center backdrop-blur-sm">
+                <div class="rounded-2xl shadow-custom flex flex-col overflow-hidden h-[500px] lg:h-[calc(100vh-260px)] border-custom dashboard-card">
+                    <div class="p-5 border-b border-custom flex justify-between items-center" style="background: rgba(16,185,129,0.1);">
                         <span class="font-bold text-emerald-500 text-lg flex items-center gap-3 drop-shadow-md">
-                            <div class="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center"><i class="fas fa-arrow-up"></i></div>
+                            <div class="w-8 h-8 rounded-full flex items-center justify-center border border-emerald-500/30 bg-white"><i class="fas fa-arrow-up text-emerald-500"></i></div>
                             ประวัติการนำเข้า
                         </span>
-                        <span class="text-xs font-bold text-emerald-500 bg-[rgba(255,255,255,0.5)] border border-emerald-500/30 px-3 py-1 rounded-full uppercase tracking-wider shadow-sm">Import</span>
+                        <span class="text-xs font-bold text-emerald-500 bg-white border border-emerald-500/30 px-3 py-1 rounded-full uppercase tracking-wider shadow-sm">Import</span>
                     </div>
                     <div class="overflow-y-auto flex-1 p-0" id="importLog"><div class="loader mx-auto mt-16"></div></div>
                 </div>
@@ -1841,18 +2067,18 @@
 
         const renderLog = (data, colorTextClass) => {
             if (!data.length) return `
-                <div class="flex flex-col items-center justify-center h-full py-20 opacity-50">
-                    <div class="w-20 h-20 bg-[rgba(128,128,128,0.2)] rounded-full flex items-center justify-center mb-4"><i class="fas fa-clipboard-list text-3xl"></i></div>
+                <div class="flex flex-col items-center justify-center h-full py-20 text-gray-500">
+                    <div class="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-4"><i class="fas fa-clipboard-list text-3xl"></i></div>
                     <p class="text-sm font-bold">ไม่มีข้อมูลประวัติในช่วงเวลานี้</p>
                 </div>`;
             
             let htmlStr = `<table class="w-full text-sm text-left table-fixed">
-                <thead class="sticky top-0 z-10">
+                <thead class="sticky top-0 z-10" style="background: var(--card-bg);">
                     <tr>
-                        <th class="p-4 pl-6 w-[25%] font-bold text-xs uppercase tracking-wider">วันที่ทำรายการ</th>
-                        <th class="p-4 w-[35%] font-bold text-xs uppercase tracking-wider">รายการวัสดุ</th>
-                        <th class="p-4 w-[25%] font-bold text-xs uppercase tracking-wider">ประเภท</th>
-                        <th class="p-4 text-right pr-6 w-[15%] font-bold text-xs uppercase tracking-wider">จำนวน</th>
+                        <th class="p-4 pl-6 w-[25%] font-bold text-xs uppercase tracking-wider text-gray-600">วันที่ทำรายการ</th>
+                        <th class="p-4 w-[35%] font-bold text-xs uppercase tracking-wider text-gray-600">รายการวัสดุ</th>
+                        <th class="p-4 w-[25%] font-bold text-xs uppercase tracking-wider text-gray-600">ประเภท</th>
+                        <th class="p-4 text-right pr-6 w-[15%] font-bold text-xs uppercase tracking-wider text-gray-600">จำนวน</th>
                     </tr>
                 </thead>
                 <tbody>`;
@@ -1863,18 +2089,18 @@
                 htmlStr += `
                     <tr class="transition group">
                         <td class="p-4 pl-6 align-top">
-                            <div class="font-bold text-sm mb-1">${formatDate(r.timestamp).split(' ')[0]} <span class="text-[10px] font-medium ml-1 bg-[rgba(128,128,128,0.2)] px-1.5 py-0.5 rounded inline-block mt-1 lg:mt-0">${formatDate(r.timestamp).split(' ')[1] || ''}</span></div>
-                            <div class="text-xs font-medium flex items-center gap-1.5 truncate opacity-80"><i class="fas fa-user-circle text-sm"></i> ${r.user_name}</div>
+                            <div class="font-bold text-sm mb-1 text-gray-800">${formatDate(r.timestamp).split(' ')[0]} <span class="text-[10px] font-medium ml-1 px-1.5 py-0.5 rounded inline-block mt-1 lg:mt-0 text-gray-500" style="background: var(--input-bg);">${formatDate(r.timestamp).split(' ')[1] || ''}</span></div>
+                            <div class="text-xs font-medium flex items-center gap-1.5 truncate text-gray-500"><i class="fas fa-user-circle text-sm"></i> ${r.user_name}</div>
                         </td>
                         <td class="p-4 align-top">
-                            <div class="text-sm font-bold bg-[rgba(255,255,255,0.2)] border border-[rgba(255,255,255,0.1)] px-3 py-1.5 rounded-lg shadow-sm break-words whitespace-normal leading-snug">${r.material_name}</div>
-                            ${cleanRef ? `<div class="text-xs mt-2 flex items-start gap-1.5 opacity-70"><i class="fas fa-comment-dots mt-0.5"></i><span class="break-words line-clamp-2">${cleanRef}</span></div>` : ''}
+                            <div class="text-sm font-bold border border-custom px-3 py-1.5 rounded-lg shadow-sm break-words whitespace-normal leading-snug text-gray-800" style="background: var(--input-bg);">${r.material_name}</div>
+                            ${cleanRef ? `<div class="text-xs mt-2 flex items-start gap-1.5 text-gray-500"><i class="fas fa-comment-dots mt-0.5"></i><span class="break-words line-clamp-2">${cleanRef}</span></div>` : ''}
                         </td>
                         <td class="p-4 align-top">
-                            <span class="px-2 py-1 bg-[rgba(0,0,0,0.2)] text-[10px] rounded-md font-bold text-white shadow-sm">${r._resolvedType || '-'}</span>
+                            <span class="px-2 py-1 text-[10px] rounded-md font-bold text-primary-600 border border-primary-500/20 shadow-sm" style="background: rgba(59,130,246,0.1);">${r._resolvedType || '-'}</span>
                         </td>
                         <td class="p-4 pr-6 text-right align-top">
-                            <span class="font-black ${colorTextClass} drop-shadow-md text-xl bg-[rgba(255,255,255,0.2)] px-3 py-1.5 rounded-lg border border-[rgba(255,255,255,0.1)] inline-block">${r.qty}</span>
+                            <span class="font-black ${colorTextClass} drop-shadow-md text-xl px-3 py-1.5 rounded-lg border border-custom shadow-sm inline-block" style="background: var(--input-bg);">${r.qty}</span>
                         </td>
                     </tr>`;
             });
@@ -1892,21 +2118,21 @@
         if (currentViewID !== viewID) return;
         
         c.innerHTML = `
-            <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden fade-in flex flex-col h-full">
-                <div class="p-5 border-b bg-[rgba(0,0,0,0.05)] flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div class="rounded-2xl shadow-custom border border-custom overflow-hidden fade-in flex flex-col h-full dashboard-card">
+                <div class="p-5 border-b border-custom flex flex-col sm:flex-row justify-between items-center gap-4" style="background: rgba(128,128,128,0.05);">
                     <div class="flex items-center gap-4">
-                        <div class="w-12 h-12 rounded-xl bg-primary-500/20 text-primary-500 flex items-center justify-center shadow-sm border border-primary-500/30"><i class="fas fa-users-cog text-2xl drop-shadow-md"></i></div>
+                        <div class="w-12 h-12 rounded-xl bg-primary-500/10 text-primary-500 flex items-center justify-center shadow-sm border border-primary-500/30"><i class="fas fa-users-cog text-2xl drop-shadow-md"></i></div>
                         <div>
-                            <h3 class="font-bold text-xl leading-tight">จัดการผู้ใช้งานระบบ</h3>
-                            <p class="text-xs font-medium opacity-70">อนุมัติและกำหนดสิทธิ์ผู้ใช้งาน</p>
+                            <h3 class="font-bold text-xl leading-tight text-gray-800">จัดการผู้ใช้งานระบบ</h3>
+                            <p class="text-xs font-medium text-gray-500">อนุมัติและกำหนดสิทธิ์ผู้ใช้งาน</p>
                         </div>
                     </div>
-                    <button onclick="renderUsers(document.getElementById('contentArea'), '${viewID}')" class="bg-white transition px-4 py-2.5 rounded-xl text-sm font-bold shadow-sm flex items-center gap-2 transform active:scale-95 hover:bg-gray-50"><i class="fas fa-sync-alt"></i> โหลดข้อมูลใหม่</button>
+                    <button onclick="renderUsers(document.getElementById('contentArea'), '${viewID}')" class="transition px-4 py-2.5 rounded-xl text-sm font-bold shadow-sm flex items-center gap-2 transform active:scale-95 border-custom text-gray-700" style="background: var(--input-bg);"><i class="fas fa-sync-alt"></i> โหลดข้อมูลใหม่</button>
                 </div>
                 <div class="overflow-auto flex-1">
                     <table class="w-full text-left text-sm">
-                        <thead class="sticky top-0 z-10">
-                            <tr><th class="p-4 pl-6 font-bold text-xs uppercase tracking-wider">บัญชีผู้ใช้งาน</th><th class="p-4 font-bold text-xs uppercase tracking-wider">กลุ่มงาน</th><th class="p-4 text-center font-bold text-xs uppercase tracking-wider">สิทธิ์เข้าใช้งาน</th><th class="p-4 text-center font-bold text-xs uppercase tracking-wider">ระดับผู้ใช้</th><th class="p-4 text-right pr-6 font-bold text-xs uppercase tracking-wider">การตั้งค่า</th></tr>
+                        <thead class="sticky top-0 z-10" style="background: var(--card-bg);">
+                            <tr><th class="p-4 pl-6 font-bold text-xs uppercase tracking-wider text-gray-600">บัญชีผู้ใช้งาน</th><th class="p-4 font-bold text-xs uppercase tracking-wider text-gray-600">กลุ่มงาน</th><th class="p-4 text-center font-bold text-xs uppercase tracking-wider text-gray-600">สิทธิ์เข้าใช้งาน</th><th class="p-4 text-center font-bold text-xs uppercase tracking-wider text-gray-600">ระดับผู้ใช้</th><th class="p-4 text-right pr-6 font-bold text-xs uppercase tracking-wider text-gray-600">การตั้งค่า</th></tr>
                         </thead>
                         <tbody id="userTableBody">
                             <tr><td colspan="5" class="p-20 text-center"><div class="loader mx-auto"></div></td></tr>
@@ -1931,35 +2157,33 @@
                 const group = String(u.group || u.Group || '-');
                 const role = String(u.role || u.Role || 'user');
                 const uid = u.user_id || u['User ID'] || u.id || '';
-                
-                const userJson = JSON.stringify(u).replace(/'/g, "&#39;").replace(/"/g, "&quot;");
 
                 htmlStr += `
-                <tr class="transition group">
+                <tr class="transition group border-b border-custom">
                     <td class="p-4 pl-6">
                         <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 rounded-full bg-[rgba(128,128,128,0.2)] flex items-center justify-center font-bold shadow-inner">${fullname.charAt(0).toUpperCase()}</div>
+                            <div class="w-10 h-10 rounded-full flex items-center justify-center font-bold shadow-inner border border-custom text-gray-600" style="background: var(--input-bg);">${fullname.charAt(0).toUpperCase()}</div>
                             <div>
-                                <div class="font-bold text-base">${fullname}</div>
-                                <div class="text-xs font-mono mt-0.5 opacity-70"><i class="fas fa-at text-[10px]"></i>${username}</div>
+                                <div class="font-bold text-base text-gray-800">${fullname}</div>
+                                <div class="text-xs font-mono mt-0.5 text-gray-500"><i class="fas fa-at text-[10px]"></i>${username}</div>
                             </div>
                         </div>
                     </td>
                     <td class="p-4">
-                        <span class="bg-[rgba(128,128,128,0.2)] px-3 py-1 rounded-lg text-xs font-bold shadow-sm">${group}</span>
+                        <span class="px-3 py-1 rounded-lg text-xs font-bold shadow-sm border border-custom text-gray-700" style="background: var(--input-bg);">${group}</span>
                     </td>
                     <td class="p-4 text-center">
                         <div class="flex flex-col items-center justify-center">
                             <label class="relative inline-flex items-center cursor-pointer group/switch">
                               <input type="checkbox" class="sr-only peer toggle-checkbox" ${isApproved ? 'checked' : ''} onchange="toggleUserStatus('${uid}', this.checked)">
-                              <div class="w-12 h-6 bg-[rgba(128,128,128,0.5)] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all toggle-label shadow-inner group-hover/switch:shadow-md"></div>
+                              <div class="w-12 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all toggle-label shadow-inner group-hover/switch:shadow-md"></div>
                             </label>
                             <span class="text-[10px] mt-1.5 font-black uppercase tracking-wider ${isApproved ? 'text-emerald-500 drop-shadow-md' : 'text-amber-500 drop-shadow-md'}">${isApproved ? 'อนุญาตแล้ว' : 'รอตรวจสอบ'}</span>
                         </div>
                     </td>
-                    <td class="p-4 text-center"><span class="px-3 py-1.5 rounded-lg text-[10px] font-black ${(role || '').toLowerCase()==='admin'?'bg-purple-500/20 text-purple-400 border border-purple-500/50':'bg-primary-500/20 text-primary-400 border border-primary-500/50'} uppercase tracking-widest shadow-sm drop-shadow-md">${role}</span></td>
+                    <td class="p-4 text-center"><span class="px-3 py-1.5 rounded-lg text-[10px] font-black ${(role || '').toLowerCase()==='admin'?'bg-purple-100 text-purple-600 border border-purple-200':'bg-primary-100 text-primary-600 border border-primary-200'} uppercase tracking-widest shadow-sm drop-shadow-md">${role}</span></td>
                     <td class="p-4 text-right pr-6">
-                        <button onclick="openPermModal(${userJson})" class="text-primary-500 bg-white hover:bg-gray-50 px-4 py-2 rounded-xl text-xs font-bold shadow-sm transition transform active:scale-95 drop-shadow-sm"><i class="fas fa-user-shield mr-1"></i> กำหนดสิทธิ์</button>
+                        <button onclick="openPermModalById('${uid}')" class="text-primary-600 hover:text-primary-700 px-4 py-2 rounded-xl text-xs font-bold shadow-sm transition transform active:scale-95 drop-shadow-sm border border-primary-500/30" style="background: rgba(59,130,246,0.1);"><i class="fas fa-user-shield mr-1"></i> กำหนดสิทธิ์</button>
                     </td>
                 </tr>`;
             });
@@ -1986,26 +2210,26 @@
         if (currentViewID !== viewID) return;
         
         c.innerHTML = `
-            <div class="bg-white rounded-2xl shadow-sm flex flex-col h-full fade-in">
-                <div class="p-5 border-b bg-[rgba(0,0,0,0.05)] flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div class="rounded-2xl shadow-custom border border-custom overflow-hidden fade-in flex flex-col h-full dashboard-card">
+                <div class="p-5 border-b border-custom flex flex-col sm:flex-row justify-between items-center gap-4" style="background: rgba(128,128,128,0.05);">
                     <div class="flex items-center gap-4">
-                        <div class="w-12 h-12 rounded-xl bg-sidebar-800 text-white flex items-center justify-center shadow-sm"><i class="fas fa-history text-2xl drop-shadow-md"></i></div>
+                        <div class="w-12 h-12 rounded-xl text-gray-700 flex items-center justify-center shadow-sm border border-custom" style="background: var(--input-bg);"><i class="fas fa-history text-2xl drop-shadow-md"></i></div>
                         <div>
-                            <h3 class="font-bold text-xl leading-tight">ประวัติการเข้าใช้งาน (System Logs)</h3>
-                            <p class="text-xs font-medium opacity-70">บันทึกการเข้าสู่ระบบของผู้ใช้งาน</p>
+                            <h3 class="font-bold text-xl leading-tight text-gray-800">ประวัติการเข้าใช้งาน (System Logs)</h3>
+                            <p class="text-xs font-medium text-gray-500">บันทึกการเข้าสู่ระบบของผู้ใช้งาน</p>
                         </div>
                     </div>
-                    <button onclick="renderLogs(document.getElementById('contentArea'), '${viewID}')" class="bg-white px-4 py-2.5 rounded-xl text-sm font-bold shadow-sm flex items-center gap-2 transform active:scale-95 transition"><i class="fas fa-sync-alt"></i> โหลดข้อมูลใหม่</button>
+                    <button onclick="renderLogs(document.getElementById('contentArea'), '${viewID}')" class="transition px-4 py-2.5 rounded-xl text-sm font-bold shadow-sm flex items-center gap-2 transform active:scale-95 border-custom text-gray-700" style="background: var(--input-bg);"><i class="fas fa-sync-alt"></i> โหลดข้อมูลใหม่</button>
                 </div>
                 <div class="overflow-auto flex-1">
                     <table class="w-full text-left text-sm">
-                        <thead class="sticky top-0 z-10">
+                        <thead class="sticky top-0 z-10" style="background: var(--card-bg);">
                             <tr>
-                                <th class="p-4 pl-6 font-bold text-xs uppercase tracking-wider">วัน-เวลา</th>
-                                <th class="p-4 font-bold text-xs uppercase tracking-wider">รหัสผู้ใช้</th>
-                                <th class="p-4 font-bold text-xs uppercase tracking-wider">ชื่อผู้ใช้งาน</th>
-                                <th class="p-4 font-bold text-xs uppercase tracking-wider">ชื่อ-นามสกุล</th>
-                                <th class="p-4 font-bold text-xs uppercase tracking-wider">ระดับสิทธิ์</th>
+                                <th class="p-4 pl-6 font-bold text-xs uppercase tracking-wider text-gray-600">วัน-เวลา</th>
+                                <th class="p-4 font-bold text-xs uppercase tracking-wider text-gray-600">รหัสผู้ใช้</th>
+                                <th class="p-4 font-bold text-xs uppercase tracking-wider text-gray-600">ชื่อผู้ใช้งาน</th>
+                                <th class="p-4 font-bold text-xs uppercase tracking-wider text-gray-600">ชื่อ-นามสกุล</th>
+                                <th class="p-4 font-bold text-xs uppercase tracking-wider text-gray-600">ระดับสิทธิ์</th>
                             </tr>
                         </thead>
                         <tbody id="logsTableBody">
@@ -2023,7 +2247,7 @@
             if(!tbody) return;
             
             if (!logs || logs.length === 0) {
-                 tbody.innerHTML = `<tr><td colspan="5" class="p-10 text-center font-medium opacity-70">ไม่มีข้อมูลประวัติการเข้าใช้งาน</td></tr>`;
+                 tbody.innerHTML = `<tr><td colspan="5" class="p-10 text-center font-medium text-gray-500">ไม่มีข้อมูลประวัติการเข้าใช้งาน</td></tr>`;
                  return;
             }
 
@@ -2039,14 +2263,14 @@
                 const displayUid = uid || '-';
                 const displayUname = uname || '-';
                 const displayFname = fname || '-';
-                const displayRole = role ? `<span class="px-2 py-1 rounded-md text-[10px] font-black ${role.toLowerCase() === 'admin' ? 'bg-purple-500/20 text-purple-400' : 'bg-primary-500/20 text-primary-400'} uppercase tracking-widest drop-shadow-md border border-[rgba(255,255,255,0.1)]">${role}</span>` : '-';
+                const displayRole = role ? `<span class="px-2 py-1 rounded-md text-[10px] font-black ${role.toLowerCase() === 'admin' ? 'bg-purple-500/20 text-purple-600 border border-purple-200' : 'bg-primary-500/20 text-primary-600 border border-primary-200'} uppercase tracking-widest drop-shadow-md">${role}</span>` : '-';
 
                 htmlStr += `
-                <tr class="transition group">
-                    <td class="p-4 pl-6 font-medium">${formattedDate}</td>
-                    <td class="p-4 font-mono text-xs opacity-70">${displayUid}</td>
-                    <td class="p-4 font-bold">${displayUname}</td>
-                    <td class="p-4">${displayFname}</td>
+                <tr class="transition group border-b border-custom">
+                    <td class="p-4 pl-6 font-medium text-gray-600">${formattedDate}</td>
+                    <td class="p-4 font-mono text-xs text-gray-500">${displayUid}</td>
+                    <td class="p-4 font-bold text-gray-800">${displayUname}</td>
+                    <td class="p-4 text-gray-700">${displayFname}</td>
                     <td class="p-4">${displayRole}</td>
                 </tr>`;
             });
@@ -2067,23 +2291,37 @@
         if (placeholder) placeholder.classList.remove('hidden');
     }
 
-    function openMaterialModal(m) {
+    function openMaterialModalById(id) {
         document.getElementById('materialForm').reset();
         clearModal('mat');
-        toggleImgInput('file', 'mat'); // default to file upload UI
+        toggleImgInput('file', 'mat'); 
+        
+        let m = null;
+        if (id) {
+             m = state.materials.find(x => x.material_id === id);
+        }
         
         if (m) {
             document.getElementById('matId').value = m.material_id;
             document.getElementById('matName').value = m.name;
             document.getElementById('matLocation').value = m.location || m.Location || m['ที่เก็บ'] || m['ชั้นวาง'] || '';
-            document.getElementById('matType').value = m.type || m.Type || m['ประเภท'] || '';
+            
+            const mType = m.type || m.Type || m['ประเภท'] || '';
+            const mCat = m.category || m.Category || m['หมวดหมู่ย่อย'] || m.category_name || '';
+            
+            updateModalDropdowns(mType, mCat);
         } else {
             document.getElementById('matId').value = '';
+            updateModalDropdowns('', '');
         }
         document.getElementById('materialModal').classList.remove('hidden');
     }
 
-    function openPermModal(u) {
+    function openPermModalById(id) {
+        if (!cache.users) return;
+        const u = cache.users.find(x => (x.user_id || x['User ID'] || x.id) == id);
+        if (!u) return;
+
         let perms = [];
         try { 
             if(Array.isArray(u.permissions)) perms = u.permissions;
@@ -2091,11 +2329,10 @@
         } catch(e) { perms = []; }
         
         const fullname = String(u.fullname || u.Fullname || u.name || u.Name || 'ผู้ใช้ใหม่');
-        const uid = u.user_id || u['User ID'] || u.id || '';
         
         document.getElementById('permUserName').innerText = fullname;
         document.getElementById('permUserInitials').innerText = fullname.charAt(0).toUpperCase();
-        document.getElementById('permUserId').value = uid;
+        document.getElementById('permUserId').value = id;
         
         document.getElementById('perm_view_stock').checked = true;
         document.getElementById('perm_withdraw_material').checked = perms.includes('withdraw_material');
@@ -2131,10 +2368,21 @@
         const id = document.getElementById('matId').value;
         const fileInput = document.getElementById('matImgFile');
         
+        const typeSelect = document.getElementById('matTypeSelect');
+        const typeInput = document.getElementById('matTypeNew');
+        const finalType = typeSelect.value === 'NEW_TYPE' ? typeInput.value.trim() : typeSelect.value;
+        
+        const catSelect = document.getElementById('matCatSelect');
+        const catInput = document.getElementById('matCatNew');
+        const finalCat = catSelect.value === 'NEW_CAT' ? catInput.value.trim() : catSelect.value;
+
+        if (!finalType) return showToast('กรุณาระบุประเภทวัสดุ', 'error');
+
         let payload = { 
             name: document.getElementById('matName').value, 
             location: document.getElementById('matLocation').value,
-            type: document.getElementById('matType').value, 
+            type: finalType, 
+            category: finalCat, // New field mapped to M column
             image_url: document.getElementById('matImgUrl').value 
         };
         
@@ -2358,13 +2606,14 @@
                         (index + 1).toString(), 
                         m.name, 
                         m.type || m.Type || m['ประเภท'] || '-',
+                        m.category || m.Category || m['หมวดหมู่'] || '-',
                         m.location || m.Location || m['ที่เก็บ'] || m['ชั้นวาง'] || '-',
                         m.qty.toString(), 
                         formatDate(m.last_import_date || m.last_withdraw_date).split(' ')[0]
                     ]);
                     
                     doc.autoTable({
-                        head: [['ลำดับ', 'ชื่อวัสดุ (Material Name)', 'ประเภท', 'ที่เก็บ', 'คงเหลือ', 'อัปเดตล่าสุด']],
+                        head: [['ลำดับ', 'ชื่อวัสดุ', 'ประเภท', 'หมวดหมู่', 'ที่เก็บ', 'คงเหลือ', 'อัปเดตล่าสุด']],
                         body: data,
                         startY: 35,
                         margin: { top: 35, bottom: 20 },
@@ -2424,10 +2673,11 @@
     function exportInventoryCSV() {
         const filteredData = getFilteredInventory();
         if (!filteredData || filteredData.length === 0) return showToast('ไม่มีข้อมูลที่จะส่งออก', 'error');
-        const c = "\uFEFFลำดับที่ (No.),ชื่อวัสดุ (Material Name),ประเภท (Type),ที่เก็บ (Location),คงเหลือ (Quantity),อัปเดตล่าสุด (Last Update)\n" + filteredData.map((m, index) => {
+        const c = "\uFEFFลำดับที่,ชื่อวัสดุ,ประเภท,หมวดหมู่ย่อย,ที่เก็บ,คงเหลือ,อัปเดตล่าสุด\n" + filteredData.map((m, index) => {
             const loc = m.location || m.Location || m['ที่เก็บ'] || m['ชั้นวาง'] || '-';
             const matType = m.type || m.Type || m['ประเภท'] || '-';
-            return `${index + 1},"${m.name}","${matType}","${loc}",${m.qty},${formatDate(m.last_import_date || m.last_withdraw_date).split(' ')[0]}`;
+            const matCat = m.category || m.Category || m['หมวดหมู่'] || '-';
+            return `${index + 1},"${m.name}","${matType}","${matCat}","${loc}",${m.qty},${formatDate(m.last_import_date || m.last_withdraw_date).split(' ')[0]}`;
         }).join("\n");
         const l = document.createElement("a");
         l.href = URL.createObjectURL(new Blob([c], {type:"text/csv;charset=utf-8;"}));
@@ -2502,7 +2752,7 @@
     function showToast(msg, type = 'success') { 
         const t = document.getElementById('toast'); 
         t.innerHTML = `<i class="fas fa-${type==='success'?'check-circle text-emerald-400':'exclamation-triangle text-rose-400'} text-2xl"></i> <span>${msg}</span>`; 
-        t.className = `fixed top-6 right-6 z-[120] px-6 py-4 rounded-2xl shadow-2xl text-white transform transition-all duration-500 font-bold flex items-center gap-4 ${type === 'success' ? 'bg-sidebar-800 border-b-4 border-emerald-500' : 'bg-sidebar-800 border-b-4 border-rose-500'}`; 
+        t.className = `fixed top-6 right-6 z-[120] px-6 py-4 rounded-2xl shadow-2xl text-white transform transition-all duration-500 font-bold flex items-center gap-4 ${type === 'success' ? 'bg-slate-800 border-b-4 border-emerald-500' : 'bg-slate-800 border-b-4 border-rose-500'}`; 
         t.classList.remove('hidden'); 
         setTimeout(() => { t.classList.add('translate-x-full', 'opacity-0'); setTimeout(()=> { t.classList.add('hidden'); t.classList.remove('translate-x-full', 'opacity-0'); }, 500); }, 3500); 
     }
@@ -2518,18 +2768,18 @@
     function adjQty(d) { const el = document.getElementById('transQty'); el.value = Math.max(1, parseInt(el.value)+d); }
     
     function cardSkeleton() { 
-        return `<div class="bg-white p-6 rounded-2xl shadow-sm border border-[rgba(255,255,255,0.1)] h-32 animate-pulse flex flex-col justify-between"><div class="h-4 bg-[rgba(128,128,128,0.2)] rounded w-1/2"></div><div class="h-8 bg-[rgba(128,128,128,0.2)] rounded w-1/3"></div></div>`; 
+        return `<div class="bg-white p-6 rounded-2xl shadow-custom border border-custom h-32 animate-pulse flex flex-col justify-between dashboard-card"><div class="h-4 bg-gray-200 rounded w-1/2 opacity-50"></div><div class="h-8 bg-gray-200 rounded w-1/3 opacity-50"></div></div>`; 
     }
     
     function statCard(title, value, icon, colorClass) { 
         return `
-        <div class="bg-white p-4 md:p-5 rounded-2xl shadow-sm flex items-center justify-between hover:shadow-md transition">
+        <div class="bg-white p-4 md:p-5 rounded-2xl shadow-custom border-custom flex items-center justify-between hover:-translate-y-1 transition transform dashboard-card">
             <div class="truncate mr-2 overflow-hidden w-full">
-                <p class="text-[10px] sm:text-xs font-bold uppercase tracking-wider mb-1 sm:mb-2 truncate opacity-70">${title}</p>
-                <p class="text-lg sm:text-xl lg:text-2xl font-black break-words drop-shadow-md">${value}</p>
+                <p class="text-[10px] sm:text-xs font-bold uppercase tracking-wider mb-1 sm:mb-2 truncate text-gray-500">${title}</p>
+                <p class="text-lg sm:text-xl lg:text-2xl font-black break-words text-gray-800">${value}</p>
             </div>
-            <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl ${colorClass.split(' ')[0]} bg-[rgba(255,255,255,0.2)] border border-[rgba(255,255,255,0.1)] flex items-center justify-center text-${colorClass.split(' ')[1].split('-')[1]}-500 shadow-sm shrink-0 drop-shadow-md">
-                <i class="${icon} text-lg sm:text-xl"></i>
+            <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl border border-[rgba(128,128,128,0.2)] flex items-center justify-center shadow-sm shrink-0 drop-shadow-md" style="background: var(--input-bg);">
+                <i class="${icon} text-lg sm:text-xl ${colorClass}"></i>
             </div>
         </div>`; 
     }
@@ -2537,11 +2787,11 @@
     function permissionDeniedHTML() { 
         return `
         <div class="flex flex-col items-center justify-center h-full text-gray-400 py-20">
-            <div class="w-24 h-24 bg-[rgba(128,128,128,0.2)] rounded-full flex items-center justify-center mb-6 shadow-inner">
+            <div class="w-24 h-24 rounded-full flex items-center justify-center mb-6 shadow-inner" style="background: var(--input-bg);">
                 <i class="fas fa-lock text-5xl opacity-50"></i>
             </div>
-            <h3 class="text-xl font-bold">ไม่มีสิทธิ์เข้าถึงหน้านี้</h3>
-            <p class="text-sm mt-2 opacity-70">กรุณาติดต่อผู้ดูแลระบบ (Admin) เพื่อขอสิทธิ์</p>
+            <h3 class="text-xl font-bold text-gray-800">ไม่มีสิทธิ์เข้าถึงหน้านี้</h3>
+            <p class="text-sm mt-2 text-gray-500">กรุณาติดต่อผู้ดูแลระบบ (Admin) เพื่อขอสิทธิ์</p>
         </div>`; 
     }
 
