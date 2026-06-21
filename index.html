@@ -22,6 +22,9 @@
           colors: {
             primary: {
               50: 'var(--p-50)', 100: 'var(--p-100)', 200: 'var(--p-200)', 400: 'var(--p-400)', 500: 'var(--p-500)', 600: 'var(--p-600)', 700: 'var(--p-700)'
+            },
+            sidebar: {
+              300: 'var(--s-300)', 400: 'var(--s-400)', 800: 'var(--s-800)', 900: 'var(--s-900)', 950: 'var(--s-950)'
             }
           }
         }
@@ -307,6 +310,14 @@
         <a onclick="route('import')" class="nav-item" data-page="import">
           <i class="fas fa-truck-loading w-8 text-center text-lg"></i> <span>นำเข้าสต๊อก (Import)</span>
         </a>
+
+        <!-- New BOM Menu Option -->
+        <div id="bomMenuSection" class="hidden">
+           <p class="px-3 text-xs font-bold uppercase tracking-widest mb-2 mt-6 opacity-70 text-gray-500">Production</p>
+           <a onclick="route('production')" class="nav-item" data-page="production">
+             <i class="fas fa-cogs w-8 text-center text-lg"></i> <span>ประเมินการผลิต (BOM)</span>
+           </a>
+        </div>
         
         <p class="px-3 text-xs font-bold uppercase tracking-widest mb-2 mt-6 opacity-70 text-gray-500">Analytics</p>
         <a onclick="route('reports')" class="nav-item" data-page="reports">
@@ -560,6 +571,18 @@
                 <div class="w-11 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500 toggle-label shadow-inner"></div>
               </div>
            </label>
+
+           <!-- Manage BOM/Production -->
+           <label class="flex items-center justify-between p-4 border border-custom rounded-xl cursor-pointer transition group hover:border-purple-500/50" style="background: var(--card-bg);">
+              <div class="flex items-center gap-3">
+                  <i class="fas fa-cogs text-gray-400 group-hover:text-purple-500 text-lg transition"></i>
+                  <span class="text-sm font-bold text-gray-700">สิทธิ์ตั้งค่าสูตรการผลิต (BOM)</span>
+              </div>
+              <div class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" id="perm_manage_bom" class="sr-only peer toggle-checkbox">
+                <div class="w-11 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500 toggle-label shadow-inner"></div>
+              </div>
+           </label>
         </div>
 
         <div class="pt-6 border-t border-custom mt-6">
@@ -799,12 +822,13 @@
     var state = { 
         user: null, 
         materials: [], 
+        bom: [], // <-- BOM State
         reports: { withdraw: [], import: [] }, 
         pagination: { currentPage: 1, itemsPerPage: 12 }, 
         filter: { search: '', sort: 'newest' } 
     };
     
-    var cache = { materials: null, users: null, reports: null };
+    var cache = { materials: null, bom: null, users: null, reports: null };
     
     window.stockChartInstance = null;
     window.statusChartInstance = null;
@@ -845,7 +869,7 @@
 
     // --- 3. API HANDLER & SHARED PROMISE ---
     async function api(action, payload = {}) {
-        const showOverlay = !['getMaterials', 'getReports', 'getGlobalTheme'].includes(action);
+        const showOverlay = !['getMaterials', 'getBOM', 'getReports', 'getGlobalTheme'].includes(action);
         if(showOverlay) document.getElementById('loadingOverlay').classList.remove('hidden');
         
         try {
@@ -885,6 +909,13 @@
         if (materialsPromise) return materialsPromise; // Return pending request if already fetching
         materialsPromise = api('getMaterials').finally(() => { materialsPromise = null; });
         return materialsPromise;
+    }
+    
+    let bomPromise = null;
+    async function fetchBOMData() {
+        if (bomPromise) return bomPromise;
+        bomPromise = api('getBOM').catch(() => []).finally(() => { bomPromise = null; });
+        return bomPromise;
     }
 
     // --- 4. AUTHENTICATION & INIT ---
@@ -926,6 +957,17 @@
         const isAdmin = (state.user.role || '').toLowerCase() === 'admin';
         if (isAdmin) {
             document.getElementById('adminMenuSection').classList.remove('hidden');
+        }
+
+        const perms = state.user.permissions || [];
+        const canManageBom = isAdmin || perms.includes('manage_bom');
+        const bomMenu = document.getElementById('bomMenuSection');
+        if (bomMenu) {
+            if (canManageBom) {
+                bomMenu.classList.remove('hidden');
+            } else {
+                bomMenu.classList.add('hidden');
+            }
         }
 
         setupInactivityListeners();
@@ -1017,6 +1059,7 @@
         const titles = { 
             'dashboard': 'ภาพรวมระบบ (Dashboard)', 'inventory': 'รายการวัสดุ (Inventory)', 
             'withdraw': 'เบิกวัสดุ (Withdraw)', 'import': 'นำเข้าสต๊อก (Import)', 
+            'production': 'ประเมินการผลิต (BOM)',
             'reports': 'รายงานและประวัติ (Reports)', 'users': 'จัดการผู้ใช้งาน (Users)',
             'logs': 'ประวัติการเข้าใช้งานระบบ (System Logs)'
         };
@@ -1043,6 +1086,7 @@
             case 'inventory': await renderInventory(container, 'view', viewID); break;
             case 'withdraw': await renderInventory(container, 'withdraw', viewID); break;
             case 'import': await renderInventory(container, 'import', viewID); break;
+            case 'production': await renderProduction(container, viewID); break;
             case 'reports': await renderReports(container, viewID); break;
             case 'users': await renderUsers(container, viewID); break;
             case 'logs': await renderLogs(container, viewID); break;
@@ -1194,18 +1238,24 @@
                 <div class="h-80 bg-white rounded-2xl shadow-custom flex items-center justify-center"><div class="loader"></div></div>
             </div>`;
         
-        // Show cache first
-        if (cache.materials) { 
+        // Show cache first if both are available
+        if (cache.materials && cache.bom) { 
             state.materials = JSON.parse(cache.materials); 
+            state.bom = JSON.parse(cache.bom);
             updateDashboardUI(c, viewID); 
         }
         
         try {
-            // Background update using optimized safe fetch
-            const data = await fetchMaterialsData();
+            // Background update using optimized safe fetch for both Materials and BOM
+            const [matData, bomData] = await Promise.all([
+                fetchMaterialsData(),
+                fetchBOMData()
+            ]);
             if (currentViewID !== viewID) return; 
-            state.materials = data;
-            cache.materials = JSON.stringify(data);
+            state.materials = matData;
+            state.bom = bomData;
+            cache.materials = JSON.stringify(matData);
+            cache.bom = JSON.stringify(bomData);
             updateDashboardUI(c, viewID);
         } catch(e) {}
     }
@@ -1237,6 +1287,7 @@
          });
          const last = maxTime > 0 ? formatDate(new Date(maxTime)).split(' ')[0] : 'ไม่มีข้อมูล';
          
+         // 1. PINNED MATERIALS SECTION
          const pinnedMaterials = filteredMaterials.filter(m => m.pinned === true || m.pinned === 'true' || m.pinned === 1 || m.pinned === 'TRUE');
          let pinnedHtml = '';
          if (pinnedMaterials.length > 0) {
@@ -1272,6 +1323,66 @@
              `;
          }
 
+         // 2. BOM ESTIMATION SECTION USING new state.bom
+         const typeYields = {};
+         const typesList = [...new Set(state.materials.map(m => m.type || m.Type || m['ประเภท'] || m['type']).filter(t => t && t !== 'ไม่ได้ระบุประเภท'))];
+         
+         typesList.forEach(t => {
+             const bomItems = state.bom.filter(b => b.type === t);
+             if (bomItems.length > 0) {
+                 let minKits = Infinity;
+                 let hasValidReq = false;
+                 
+                 bomItems.forEach(bItem => {
+                     const req = parseFloat(bItem.req_per_kit || 0);
+                     if (req > 0) {
+                         hasValidReq = true;
+                         const mat = state.materials.find(m => m.material_id === bItem.material_id);
+                         const q = mat ? parseInt(mat.qty || 0) : 0;
+                         const kits = Math.floor(q / req);
+                         if (kits < minKits) minKits = kits;
+                     }
+                 });
+                 if(hasValidReq) {
+                     typeYields[t] = minKits === Infinity ? 0 : minKits;
+                 }
+             }
+         });
+
+         let bomHtml = '';
+         if (Object.keys(typeYields).length > 0 && (typeVal === 'all' || typeYields[typeVal] !== undefined)) {
+             let cards = '';
+             for (const [t, yieldQty] of Object.entries(typeYields)) {
+                 if (typeVal !== 'all' && t !== typeVal) continue;
+                 cards += `
+                 <div class="bg-white p-4 rounded-2xl shadow-custom border border-custom flex items-center justify-between dashboard-card hover:-translate-y-1 transition transform cursor-pointer" onclick="route('production')">
+                     <div class="flex items-center gap-3">
+                         <div class="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm border border-primary-500/30 text-primary-500" style="background: rgba(59,130,246,0.1);">
+                             <i class="fas fa-boxes-packing text-lg"></i>
+                         </div>
+                         <div>
+                             <p class="font-bold text-sm text-gray-800">${t}</p>
+                             <p class="text-[10px] text-gray-500">ประเมินจากสูตร BOM</p>
+                         </div>
+                     </div>
+                     <div class="text-right">
+                         <span class="text-3xl font-black ${yieldQty > 0 ? 'text-emerald-500' : 'text-red-500'} drop-shadow-sm">${yieldQty}</span>
+                         <span class="text-xs font-bold text-gray-400 ml-1">ชุด</span>
+                     </div>
+                 </div>`;
+             }
+             bomHtml = `
+             <div class="mb-8 fade-in">
+                 <div class="flex items-center gap-2 mb-4">
+                     <i class="fas fa-cogs text-primary-500 text-xl drop-shadow-md"></i>
+                     <h3 class="font-bold text-lg text-gray-800">คาดการณ์กำลังการผลิต (Test Kit)</h3>
+                 </div>
+                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                     ${cards}
+                 </div>
+             </div>`;
+         }
+
          const map = getUniqueTypesAndCategories();
          const typeOptions = Object.keys(map).sort().map(t => `<option value="${t}" ${typeVal === t ? 'selected' : ''}>${t}</option>`).join('');
 
@@ -1284,6 +1395,7 @@
                 </select>
             </div>
             ${pinnedHtml}
+            ${bomHtml}
             <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6 mb-8 fade-in">
                 ${statCard('ทั้งหมด', total, 'fas fa-boxes', 'text-primary-600')}
                 ${statCard('ปกติ', normal, 'fas fa-check-circle', 'text-emerald-600')}
@@ -1601,7 +1713,7 @@
                     actionButtons = `
                     <div class="flex gap-3">
                         <button onclick="openMaterialModalById('${m.material_id}')" class="flex-1 py-2.5 text-xs rounded-xl hover:text-primary-500 font-bold transition shadow-sm transform active:scale-95 border-custom" style="background: var(--input-bg); color: var(--text-main);">แก้ไข</button>
-                        <button onclick="deleteMaterial('${m.material_id}')" class="flex-1 py-2.5 text-xs rounded-xl hover:bg-red-50 font-bold transition shadow-sm transform active:scale-95 border-custom text-red-500" style="background: var(--input-bg);">ลบ</button>
+                        <button onclick="deleteMaterial('${m.material_id}')" class="flex-1 py-2.5 text-xs rounded-xl font-bold transition shadow-sm transform active:scale-95 border-custom text-red-500 hover:bg-red-50" style="background: var(--input-bg);">ลบ</button>
                     </div>`;
                 } else {
                     actionButtons = `<button disabled class="w-full py-2.5 text-xs rounded-xl opacity-50 font-bold cursor-not-allowed border-custom text-gray-500" style="background: var(--input-bg);"><i class="fas fa-lock mr-1"></i> ไม่มีสิทธิ์จัดการข้อมูล</button>`;
@@ -1673,6 +1785,171 @@
         });
         container.innerHTML = htmlString;
     }
+
+    // --- BOM PRODUCTION LOGIC ---
+    async function renderProduction(c, viewID) {
+        if(currentViewID !== viewID) return;
+        
+        const perms = state.user.permissions || [];
+        const isAdmin = (state.user.role || '').toLowerCase() === 'admin';
+        if (!isAdmin && !perms.includes('manage_bom')) return c.innerHTML = permissionDeniedHTML();
+
+        if (!cache.materials || !cache.bom) {
+            try {
+                const [matData, bomData] = await Promise.all([
+                    fetchMaterialsData(),
+                    fetchBOMData()
+                ]);
+                state.materials = matData;
+                state.bom = bomData;
+                cache.materials = JSON.stringify(matData);
+                cache.bom = JSON.stringify(bomData);
+            } catch(e) {}
+        }
+
+        const map = getUniqueTypesAndCategories();
+        const types = Object.keys(map).sort();
+        const typeOptions = types.map(t => `<option value="${t}">${t}</option>`).join('');
+
+        c.innerHTML = `
+            <div class="flex flex-col min-h-full fade-in">
+                <div class="bg-white p-4 rounded-2xl shadow-custom flex flex-col md:flex-row justify-between items-center mb-6 gap-4 sticky top-0 z-10 border-custom modal-content">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-xl text-primary-500 flex items-center justify-center border border-custom shadow-sm" style="background: var(--input-bg);">
+                            <i class="fas fa-cogs text-2xl drop-shadow-md"></i>
+                        </div>
+                        <div>
+                            <h2 class="font-bold text-xl text-gray-800">ประเมินและตั้งค่าสูตรการผลิต</h2>
+                            <p class="text-xs font-medium text-gray-500">กำหนดจำนวนที่ใช้ต่อ 1 ชุด (BOM)</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 w-full md:w-auto mt-3 md:mt-0">
+                        <select id="bomTypeSelect" onchange="renderBOMList()" class="py-2.5 px-3 rounded-xl text-sm font-medium focus:ring-2 focus:ring-primary-500 outline-none transition cursor-pointer border-custom" style="background: var(--input-bg);">
+                            <option value="" disabled selected>-- เลือกประเภท Test Kit --</option>
+                            ${typeOptions}
+                        </select>
+                        <button onclick="saveBOM()" class="btn-primary text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-md transition transform active:scale-95 whitespace-nowrap">
+                            <i class="fas fa-save mr-1"></i> บันทึกสูตร
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Summary Card -->
+                <div class="bg-white rounded-2xl shadow-custom border-custom p-6 mb-6 dashboard-card text-center">
+                    <p class="text-sm font-bold text-gray-500 mb-2">จำนวน Test Kit ที่คาดว่าจะประกอบได้สูงสุด</p>
+                    <h1 class="text-5xl font-black text-primary-600 drop-shadow-md" id="bomEstResult">0 <span class="text-xl text-gray-400">ชุด</span></h1>
+                </div>
+
+                <div id="bomListContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pb-24">
+                    <div class="col-span-full py-10 text-center text-gray-400 font-medium border-2 border-dashed border-custom rounded-2xl">
+                        <i class="fas fa-hand-pointer text-4xl mb-3 opacity-50"></i><br>กรุณาเลือกประเภท Test Kit ด้านบน
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    window.renderBOMList = function() {
+        const t = document.getElementById('bomTypeSelect').value;
+        const container = document.getElementById('bomListContainer');
+        if(!t) return;
+        
+        const mats = state.materials.filter(m => {
+            const matType = m.type || m.Type || m['ประเภท'] || m['type'];
+            return matType === t;
+        });
+
+        if(mats.length === 0) {
+            container.innerHTML = `<div class="col-span-full py-10 text-center text-gray-400 font-medium">ไม่พบวัสดุในประเภทนี้</div>`;
+            document.getElementById('bomEstResult').innerHTML = `0 <span class="text-xl text-gray-400">ชุด</span>`;
+            return;
+        }
+        
+        // Find existing BOM settings for this type
+        const bomItems = state.bom.filter(b => b.type === t);
+        
+        let html = '';
+        mats.forEach(m => {
+            const bItem = bomItems.find(b => b.material_id === m.material_id);
+            const req = bItem ? parseFloat(bItem.req_per_kit || 0) : 0;
+            
+            html += `
+            <div class="bg-white p-4 rounded-xl shadow-custom border border-custom flex items-center gap-4 dashboard-card">
+                <img src="${m.image_url || 'https://via.placeholder.com/150'}" class="w-16 h-16 object-contain rounded-lg border border-custom p-1" style="background: var(--input-bg);">
+                <div class="flex-1 min-w-0">
+                    <p class="font-bold text-sm text-gray-800 truncate" title="${m.name}">${m.name}</p>
+                    <p class="text-[10px] text-gray-500 truncate">สต๊อก: <span class="font-bold text-primary-500">${m.qty}</span></p>
+                </div>
+                <div class="w-24 shrink-0 text-right">
+                    <label class="text-[10px] font-bold text-gray-500 mb-1 block">ใช้/ชุด</label>
+                    <input type="number" min="0" step="0.1" value="${req}" data-matid="${m.material_id}" data-qty="${m.qty}" class="bom-input w-full px-2 py-1.5 rounded-lg border border-custom text-center text-sm font-bold focus:ring-2 focus:ring-primary-500 outline-none" style="background: var(--input-bg); color: var(--text-main);" oninput="calculateBOM()">
+                </div>
+            </div>`;
+        });
+        container.innerHTML = html;
+        calculateBOM();
+    };
+
+    window.calculateBOM = function() {
+        const inputs = document.querySelectorAll('.bom-input');
+        let minKits = Infinity;
+        let hasReq = false;
+
+        inputs.forEach(inp => {
+            const req = parseFloat(inp.value) || 0;
+            const qty = parseInt(inp.getAttribute('data-qty') || 0);
+            
+            if (req > 0) {
+                hasReq = true;
+                const kits = Math.floor(qty / req);
+                if (kits < minKits) minKits = kits;
+            }
+        });
+
+        const resEl = document.getElementById('bomEstResult');
+        if (!hasReq || minKits === Infinity) {
+            resEl.innerHTML = `0 <span class="text-xl text-gray-400">ชุด</span>`;
+        } else {
+            resEl.innerHTML = `${minKits} <span class="text-xl text-gray-400">ชุด</span>`;
+        }
+    };
+
+    window.saveBOM = async function() {
+        const type = document.getElementById('bomTypeSelect').value;
+        if(!type) return showToast('กรุณาเลือกประเภทก่อนบันทึก', 'error');
+
+        const inputs = document.querySelectorAll('.bom-input');
+        if(inputs.length === 0) return;
+
+        document.getElementById('loadingOverlay').classList.remove('hidden');
+        document.getElementById('loadingText').innerText = 'กำลังบันทึกสูตรการผลิต...';
+
+        let items = [];
+        inputs.forEach(inp => {
+            const matId = inp.getAttribute('data-matid');
+            const req = parseFloat(inp.value) || 0;
+            items.push({ material_id: matId, req_per_kit: req });
+        });
+
+        try {
+            await api('saveBOM', { type: type, items: items });
+            showToast(`บันทึกสูตรการผลิต ${type} เรียบร้อยแล้ว`, 'success');
+            
+            // Update local state and cache
+            state.bom = state.bom.filter(b => b.type !== type);
+            items.forEach(item => {
+                if(item.req_per_kit > 0) {
+                    state.bom.push({ type: type, material_id: item.material_id, req_per_kit: item.req_per_kit });
+                }
+            });
+            cache.bom = JSON.stringify(state.bom);
+        } catch(e) {
+            showToast(`บันทึกไม่สำเร็จ: ${e.message}`, 'error');
+        }
+
+        document.getElementById('loadingOverlay').classList.add('hidden');
+        document.getElementById('loadingText').innerText = 'กำลังประมวลผลข้อมูลโปรดรอ...';
+    };
 
     // Proxy function to avoid SyntaxError in HTML string
     function openMaterialModalById(id) {
@@ -2028,7 +2305,6 @@
             </div>
             
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-24 fade-in">
-                <!-- Withdraw Log -->
                 <div class="rounded-2xl shadow-custom flex flex-col overflow-hidden h-[500px] lg:h-[calc(100vh-260px)] border-custom dashboard-card">
                     <div class="p-5 border-b border-custom flex justify-between items-center" style="background: rgba(244,63,94,0.1);">
                         <span class="font-bold text-rose-500 text-lg flex items-center gap-3 drop-shadow-md">
@@ -2040,7 +2316,6 @@
                     <div class="overflow-y-auto flex-1 p-0" id="withdrawLog"><div class="loader mx-auto mt-16"></div></div>
                 </div>
                 
-                <!-- Import Log -->
                 <div class="rounded-2xl shadow-custom flex flex-col overflow-hidden h-[500px] lg:h-[calc(100vh-260px)] border-custom dashboard-card">
                     <div class="p-5 border-b border-custom flex justify-between items-center" style="background: rgba(16,185,129,0.1);">
                         <span class="font-bold text-emerald-500 text-lg flex items-center gap-3 drop-shadow-md">
@@ -2263,7 +2538,7 @@
                 const displayUid = uid || '-';
                 const displayUname = uname || '-';
                 const displayFname = fname || '-';
-                const displayRole = role ? `<span class="px-2 py-1 rounded-md text-[10px] font-black ${role.toLowerCase() === 'admin' ? 'bg-purple-500/20 text-purple-600 border border-purple-200' : 'bg-primary-500/20 text-primary-600 border border-primary-200'} uppercase tracking-widest drop-shadow-md">${role}</span>` : '-';
+                const displayRole = role ? `<span class="px-2 py-1 rounded-md text-[10px] font-black ${role.toLowerCase() === 'admin' ? 'bg-purple-100 text-purple-600 border border-purple-200' : 'bg-primary-100 text-primary-600 border border-primary-200'} uppercase tracking-widest drop-shadow-md">${role}</span>` : '-';
 
                 htmlStr += `
                 <tr class="transition group border-b border-custom">
@@ -2338,6 +2613,7 @@
         document.getElementById('perm_withdraw_material').checked = perms.includes('withdraw_material');
         document.getElementById('perm_import_material').checked = perms.includes('import_material');
         document.getElementById('perm_manage_material').checked = perms.includes('manage_material');
+        if(document.getElementById('perm_manage_bom')) document.getElementById('perm_manage_bom').checked = perms.includes('manage_bom');
         
         document.getElementById('userPermModal').classList.remove('hidden');
     }
@@ -2348,6 +2624,7 @@
         if(document.getElementById('perm_withdraw_material').checked) p.push('withdraw_material');
         if(document.getElementById('perm_import_material').checked) p.push('import_material');
         if(document.getElementById('perm_manage_material').checked) p.push('manage_material');
+        if(document.getElementById('perm_manage_bom') && document.getElementById('perm_manage_bom').checked) p.push('manage_bom');
         
         try {
             await api('updateUserStatus', { user_id: uid, permissions: p });
@@ -2858,11 +3135,9 @@
         if(document.getElementById('dashboardFilterType')) updateDashboardUI(document.getElementById('contentArea'), currentViewID);
 
         try {
-            // Attempt to update on backend using your update API
             await api('updateMaterial', { ...mat, pinned: newStatus });
             showToast(newStatus ? 'ปักหมุดรายการนี้แล้ว' : 'ยกเลิกการปักหมุดแล้ว', 'success');
         } catch(err) {
-            // Backend might not support it yet, inform the user
             showToast('ระบบจำลองการปักหมุดสำเร็จ (กรุณาเพิ่มคอลัมน์ pinned ใน Backend)', 'success');
         }
     }
