@@ -125,7 +125,7 @@
     table thead { background: transparent !important; }
     table thead th { background: rgba(128,128,128,0.1) !important; color: var(--text-main) !important; }
     table tr { border-bottom: 1px solid var(--border-color) !important; }
-    table tr:hover td { background-color: rgba(128,128,128,0.15) !important; }
+    table tr:hover td { background-color: rgba(128,128,128,0.05) !important; }
 
     /* Buttons */
     .btn-primary { background-color: var(--p-600) !important; color: #fff !important; border: none !important; }
@@ -316,6 +316,9 @@
            <p class="px-3 text-xs font-bold uppercase tracking-widest mb-2 mt-6 opacity-70 text-gray-500">Production</p>
            <a onclick="route('production')" class="nav-item" data-page="production">
              <i class="fas fa-cogs w-8 text-center text-lg"></i> <span>ประเมินการผลิต (BOM)</span>
+           </a>
+           <a onclick="route('purchasing')" class="nav-item" data-page="purchasing">
+             <i class="fas fa-calculator w-8 text-center text-lg"></i> <span>คำนวณสั่งซื้อ (Purchasing)</span>
            </a>
         </div>
         
@@ -1060,6 +1063,7 @@
             'dashboard': 'ภาพรวมระบบ (Dashboard)', 'inventory': 'รายการวัสดุ (Inventory)', 
             'withdraw': 'เบิกวัสดุ (Withdraw)', 'import': 'นำเข้าสต๊อก (Import)', 
             'production': 'ประเมินการผลิต (BOM)',
+            'purchasing': 'คำนวณการสั่งซื้อ (Purchasing)',
             'reports': 'รายงานและประวัติ (Reports)', 'users': 'จัดการผู้ใช้งาน (Users)',
             'logs': 'ประวัติการเข้าใช้งานระบบ (System Logs)'
         };
@@ -1087,6 +1091,7 @@
             case 'withdraw': await renderInventory(container, 'withdraw', viewID); break;
             case 'import': await renderInventory(container, 'import', viewID); break;
             case 'production': await renderProduction(container, viewID); break;
+            case 'purchasing': await renderPurchasing(container, viewID); break;
             case 'reports': await renderReports(container, viewID); break;
             case 'users': await renderUsers(container, viewID); break;
             case 'logs': await renderLogs(container, viewID); break;
@@ -1812,7 +1817,7 @@
         const typeOptions = types.map(t => `<option value="${t}">${t}</option>`).join('');
 
         c.innerHTML = `
-            <div class="flex flex-col min-h-full fade-in">
+            <div class="flex flex-col min-h-full fade-in pb-24">
                 <div class="bg-white p-4 rounded-2xl shadow-custom flex flex-col xl:flex-row justify-between items-center mb-6 gap-4 sticky top-0 z-10 border-custom modal-content">
                     <div class="flex items-center gap-4 w-full xl:w-auto">
                         <div class="w-12 h-12 rounded-xl text-primary-500 flex items-center justify-center border border-custom shadow-sm shrink-0" style="background: var(--input-bg);">
@@ -1851,6 +1856,92 @@
                 <div id="bomListContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pb-24">
                     <div class="col-span-full py-10 text-center text-gray-400 font-medium border-2 border-dashed border-custom rounded-2xl">
                         <i class="fas fa-hand-pointer text-4xl mb-3 opacity-50"></i><br>กรุณาเลือกประเภท Test Kit ด้านบน
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    // --- NEW: PURCHASING CALCULATOR ---
+    async function renderPurchasing(c, viewID) {
+        if(currentViewID !== viewID) return;
+        
+        const perms = state.user.permissions || [];
+        const isAdmin = (state.user.role || '').toLowerCase() === 'admin';
+        if (!isAdmin && !perms.includes('manage_bom')) return c.innerHTML = permissionDeniedHTML();
+
+        if (!cache.materials || !cache.bom) {
+            try {
+                const [matData, bomData] = await Promise.all([
+                    fetchMaterialsData(),
+                    fetchBOMData()
+                ]);
+                state.materials = matData;
+                state.bom = bomData;
+                cache.materials = JSON.stringify(matData);
+                cache.bom = JSON.stringify(bomData);
+            } catch(e) {}
+        }
+
+        const map = getUniqueTypesAndCategories();
+        const types = Object.keys(map).sort();
+        const typeOptions = types.map(t => `<option value="${t}">${t}</option>`).join('');
+
+        c.innerHTML = `
+            <div class="flex flex-col min-h-full fade-in pb-24">
+                <div class="bg-white p-4 rounded-2xl shadow-custom flex flex-col xl:flex-row justify-between items-center mb-6 gap-4 border-custom modal-content">
+                    <div class="flex items-center gap-4 w-full xl:w-auto">
+                        <div class="w-12 h-12 rounded-xl text-emerald-500 flex items-center justify-center border border-custom shadow-sm shrink-0" style="background: var(--input-bg);">
+                            <i class="fas fa-calculator text-2xl drop-shadow-md"></i>
+                        </div>
+                        <div>
+                            <h2 class="font-bold text-xl text-gray-800">คำนวณการสั่งซื้อวัสดุ (Purchasing)</h2>
+                            <p class="text-xs font-medium text-gray-500">ประเมินวัสดุที่ต้องสั่งซื้อเพิ่มจากเป้าหมายการผลิต</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-2xl shadow-custom border border-custom mb-6 dashboard-card">
+                    <div class="flex flex-wrap items-end gap-3 mb-4">
+                        <div class="flex-1 min-w-[200px]">
+                            <label class="block text-[11px] font-bold text-gray-600 mb-1">เลือกประเภท Test Kit</label>
+                            <select id="calcTypeSelect" class="w-full py-2.5 px-3 rounded-xl text-sm font-medium focus:ring-2 focus:ring-primary-500 outline-none transition border border-custom" style="background: var(--input-bg);">
+                                <option value="" disabled selected>-- เลือกประเภท --</option>
+                                ${typeOptions}
+                            </select>
+                        </div>
+                        <div class="w-32">
+                            <label class="block text-[11px] font-bold text-gray-600 mb-1">เป้าหมายผลิต (ชุด)</label>
+                            <input type="number" id="calcTargetQty" min="1" value="100" class="w-full py-2.5 px-3 rounded-xl text-sm font-black focus:ring-2 focus:ring-primary-500 outline-none transition border border-custom text-center text-primary-600" style="background: var(--input-bg);">
+                        </div>
+                        <button onclick="calculatePurchase()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-xl text-sm font-bold shadow-md transition transform active:scale-95">
+                            <i class="fas fa-magic mr-1"></i> คำนวณ
+                        </button>
+                    </div>
+
+                    <!-- Result Area -->
+                    <div id="purchaseResultArea" class="hidden mt-6 pt-4 border-t border-custom">
+                        <div class="flex justify-between items-center mb-3">
+                            <h4 class="font-bold text-sm text-gray-800"><i class="fas fa-list-check text-primary-500 mr-1"></i> รายการวัสดุที่ต้องสั่งซื้อเพิ่ม</h4>
+                            <div class="flex gap-2">
+                                <button onclick="exportPurchaseCSV()" class="px-3 py-1.5 bg-gray-800 text-white rounded-lg text-xs font-bold shadow-md transition transform active:scale-95"><i class="fas fa-file-csv mr-1"></i> CSV</button>
+                                <button onclick="exportPurchasePDF()" class="px-3 py-1.5 bg-red-600 text-white rounded-lg text-xs font-bold shadow-md transition transform active:scale-95"><i class="fas fa-file-pdf mr-1"></i> PDF</button>
+                            </div>
+                        </div>
+                        <div class="overflow-x-auto rounded-xl border border-custom max-h-[500px] overflow-y-auto">
+                            <table class="w-full text-left text-sm whitespace-nowrap">
+                                <thead class="sticky top-0 shadow-sm" style="background: var(--card-bg); z-index:5;">
+                                    <tr class="border-b border-custom">
+                                        <th class="p-3 font-bold text-xs text-gray-600">รายการวัสดุ (Material)</th>
+                                        <th class="p-3 font-bold text-xs text-gray-600 text-right">ต้องการใช้รวม</th>
+                                        <th class="p-3 font-bold text-xs text-gray-600 text-right">มีในสต๊อก</th>
+                                        <th class="p-3 font-bold text-xs text-rose-500 text-right">ต้องสั่งซื้อเพิ่ม (Buy)</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="purchaseTableBody">
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1994,6 +2085,141 @@
 
         document.getElementById('loadingOverlay').classList.add('hidden');
         document.getElementById('loadingText').innerText = 'กำลังประมวลผลข้อมูลโปรดรอ...';
+    };
+
+    window.currentPurchasePlan = [];
+    window.currentPurchaseType = '';
+    window.currentPurchaseQty = 0;
+
+    window.calculatePurchase = function() {
+        const type = document.getElementById('calcTypeSelect').value;
+        const targetQty = parseInt(document.getElementById('calcTargetQty').value) || 0;
+        
+        if (!type || targetQty <= 0) {
+            showToast('กรุณาเลือกประเภทและระบุจำนวนเป้าหมายที่ถูกต้อง', 'error');
+            return;
+        }
+
+        const bomItems = state.bom.filter(b => b.type === type && parseFloat(b.req_per_kit) > 0);
+        
+        if (bomItems.length === 0) {
+            showToast(`ไม่พบสูตร BOM สำหรับ ${type}`, 'error');
+            return;
+        }
+
+        window.currentPurchasePlan = [];
+        let html = '';
+        
+        bomItems.forEach(b => {
+            const mat = state.materials.find(m => m.material_id === b.material_id);
+            if (!mat) return;
+            
+            const reqPerKit = parseFloat(b.req_per_kit);
+            const totalNeeded = reqPerKit * targetQty;
+            const currentStock = parseFloat(mat.qty) || 0;
+            const toBuy = totalNeeded > currentStock ? totalNeeded - currentStock : 0;
+            
+            // Format numbers nice
+            const fmtNeeded = totalNeeded % 1 === 0 ? totalNeeded : totalNeeded.toFixed(2);
+            const fmtToBuy = toBuy % 1 === 0 ? toBuy : toBuy.toFixed(2);
+
+            window.currentPurchasePlan.push({
+                matName: mat.name,
+                matCat: mat.category || mat.Category || mat['หมวดหมู่'] || '-',
+                reqPerKit: reqPerKit,
+                totalNeeded: fmtNeeded,
+                currentStock: currentStock,
+                toBuy: fmtToBuy
+            });
+
+            html += `
+            <tr class="border-b border-custom transition hover:bg-[rgba(128,128,128,0.05)]">
+                <td class="p-3 font-bold text-gray-800">${mat.name} <span class="text-[10px] text-gray-500 ml-1 font-normal">(${reqPerKit}/ชุด)</span></td>
+                <td class="p-3 text-right text-gray-600 font-medium">${fmtNeeded}</td>
+                <td class="p-3 text-right text-emerald-600 font-bold">${currentStock}</td>
+                <td class="p-3 text-right font-black ${toBuy > 0 ? 'text-rose-500' : 'text-gray-400'}">${toBuy > 0 ? fmtToBuy : '- พอแล้ว -'}</td>
+            </tr>`;
+        });
+
+        document.getElementById('purchaseTableBody').innerHTML = html;
+        document.getElementById('purchaseResultArea').classList.remove('hidden');
+        document.getElementById('purchaseResultArea').classList.add('fade-in');
+        
+        window.currentPurchaseType = type;
+        window.currentPurchaseQty = targetQty;
+        showToast('คำนวณการสั่งซื้อเรียบร้อยแล้ว', 'success');
+    };
+
+    window.exportPurchaseCSV = function() {
+        if (!window.currentPurchasePlan || window.currentPurchasePlan.length === 0) return;
+        
+        const c = "\uFEFFรายการวัสดุ,หมวดหมู่,ใช้ต่อชุด,จำนวนที่ต้องใช้ทั้งหมด,คงเหลือในสต๊อก,ต้องซื้อเพิ่ม\n" + 
+            window.currentPurchasePlan.map(p => `"${p.matName}","${p.matCat}",${p.reqPerKit},${p.totalNeeded},${p.currentStock},${p.toBuy}`).join("\n");
+        
+        const l = document.createElement("a");
+        l.href = URL.createObjectURL(new Blob([c], {type:"text/csv;charset=utf-8;"}));
+        l.download = `PurchasePlan_${window.currentPurchaseType}_${window.currentPurchaseQty}kits.csv`;
+        document.body.appendChild(l); 
+        l.click();
+    };
+
+    window.exportPurchasePDF = function() {
+        if (!window.currentPurchasePlan || window.currentPurchasePlan.length === 0) return;
+        if (!window.jspdf) return alert("PDF Library not loaded");
+        
+        showToast('กำลังสร้างฟอร์ม PDF...', 'success');
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF('p', 'mm', 'a4'); 
+        
+        const fontUrl = 'https://raw.githubusercontent.com/google/fonts/main/ofl/sarabun/Sarabun-Regular.ttf';
+        
+        fetch(fontUrl)
+        .then(res => res.blob())
+        .then(blob => {
+            const reader = new FileReader();
+            reader.readAsDataURL(blob);
+            reader.onloadend = () => {
+                const base64 = reader.result.split(',')[1];
+                doc.addFileToVFS('Sarabun-Regular.ttf', base64);
+                doc.addFont('Sarabun-Regular.ttf', 'Sarabun', 'normal');
+                doc.setFont('Sarabun');
+                
+                doc.setFontSize(18);
+                doc.text('ใบประมาณการสั่งซื้อวัสดุ (Purchasing Plan)', 105, 20, { align: 'center' });
+                
+                doc.setFontSize(12);
+                doc.text(`เป้าหมายการผลิต: ${window.currentPurchaseType} จำนวน ${window.currentPurchaseQty} ชุด`, 14, 30);
+                doc.text(`วันที่คำนวณ: ${formatDate(new Date()).split(' ')[0]}`, 14, 38);
+                doc.text(`ผู้ทำรายการ: ${state.user.fullname}`, 120, 38);
+                
+                const tableData = window.currentPurchasePlan.map((p, idx) => [
+                    (idx + 1).toString(),
+                    p.matName,
+                    p.reqPerKit.toString(),
+                    p.totalNeeded.toString(),
+                    p.currentStock.toString(),
+                    p.toBuy.toString()
+                ]);
+                
+                doc.autoTable({
+                    head: [['ลำดับ', 'รายการวัสดุ', 'ใช้ต่อชุด', 'ต้องการรวม', 'มีในสต๊อก', 'ต้องซื้อเพิ่ม']],
+                    body: tableData,
+                    startY: 45,
+                    styles: { font: 'Sarabun', fontSize: 10 },
+                    headStyles: { fillColor: hexToRgb(THEMES[currentTheme].p600) },
+                    columnStyles: {
+                        2: { halign: 'center' },
+                        3: { halign: 'right' },
+                        4: { halign: 'right' },
+                        5: { halign: 'right', textColor: [225, 29, 72], fontStyle: 'bold' }
+                    }
+                });
+                
+                doc.save(`PurchasePlan_${window.currentPurchaseType}_${window.currentPurchaseQty}kits.pdf`);
+            };
+        }).catch(err => {
+            showToast('เกิดข้อผิดพลาดในการโหลดฟอนต์ PDF', 'error');
+        });
     };
 
     // Proxy function to avoid SyntaxError in HTML string
@@ -2583,7 +2809,7 @@
                 const displayUid = uid || '-';
                 const displayUname = uname || '-';
                 const displayFname = fname || '-';
-                const displayRole = role ? `<span class="px-2 py-1 rounded-md text-[10px] font-black ${role.toLowerCase() === 'admin' ? 'bg-purple-100 text-purple-600 border border-purple-200' : 'bg-primary-100 text-primary-600 border border-primary-200'} uppercase tracking-widest drop-shadow-md">${role}</span>` : '-';
+                const displayRole = role ? `<span class="px-2 py-1 rounded-md text-[10px] font-black ${role.toLowerCase() === 'admin' ? 'bg-purple-500/20 text-purple-600 border border-purple-200' : 'bg-primary-500/20 text-primary-600 border border-primary-200'} uppercase tracking-widest drop-shadow-md">${role}</span>` : '-';
 
                 htmlStr += `
                 <tr class="transition group border-b border-custom">
