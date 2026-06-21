@@ -1813,9 +1813,9 @@
 
         c.innerHTML = `
             <div class="flex flex-col min-h-full fade-in">
-                <div class="bg-white p-4 rounded-2xl shadow-custom flex flex-col md:flex-row justify-between items-center mb-6 gap-4 sticky top-0 z-10 border-custom modal-content">
-                    <div class="flex items-center gap-4">
-                        <div class="w-12 h-12 rounded-xl text-primary-500 flex items-center justify-center border border-custom shadow-sm" style="background: var(--input-bg);">
+                <div class="bg-white p-4 rounded-2xl shadow-custom flex flex-col xl:flex-row justify-between items-center mb-6 gap-4 sticky top-0 z-10 border-custom modal-content">
+                    <div class="flex items-center gap-4 w-full xl:w-auto">
+                        <div class="w-12 h-12 rounded-xl text-primary-500 flex items-center justify-center border border-custom shadow-sm shrink-0" style="background: var(--input-bg);">
                             <i class="fas fa-cogs text-2xl drop-shadow-md"></i>
                         </div>
                         <div>
@@ -1823,12 +1823,20 @@
                             <p class="text-xs font-medium text-gray-500">กำหนดจำนวนที่ใช้ต่อ 1 ชุด (BOM)</p>
                         </div>
                     </div>
-                    <div class="flex items-center gap-2 w-full md:w-auto mt-3 md:mt-0">
-                        <select id="bomTypeSelect" onchange="renderBOMList()" class="py-2.5 px-3 rounded-xl text-sm font-medium focus:ring-2 focus:ring-primary-500 outline-none transition cursor-pointer border-custom" style="background: var(--input-bg);">
+                    
+                    <div class="flex items-center gap-2 w-full xl:w-auto mt-3 xl:mt-0 flex-wrap xl:flex-nowrap justify-end">
+                        <div class="relative w-full sm:w-auto sm:flex-1 min-w-[150px]">
+                            <i class="fas fa-search absolute left-4 top-3 text-gray-500 opacity-70"></i>
+                            <input type="text" id="bomSearchInput" placeholder="ค้นหาชื่อวัสดุ..." class="w-full pl-10 pr-4 py-2.5 rounded-xl text-sm font-medium focus:ring-2 focus:ring-primary-500 outline-none transition box-border border-custom" style="background: var(--input-bg);" onkeyup="renderBOMList()">
+                        </div>
+                        <select id="bomTypeSelect" onchange="updateBOMCategoryDropdown(); renderBOMList();" class="py-2.5 px-3 rounded-xl text-sm font-medium focus:ring-2 focus:ring-primary-500 outline-none transition cursor-pointer border-custom w-full sm:w-auto" style="background: var(--input-bg);">
                             <option value="" disabled selected>-- เลือกประเภท Test Kit --</option>
                             ${typeOptions}
                         </select>
-                        <button onclick="saveBOM()" class="btn-primary text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-md transition transform active:scale-95 whitespace-nowrap">
+                        <select id="bomCategorySelect" onchange="renderBOMList()" class="py-2.5 px-3 rounded-xl text-sm font-medium focus:ring-2 focus:ring-primary-500 outline-none transition cursor-pointer border-custom w-full sm:w-auto" style="background: var(--input-bg);">
+                            <option value="all">ทุกหมวดหมู่ (All Categories)</option>
+                        </select>
+                        <button onclick="saveBOM()" class="btn-primary text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-md transition transform active:scale-95 whitespace-nowrap w-full sm:w-auto mt-2 sm:mt-0">
                             <i class="fas fa-save mr-1"></i> บันทึกสูตร
                         </button>
                     </div>
@@ -1848,69 +1856,115 @@
             </div>
         `;
     }
+
+    window.updateBOMCategoryDropdown = function() {
+        const type = document.getElementById('bomTypeSelect').value;
+        const catSelect = document.getElementById('bomCategorySelect');
+        if(!catSelect) return;
+
+        let catHtml = `<option value="all">ทุกหมวดหมู่ (All Categories)</option>`;
+        const map = getUniqueTypesAndCategories();
+        
+        if (type && map[type]) {
+            Array.from(map[type]).sort().forEach(c => {
+                catHtml += `<option value="${c}">${c}</option>`;
+            });
+        }
+        catSelect.innerHTML = catHtml;
+    };
     
     window.renderBOMList = function() {
         const t = document.getElementById('bomTypeSelect').value;
+        const cat = document.getElementById('bomCategorySelect').value;
+        const search = document.getElementById('bomSearchInput').value.toLowerCase();
         const container = document.getElementById('bomListContainer');
+        
         if(!t) return;
+        
+        // Recalculate BOM summary based on current state before rendering
+        calculateBOM(t);
         
         const mats = state.materials.filter(m => {
             const matType = m.type || m.Type || m['ประเภท'] || m['type'];
-            return matType === t;
+            if (matType !== t) return false;
+            
+            const matCat = String(m.category || m.Category || m['หมวดหมู่'] || m['category'] || '');
+            if (cat !== 'all' && matCat !== cat) return false;
+
+            const matName = String(m.name || '').toLowerCase();
+            if (search && !matName.includes(search)) return false;
+
+            return true;
         });
 
         if(mats.length === 0) {
-            container.innerHTML = `<div class="col-span-full py-10 text-center text-gray-400 font-medium">ไม่พบวัสดุในประเภทนี้</div>`;
-            document.getElementById('bomEstResult').innerHTML = `0 <span class="text-xl text-gray-400">ชุด</span>`;
+            container.innerHTML = `<div class="col-span-full py-10 text-center text-gray-400 font-medium">ไม่พบวัสดุที่ตรงกับเงื่อนไขการค้นหา</div>`;
             return;
         }
         
-        // Find existing BOM settings for this type
-        const bomItems = state.bom.filter(b => b.type === t);
-        
         let html = '';
         mats.forEach(m => {
-            const bItem = bomItems.find(b => b.material_id === m.material_id);
+            // Read req amount directly from the central state instead of relying on the DOM
+            const bItem = state.bom.find(b => b.material_id === m.material_id && b.type === t);
             const req = bItem ? parseFloat(bItem.req_per_kit || 0) : 0;
+            const dispCat = m.category || m.Category || m['หมวดหมู่'] || '';
             
             html += `
             <div class="bg-white p-4 rounded-xl shadow-custom border border-custom flex items-center gap-4 dashboard-card">
                 <img src="${m.image_url || 'https://via.placeholder.com/150'}" class="w-16 h-16 object-contain rounded-lg border border-custom p-1" style="background: var(--input-bg);">
                 <div class="flex-1 min-w-0">
                     <p class="font-bold text-sm text-gray-800 truncate" title="${m.name}">${m.name}</p>
-                    <p class="text-[10px] text-gray-500 truncate">สต๊อก: <span class="font-bold text-primary-500">${m.qty}</span></p>
+                    <p class="text-[10px] text-gray-500 truncate">สต๊อก: <span class="font-bold text-primary-500">${m.qty}</span> ${dispCat ? `| หมวด: ${dispCat}` : ''}</p>
                 </div>
                 <div class="w-24 shrink-0 text-right">
                     <label class="text-[10px] font-bold text-gray-500 mb-1 block">ใช้/ชุด</label>
-                    <input type="number" min="0" step="0.1" value="${req}" data-matid="${m.material_id}" data-qty="${m.qty}" class="bom-input w-full px-2 py-1.5 rounded-lg border border-custom text-center text-sm font-bold focus:ring-2 focus:ring-primary-500 outline-none" style="background: var(--input-bg); color: var(--text-main);" oninput="calculateBOM()">
+                    <input type="number" min="0" step="0.1" value="${req}" class="bom-input w-full px-2 py-1.5 rounded-lg border border-custom text-center text-sm font-bold focus:ring-2 focus:ring-primary-500 outline-none" style="background: var(--input-bg); color: var(--text-main);" oninput="updateBOMItem('${t}', '${m.material_id}', this.value)">
                 </div>
             </div>`;
         });
         container.innerHTML = html;
-        calculateBOM();
     };
 
-    window.calculateBOM = function() {
-        const inputs = document.querySelectorAll('.bom-input');
+    window.updateBOMItem = function(type, matId, val) {
+        let req = parseFloat(val) || 0;
+        if (req < 0) req = 0;
+        
+        // Find and update item in global state
+        let existing = state.bom.find(b => b.material_id === matId && b.type === type);
+        if (existing) {
+            existing.req_per_kit = req;
+        } else {
+            state.bom.push({ type: type, material_id: matId, req_per_kit: req });
+        }
+        
+        // Recalculate global production summary
+        calculateBOM(type);
+    };
+
+    window.calculateBOM = function(type) {
         let minKits = Infinity;
         let hasReq = false;
 
-        inputs.forEach(inp => {
-            const req = parseFloat(inp.value) || 0;
-            const qty = parseInt(inp.getAttribute('data-qty') || 0);
-            
+        const bomItemsForType = state.bom.filter(b => b.type === type);
+        
+        bomItemsForType.forEach(bItem => {
+            const req = parseFloat(bItem.req_per_kit || 0);
             if (req > 0) {
                 hasReq = true;
+                const mat = state.materials.find(m => m.material_id === bItem.material_id);
+                const qty = mat ? parseInt(mat.qty || 0) : 0;
                 const kits = Math.floor(qty / req);
                 if (kits < minKits) minKits = kits;
             }
         });
 
         const resEl = document.getElementById('bomEstResult');
-        if (!hasReq || minKits === Infinity) {
-            resEl.innerHTML = `0 <span class="text-xl text-gray-400">ชุด</span>`;
-        } else {
-            resEl.innerHTML = `${minKits} <span class="text-xl text-gray-400">ชุด</span>`;
+        if (resEl) {
+            if (!hasReq || minKits === Infinity) {
+                resEl.innerHTML = `0 <span class="text-xl text-gray-400">ชุด</span>`;
+            } else {
+                resEl.innerHTML = `${minKits} <span class="text-xl text-gray-400">ชุด</span>`;
+            }
         }
     };
 
@@ -1918,30 +1972,21 @@
         const type = document.getElementById('bomTypeSelect').value;
         if(!type) return showToast('กรุณาเลือกประเภทก่อนบันทึก', 'error');
 
-        const inputs = document.querySelectorAll('.bom-input');
-        if(inputs.length === 0) return;
-
         document.getElementById('loadingOverlay').classList.remove('hidden');
         document.getElementById('loadingText').innerText = 'กำลังบันทึกสูตรการผลิต...';
 
-        let items = [];
-        inputs.forEach(inp => {
-            const matId = inp.getAttribute('data-matid');
-            const req = parseFloat(inp.value) || 0;
-            items.push({ material_id: matId, req_per_kit: req });
-        });
+        // Extract items ONLY for the currently selected type that have a requirement > 0 from state
+        const itemsToSave = state.bom.filter(b => b.type === type && parseFloat(b.req_per_kit || 0) > 0).map(b => ({
+            material_id: b.material_id,
+            req_per_kit: b.req_per_kit
+        }));
 
         try {
-            await api('saveBOM', { type: type, items: items });
+            await api('saveBOM', { type: type, items: itemsToSave });
             showToast(`บันทึกสูตรการผลิต ${type} เรียบร้อยแล้ว`, 'success');
             
-            // Update local state and cache
-            state.bom = state.bom.filter(b => b.type !== type);
-            items.forEach(item => {
-                if(item.req_per_kit > 0) {
-                    state.bom.push({ type: type, material_id: item.material_id, req_per_kit: item.req_per_kit });
-                }
-            });
+            // Clean state and cache just to be safe
+            state.bom = state.bom.filter(b => !(b.type === type && parseFloat(b.req_per_kit || 0) === 0));
             cache.bom = JSON.stringify(state.bom);
         } catch(e) {
             showToast(`บันทึกไม่สำเร็จ: ${e.message}`, 'error');
