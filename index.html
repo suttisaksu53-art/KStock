@@ -2004,11 +2004,11 @@
                             <table class="w-full text-left text-sm table-fixed">
                                 <thead class="bg-gray-50 border-b border-custom">
                                     <tr>
-                                        <th class="p-3 w-[45%] font-bold text-xs uppercase tracking-wider text-gray-600">รายการวัสดุ</th>
+                                        <th class="p-3 w-[30%] font-bold text-xs uppercase tracking-wider text-gray-600">รายการวัสดุ</th>
                                         <th class="p-3 w-[15%] text-right font-bold text-xs uppercase tracking-wider text-gray-600">ต้องการรวม</th>
                                         <th class="p-3 w-[15%] text-right font-bold text-xs uppercase tracking-wider text-gray-600">มีในสต๊อก</th>
                                         <th class="p-3 w-[15%] text-right font-bold text-xs uppercase tracking-wider text-gray-600">ต้องซื้อเพิ่ม</th>
-                                        <th class="p-3 w-[10%] text-center font-bold text-xs uppercase tracking-wider text-gray-600">ที่มา</th>
+                                        <th class="p-3 w-[25%] text-left font-bold text-xs uppercase tracking-wider text-gray-600">ที่มา</th>
                                     </tr>
                                 </thead>
                                 <tbody id="purchaseTableBody" class="bg-white">
@@ -2254,8 +2254,8 @@
                 <td class="p-3 text-right text-gray-600 font-medium">${fmtNeeded}</td>
                 <td class="p-3 text-right text-emerald-600 font-bold">${currentStock}</td>
                 <td class="p-3 text-right font-black ${toBuy > 0 ? 'text-rose-500' : 'text-gray-400'}">${toBuy > 0 ? fmtToBuy : '- พอแล้ว -'}</td>
-                <td class="p-3 text-center text-[10px] text-gray-500 break-words">
-                    <button class="px-2 py-1 bg-gray-100 rounded border border-gray-300 text-gray-600 hover:bg-gray-200" title="${detailsStr}"><i class="fas fa-info-circle"></i></button>
+                <td class="p-3 text-left text-[11px] text-gray-500 break-words">
+                    ${detailsStr}
                 </td>
             </tr>`;
         });
