@@ -430,10 +430,14 @@
         
         <div>
           <label class="block text-sm font-bold mb-1 text-gray-700">ประเภท (Type) <span class="text-red-500">*</span></label>
+          <div id="matTypeTags" class="flex flex-wrap gap-2 mb-2"></div>
           <div class="flex flex-col gap-2">
-              <select id="matTypeSelect" onchange="handleModalTypeChange()" class="w-full px-4 py-2 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none transition border-custom" required>
-                <!-- Injected via JS -->
-              </select>
+              <div class="flex gap-2">
+                  <select id="matTypeSelect" onchange="handleModalTypeChange()" class="flex-1 px-4 py-2 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none transition border-custom">
+                    <!-- Injected via JS -->
+                  </select>
+                  <button type="button" onclick="addModalType()" class="px-4 py-2 bg-primary-500 text-white rounded-xl font-bold hover:bg-primary-600 transition" title="เพิ่มประเภท"><i class="fas fa-plus"></i></button>
+              </div>
               <input type="text" id="matTypeNew" class="hidden w-full px-4 py-2 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none transition border-custom" placeholder="ระบุประเภทใหม่...">
           </div>
         </div>
@@ -1122,18 +1126,33 @@
     }
 
     // --- DATA EXTRACTION HELPER FOR TYPE/CATEGORY ---
+    function parseTypes(typeValue) {
+        if (!typeValue) return [];
+        if (Array.isArray(typeValue)) return typeValue;
+        if (typeof typeValue === 'string') {
+            try {
+                const parsed = JSON.parse(typeValue);
+                if (Array.isArray(parsed)) return parsed.map(String);
+            } catch(e) {}
+            return typeValue.trim() ? [typeValue.trim()] : [];
+        }
+        return [];
+    }
+
     // Returns { "Type1": ["Cat1", "Cat2"], "Type2": ["Cat3"] }
     function getUniqueTypesAndCategories() {
         let map = {};
         if(!state.materials) return map;
         state.materials.forEach(m => {
-            let t = String(m.type || m.Type || m['ประเภท'] || m['type'] || '').trim();
+            let types = parseTypes(m.type || m.Type || m['ประเภท'] || m['type'] || '');
             let c = String(m.category || m.Category || m['หมวดหมู่'] || m['category'] || '').trim();
             
-            if (t) {
-                if (!map[t]) map[t] = new Set();
-                if (c) map[t].add(c);
-            }
+            types.forEach(t => {
+                if (t) {
+                    if (!map[t]) map[t] = new Set();
+                    if (c) map[t].add(c);
+                }
+            });
         });
         return map;
     }
@@ -1172,8 +1191,12 @@
         catSelect.innerHTML = catHtml;
     }
 
+    let currentSelectedTypes = [];
+
     // Update the dropdowns in the Add/Edit Modal
-    function updateModalDropdowns(selectedType = '', selectedCat = '') {
+    function updateModalDropdowns(selectedTypes = [], selectedCat = '') {
+        currentSelectedTypes = Array.isArray(selectedTypes) ? selectedTypes : (selectedTypes ? [selectedTypes] : []);
+        
         const typeSelect = document.getElementById('matTypeSelect');
         const typeInput = document.getElementById('matTypeNew');
         const catSelect = document.getElementById('matCatSelect');
@@ -1184,39 +1207,36 @@
         const map = getUniqueTypesAndCategories();
         const types = Object.keys(map).sort();
 
-        // Populate Types
-        let typeHtml = `<option value="" disabled ${!selectedType ? 'selected' : ''}>-- เลือกประเภท --</option>`;
+        // Populate Types Dropdown
+        let typeHtml = `<option value="" disabled selected>-- เลือกหรือเพิ่มประเภท --</option>`;
         types.forEach(t => {
-            typeHtml += `<option value="${t}" ${selectedType === t ? 'selected' : ''}>${t}</option>`;
+            if (!currentSelectedTypes.includes(t)) {
+                typeHtml += `<option value="${t}">${t}</option>`;
+            }
         });
         typeHtml += `<option value="NEW_TYPE">+ เพิ่มประเภทใหม่...</option>`;
         typeSelect.innerHTML = typeHtml;
         
-        // Hide/Show custom type input
-        if(selectedType && !types.includes(selectedType)) {
-             typeSelect.value = 'NEW_TYPE';
-             typeInput.value = selectedType;
-             typeInput.classList.remove('hidden');
-        } else {
-             typeInput.value = '';
-             typeInput.classList.add('hidden');
-        }
-
-        // Populate Categories based on selected Type
-        let activeType = typeSelect.value === 'NEW_TYPE' ? typeInput.value.trim() : typeSelect.value;
-        let catHtml = `<option value="" disabled ${!selectedCat ? 'selected' : ''}>-- เลือกหมวดหมู่ --</option>`;
+        typeInput.value = '';
+        typeInput.classList.add('hidden');
         
-        if (activeType && map[activeType]) {
-            Array.from(map[activeType]).sort().forEach(c => {
-                catHtml += `<option value="${c}" ${selectedCat === c ? 'selected' : ''}>${c}</option>`;
-            });
-        }
+        renderModalTypeTags();
+
+        // Populate Categories based on selected Types
+        let availableCats = new Set();
+        currentSelectedTypes.forEach(t => {
+            if (map[t]) map[t].forEach(c => availableCats.add(c));
+        });
+
+        let catHtml = `<option value="" disabled ${!selectedCat ? 'selected' : ''}>-- เลือกหมวดหมู่ --</option>`;
+        Array.from(availableCats).sort().forEach(c => {
+            catHtml += `<option value="${c}" ${selectedCat === c ? 'selected' : ''}>${c}</option>`;
+        });
         catHtml += `<option value="NEW_CAT">+ เพิ่มหมวดหมู่ใหม่...</option>`;
         catSelect.innerHTML = catHtml;
 
         // Hide/Show custom cat input
-        let availableCats = (activeType && map[activeType]) ? Array.from(map[activeType]) : [];
-        if(selectedCat && !availableCats.includes(selectedCat)) {
+        if(selectedCat && !availableCats.has(selectedCat)) {
              catSelect.value = 'NEW_CAT';
              catInput.value = selectedCat;
              catInput.classList.remove('hidden');
@@ -1226,19 +1246,43 @@
         }
     }
 
+    function renderModalTypeTags() {
+        const container = document.getElementById('matTypeTags');
+        if (!container) return;
+        container.innerHTML = currentSelectedTypes.map((t, idx) => 
+            `<span class="px-3 py-1 bg-primary-100 text-primary-700 font-bold rounded-lg text-sm flex items-center gap-2 border border-primary-500/20 shadow-sm">
+                ${t}
+                <button type="button" onclick="removeModalType(${idx})" class="text-primary-500 hover:text-red-500 transition"><i class="fas fa-times"></i></button>
+            </span>`
+        ).join('');
+    }
+
+    function addModalType() {
+        const select = document.getElementById('matTypeSelect');
+        const input = document.getElementById('matTypeNew');
+        
+        let newType = select.value === 'NEW_TYPE' ? input.value.trim() : select.value;
+        if (!newType) return showToast('กรุณาระบุประเภท', 'error');
+        if (currentSelectedTypes.includes(newType)) return showToast('ประเภทนี้ถูกเพิ่มแล้ว', 'warning');
+        
+        currentSelectedTypes.push(newType);
+        updateModalDropdowns(currentSelectedTypes, document.getElementById('matCatSelect').value);
+    }
+
+    function removeModalType(index) {
+        currentSelectedTypes.splice(index, 1);
+        updateModalDropdowns(currentSelectedTypes, document.getElementById('matCatSelect').value);
+    }
+
     function handleModalTypeChange() {
         const select = document.getElementById('matTypeSelect');
         const input = document.getElementById('matTypeNew');
         if (select.value === 'NEW_TYPE') {
             input.classList.remove('hidden');
             input.focus();
-            // Clear category since it's a new type
-            updateModalDropdowns('NEW_TYPE', ''); 
         } else {
             input.classList.add('hidden');
             input.value = '';
-            // Refresh categories for selected type
-            updateModalDropdowns(select.value, ''); 
         }
     }
 
@@ -1295,8 +1339,8 @@
          let filteredMaterials = state.materials;
          if (typeVal !== 'all') {
              filteredMaterials = filteredMaterials.filter(m => {
-                 const matType = String(m.type || m.Type || m['ประเภท'] || m['type'] || '');
-                 return matType === typeVal;
+                 const matTypes = parseTypes(m.type || m.Type || m['ประเภท'] || m['type'] || '');
+                 return matTypes.includes(typeVal);
              });
          }
          
@@ -1328,7 +1372,7 @@
                      </div>
                      <div class="flex-1 min-w-0">
                          <p class="font-bold text-sm text-gray-800 truncate">${m.name}</p>
-                         <p class="text-[10px] text-gray-500 truncate">${m.type || m.Type || '-'} ${m.category ? `> ${m.category}` : ''}</p>
+                         <p class="text-[10px] text-gray-500 truncate">${parseTypes(m.type || m.Type || m['ประเภท'] || m['type']).join(', ') || '-'} ${m.category ? `> ${m.category}` : ''}</p>
                      </div>
                      <div class="text-right shrink-0">
                          <span class="text-xl font-black ${isOut ? 'text-red-500' : 'text-primary-500'} drop-shadow-md">${m.qty}</span>
@@ -1352,7 +1396,11 @@
 
          // 2. BOM ESTIMATION SECTION USING new state.bom
          const typeYields = {};
-         const typesList = [...new Set(state.materials.map(m => m.type || m.Type || m['ประเภท'] || m['type']).filter(t => t && t !== 'ไม่ได้ระบุประเภท'))];
+         let allTypes = [];
+         state.materials.forEach(m => {
+             allTypes = allTypes.concat(parseTypes(m.type || m.Type || m['ประเภท'] || m['type'] || ''));
+         });
+         const typesList = [...new Set(allTypes)].filter(t => t && t !== 'ไม่ได้ระบุประเภท');
          
          typesList.forEach(t => {
              const bomItems = state.bom.filter(b => b.type === t);
@@ -1566,8 +1614,8 @@
             if (status === 'low') matchStatus = q > 0 && q < 150;
             if (status === 'out') matchStatus = q === 0;
 
-            const matType = String(m.type || m.Type || m['ประเภท'] || m['type'] || '');
-            const matchType = (typeVal === 'all') || (matType === typeVal);
+            const matTypes = parseTypes(m.type || m.Type || m['ประเภท'] || m['type'] || '');
+            const matchType = (typeVal === 'all') || matTypes.includes(typeVal);
             
             const matCat = String(m.category || m.Category || m['หมวดหมู่'] || m['category'] || '');
             const matchCategory = (catVal === 'all') || (matCat === catVal);
@@ -1775,7 +1823,8 @@
                 }
             }
 
-            const dispType = m.type || m.Type || m['ประเภท'] || 'ไม่ได้ระบุประเภท';
+            const dispTypes = parseTypes(m.type || m.Type || m['ประเภท'] || m['type'] || '');
+            if (dispTypes.length === 0) dispTypes.push('ไม่ได้ระบุประเภท');
             const dispCat = m.category || m.Category || m['หมวดหมู่'] || m['category'];
             
             htmlString += `
@@ -1788,7 +1837,7 @@
                 
                 <div class="p-5 flex-1 flex flex-col">
                     <div class="flex flex-wrap gap-1 mb-2">
-                        <span class="px-2 py-0.5 text-[10px] rounded-md font-bold inline-block w-max text-primary-600 border border-primary-500/30" style="background: rgba(59,130,246,0.1); text-shadow:none;">${dispType}</span>
+                        ${dispTypes.map(t => `<span class="px-2 py-0.5 text-[10px] rounded-md font-bold inline-block w-max text-primary-600 border border-primary-500/30" style="background: rgba(59,130,246,0.1); text-shadow:none;">${t}</span>`).join('')}
                         ${dispCat ? `<span class="px-2 py-0.5 text-[10px] rounded-md font-bold inline-block w-max text-emerald-600 border border-emerald-500/30" style="background: rgba(16,185,129,0.1); text-shadow:none;">${dispCat}</span>` : ''}
                     </div>
                     <h4 class="font-bold text-base line-clamp-2 mb-1 leading-tight text-gray-800" title="${m.name}">${m.name}</h4>
@@ -1907,7 +1956,13 @@
 
         const map = getUniqueTypesAndCategories();
         const types = Object.keys(map).sort();
-        const typeOptions = types.map(t => `<option value="${t}">${t}</option>`).join('');
+        const typeOptions = types.map((t, idx) => `
+            <label class="flex items-center gap-2 px-3 py-2 border border-custom rounded-xl cursor-pointer hover:bg-gray-50 transition">
+                <input type="checkbox" value="${t}" class="calc-type-checkbox text-primary-500 focus:ring-primary-500 rounded">
+                <span class="text-sm font-bold text-gray-700 truncate flex-1" title="${t}">${t}</span>
+                <input type="number" id="calcTargetQty_${idx}" min="1" value="100" class="w-20 py-1 px-2 rounded-lg text-xs font-black border border-custom text-center text-primary-600" style="background: var(--input-bg);" disabled>
+            </label>
+        `).join('');
 
         c.innerHTML = `
             <div class="flex flex-col min-h-full fade-in pb-24">
@@ -1918,49 +1973,46 @@
                         </div>
                         <div>
                             <h2 class="font-bold text-xl text-gray-800">คำนวณการสั่งซื้อวัสดุ (Purchasing)</h2>
-                            <p class="text-xs font-medium text-gray-500">ประเมินวัสดุที่ต้องสั่งซื้อเพิ่มจากเป้าหมายการผลิต</p>
+                            <p class="text-xs font-medium text-gray-500">ประเมินวัสดุที่ต้องสั่งซื้อเพิ่ม (รองรับการผลิตหลายประเภทพร้อมกัน)</p>
                         </div>
                     </div>
                 </div>
 
                 <div class="bg-white p-6 rounded-2xl shadow-custom border border-custom mb-6 dashboard-card">
-                    <div class="flex flex-wrap items-end gap-3 mb-4">
-                        <div class="flex-1 min-w-[200px]">
-                            <label class="block text-[11px] font-bold text-gray-600 mb-1">เลือกประเภท Test Kit</label>
-                            <select id="calcTypeSelect" class="w-full py-2.5 px-3 rounded-xl text-sm font-medium focus:ring-2 focus:ring-primary-500 outline-none transition border border-custom" style="background: var(--input-bg);">
-                                <option value="" disabled selected>-- เลือกประเภท --</option>
-                                ${typeOptions}
-                            </select>
+                    <div class="mb-4">
+                        <label class="block text-xs font-bold text-gray-600 mb-3">เลือกประเภท Test Kit และเป้าหมายการผลิต (เลือกได้หลายรายการ)</label>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3" id="calcTypeContainer">
+                            ${typeOptions}
                         </div>
-                        <div class="w-32">
-                            <label class="block text-[11px] font-bold text-gray-600 mb-1">เป้าหมายผลิต (ชุด)</label>
-                            <input type="number" id="calcTargetQty" min="1" value="100" class="w-full py-2.5 px-3 rounded-xl text-sm font-black focus:ring-2 focus:ring-primary-500 outline-none transition border border-custom text-center text-primary-600" style="background: var(--input-bg);">
-                        </div>
-                        <button onclick="calculatePurchase()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-xl text-sm font-bold shadow-md transition transform active:scale-95">
-                            <i class="fas fa-magic mr-1"></i> คำนวณ
+                    </div>
+                    <div class="flex justify-end mt-4">
+                        <button onclick="calculatePurchase()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-2.5 rounded-xl text-sm font-bold shadow-md transition transform active:scale-95">
+                            <i class="fas fa-magic mr-1"></i> คำนวณยอดรวม
                         </button>
                     </div>
 
                     <!-- Result Area -->
                     <div id="purchaseResultArea" class="hidden mt-6 pt-4 border-t border-custom">
                         <div class="flex justify-between items-center mb-3">
-                            <h4 class="font-bold text-sm text-gray-800"><i class="fas fa-list-check text-primary-500 mr-1"></i> รายการวัสดุที่ต้องสั่งซื้อเพิ่ม</h4>
+                            <h4 class="font-bold text-sm text-gray-800"><i class="fas fa-list-check text-primary-500 mr-1"></i> รายการวัสดุที่ต้องสั่งซื้อเพิ่มสุทธิ</h4>
                             <div class="flex gap-2">
                                 <button onclick="exportPurchaseCSV()" class="px-3 py-1.5 bg-gray-800 text-white rounded-lg text-xs font-bold shadow-md transition transform active:scale-95"><i class="fas fa-file-csv mr-1"></i> CSV</button>
                                 <button onclick="exportPurchasePDF()" class="px-3 py-1.5 bg-red-600 text-white rounded-lg text-xs font-bold shadow-md transition transform active:scale-95"><i class="fas fa-file-pdf mr-1"></i> PDF</button>
                             </div>
                         </div>
-                        <div class="overflow-x-auto rounded-xl border border-custom max-h-[500px] overflow-y-auto">
-                            <table class="w-full text-left text-sm whitespace-nowrap">
-                                <thead class="sticky top-0 shadow-sm" style="background: var(--card-bg); z-index:5;">
-                                    <tr class="border-b border-custom">
-                                        <th class="p-3 font-bold text-xs text-gray-600">รายการวัสดุ (Material)</th>
-                                        <th class="p-3 font-bold text-xs text-gray-600 text-right">ต้องการใช้รวม</th>
-                                        <th class="p-3 font-bold text-xs text-gray-600 text-right">มีในสต๊อก</th>
-                                        <th class="p-3 font-bold text-xs text-rose-500 text-right">ต้องสั่งซื้อเพิ่ม (Buy)</th>
+                        <div class="overflow-x-auto rounded-xl border border-custom">
+                            <table class="w-full text-left text-sm table-fixed">
+                                <thead class="bg-gray-50 border-b border-custom">
+                                    <tr>
+                                        <th class="p-3 w-[45%] font-bold text-xs uppercase tracking-wider text-gray-600">รายการวัสดุ</th>
+                                        <th class="p-3 w-[15%] text-right font-bold text-xs uppercase tracking-wider text-gray-600">ต้องการรวม</th>
+                                        <th class="p-3 w-[15%] text-right font-bold text-xs uppercase tracking-wider text-gray-600">มีในสต๊อก</th>
+                                        <th class="p-3 w-[15%] text-right font-bold text-xs uppercase tracking-wider text-gray-600">ต้องซื้อเพิ่ม</th>
+                                        <th class="p-3 w-[10%] text-center font-bold text-xs uppercase tracking-wider text-gray-600">ที่มา</th>
                                     </tr>
                                 </thead>
-                                <tbody id="purchaseTableBody">
+                                <tbody id="purchaseTableBody" class="bg-white">
+                                    <!-- Results via JS -->
                                 </tbody>
                             </table>
                         </div>
@@ -1968,6 +2020,21 @@
                 </div>
             </div>
         `;
+
+        // Add listeners to enable/disable number inputs
+        setTimeout(() => {
+            const container = document.getElementById('calcTypeContainer');
+            if (container) {
+                const checkboxes = container.querySelectorAll('.calc-type-checkbox');
+                checkboxes.forEach((cb, idx) => {
+                    cb.addEventListener('change', (e) => {
+                        const numInput = document.getElementById(`calcTargetQty_${idx}`);
+                        numInput.disabled = !e.target.checked;
+                        if(e.target.checked) numInput.focus();
+                    });
+                });
+            }
+        }, 100);
     }
 
     window.updateBOMCategoryDropdown = function() {
@@ -1998,8 +2065,8 @@
         calculateBOM(t);
         
         const mats = state.materials.filter(m => {
-            const matType = m.type || m.Type || m['ประเภท'] || m['type'];
-            if (matType !== t) return false;
+            const matTypes = parseTypes(m.type || m.Type || m['ประเภท'] || m['type']);
+            if (!matTypes.includes(t)) return false;
             
             const matCat = String(m.category || m.Category || m['หมวดหมู่'] || m['category'] || '');
             if (cat !== 'all' && matCat !== cat) return false;
@@ -2110,56 +2177,86 @@
     };
 
     window.currentPurchasePlan = [];
-    window.currentPurchaseType = '';
-    window.currentPurchaseQty = 0;
+    window.currentPurchaseTitle = '';
 
     window.calculatePurchase = function() {
-        const type = document.getElementById('calcTypeSelect').value;
-        const targetQty = parseInt(document.getElementById('calcTargetQty').value) || 0;
+        const container = document.getElementById('calcTypeContainer');
+        if (!container) return;
         
-        if (!type || targetQty <= 0) {
-            showToast('กรุณาเลือกประเภทและระบุจำนวนเป้าหมายที่ถูกต้อง', 'error');
+        const checkboxes = container.querySelectorAll('.calc-type-checkbox');
+        let selectedPlans = [];
+        
+        checkboxes.forEach((cb, idx) => {
+            if (cb.checked) {
+                const qty = parseInt(document.getElementById(`calcTargetQty_${idx}`).value) || 0;
+                if (qty > 0) {
+                    selectedPlans.push({ type: cb.value, targetQty: qty });
+                }
+            }
+        });
+        
+        if (selectedPlans.length === 0) {
+            showToast('กรุณาเลือกอย่างน้อย 1 ประเภทและระบุเป้าหมายผลิตให้ถูกต้อง', 'error');
             return;
         }
 
-        const bomItems = state.bom.filter(b => b.type === type && parseFloat(b.req_per_kit) > 0);
-        
-        if (bomItems.length === 0) {
-            showToast(`ไม่พบสูตร BOM สำหรับ ${type}`, 'error');
+        let materialRequirements = {}; 
+        let planTypesFound = 0;
+
+        selectedPlans.forEach(plan => {
+            const bomItems = state.bom.filter(b => b.type === plan.type && parseFloat(b.req_per_kit) > 0);
+            if (bomItems.length > 0) planTypesFound++;
+            
+            bomItems.forEach(b => {
+                const reqPerKit = parseFloat(b.req_per_kit);
+                const totalReqForThisPlan = reqPerKit * plan.targetQty;
+                
+                if (!materialRequirements[b.material_id]) {
+                    const mat = state.materials.find(m => m.material_id === b.material_id);
+                    if (!mat) return;
+                    materialRequirements[b.material_id] = { mat: mat, totalReq: 0, details: [] };
+                }
+                
+                materialRequirements[b.material_id].totalReq += totalReqForThisPlan;
+                materialRequirements[b.material_id].details.push(`${plan.type}(${plan.targetQty}x${reqPerKit})`);
+            });
+        });
+
+        if (planTypesFound === 0) {
+            showToast('ไม่พบสูตร BOM สำหรับประเภทที่เลือกเลย', 'error');
             return;
         }
 
         window.currentPurchasePlan = [];
         let html = '';
         
-        bomItems.forEach(b => {
-            const mat = state.materials.find(m => m.material_id === b.material_id);
-            if (!mat) return;
-            
-            const reqPerKit = parseFloat(b.req_per_kit);
-            const totalNeeded = reqPerKit * targetQty;
+        Object.values(materialRequirements).forEach(req => {
+            const mat = req.mat;
             const currentStock = parseFloat(mat.qty) || 0;
-            const toBuy = totalNeeded > currentStock ? totalNeeded - currentStock : 0;
+            const toBuy = req.totalReq > currentStock ? req.totalReq - currentStock : 0;
             
-            // Format numbers nice
-            const fmtNeeded = totalNeeded % 1 === 0 ? totalNeeded : totalNeeded.toFixed(2);
+            const fmtNeeded = req.totalReq % 1 === 0 ? req.totalReq : req.totalReq.toFixed(2);
             const fmtToBuy = toBuy % 1 === 0 ? toBuy : toBuy.toFixed(2);
+            const detailsStr = req.details.join(', ');
 
             window.currentPurchasePlan.push({
                 matName: mat.name,
                 matCat: mat.category || mat.Category || mat['หมวดหมู่'] || '-',
-                reqPerKit: reqPerKit,
                 totalNeeded: fmtNeeded,
                 currentStock: currentStock,
-                toBuy: fmtToBuy
+                toBuy: fmtToBuy,
+                details: detailsStr
             });
 
             html += `
             <tr class="border-b border-custom transition hover:bg-[rgba(128,128,128,0.05)]">
-                <td class="p-3 font-bold text-gray-800">${mat.name} <span class="text-[10px] text-gray-500 ml-1 font-normal">(${reqPerKit}/ชุด)</span></td>
+                <td class="p-3 font-bold text-gray-800 break-words">${mat.name}</td>
                 <td class="p-3 text-right text-gray-600 font-medium">${fmtNeeded}</td>
                 <td class="p-3 text-right text-emerald-600 font-bold">${currentStock}</td>
                 <td class="p-3 text-right font-black ${toBuy > 0 ? 'text-rose-500' : 'text-gray-400'}">${toBuy > 0 ? fmtToBuy : '- พอแล้ว -'}</td>
+                <td class="p-3 text-center text-[10px] text-gray-500 break-words">
+                    <button class="px-2 py-1 bg-gray-100 rounded border border-gray-300 text-gray-600 hover:bg-gray-200" title="${detailsStr}"><i class="fas fa-info-circle"></i></button>
+                </td>
             </tr>`;
         });
 
@@ -2167,20 +2264,19 @@
         document.getElementById('purchaseResultArea').classList.remove('hidden');
         document.getElementById('purchaseResultArea').classList.add('fade-in');
         
-        window.currentPurchaseType = type;
-        window.currentPurchaseQty = targetQty;
-        showToast('คำนวณการสั่งซื้อเรียบร้อยแล้ว', 'success');
+        window.currentPurchaseTitle = selectedPlans.map(p => `${p.type}(${p.targetQty})`).join('_');
+        showToast('คำนวณการสั่งซื้อรวมเรียบร้อยแล้ว', 'success');
     };
 
     window.exportPurchaseCSV = function() {
         if (!window.currentPurchasePlan || window.currentPurchasePlan.length === 0) return;
         
-        const c = "\uFEFFรายการวัสดุ,หมวดหมู่,ใช้ต่อชุด,จำนวนที่ต้องใช้ทั้งหมด,คงเหลือในสต๊อก,ต้องซื้อเพิ่ม\n" + 
-            window.currentPurchasePlan.map(p => `"${p.matName}","${p.matCat}",${p.reqPerKit},${p.totalNeeded},${p.currentStock},${p.toBuy}`).join("\n");
+        const c = "\uFEFFรายการวัสดุ,หมวดหมู่,รายละเอียดที่มา,จำนวนที่ต้องใช้ทั้งหมด,คงเหลือในสต๊อก,ต้องซื้อเพิ่ม\n" + 
+            window.currentPurchasePlan.map(p => `"${p.matName}","${p.matCat}","${p.details}",${p.totalNeeded},${p.currentStock},${p.toBuy}`).join("\n");
         
         const l = document.createElement("a");
         l.href = URL.createObjectURL(new Blob([c], {type:"text/csv;charset=utf-8;"}));
-        l.download = `PurchasePlan_${window.currentPurchaseType}_${window.currentPurchaseQty}kits.csv`;
+        l.download = `PurchasePlan_MultiType_${window.currentPurchaseTitle}.csv`;
         document.body.appendChild(l); 
         l.click();
     };
@@ -2195,37 +2291,37 @@
         setupThaiFont(doc);
         
         doc.setFontSize(18);
-        doc.text('ใบประมาณการสั่งซื้อวัสดุ (Purchasing Plan)', 105, 20, { align: 'center' });
+        doc.text('ใบประมาณการสั่งซื้อวัสดุรวม (Purchasing Plan)', 105, 20, { align: 'center' });
         
         doc.setFontSize(12);
-        doc.text(`เป้าหมายการผลิต: ${window.currentPurchaseType} จำนวน ${window.currentPurchaseQty} ชุด`, 14, 30);
+        doc.text(`เป้าหมายการผลิตรวมหลายประเภท: ${window.currentPurchaseTitle.replace(/_/g, ', ')}`, 14, 30);
         doc.text(`วันที่คำนวณ: ${formatDate(new Date()).split(' ')[0]}`, 14, 38);
         doc.text(`ผู้ทำรายการ: ${state.user.fullname}`, 120, 38);
         
         const tableData = window.currentPurchasePlan.map((p, idx) => [
             (idx + 1).toString(),
             p.matName,
-            p.reqPerKit.toString(),
+            p.details,
             p.totalNeeded.toString(),
             p.currentStock.toString(),
             p.toBuy.toString()
         ]);
         
         doc.autoTable({
-            head: [['ลำดับ', 'รายการวัสดุ', 'ใช้ต่อชุด', 'ต้องการรวม', 'มีในสต๊อก', 'ต้องซื้อเพิ่ม']],
+            head: [['ลำดับ', 'รายการวัสดุ', 'ที่มา', 'ต้องการรวม', 'มีในสต๊อก', 'ต้องซื้อเพิ่ม']],
             body: tableData,
             startY: 45,
             styles: { font: 'Sarabun', fontSize: 10 },
             headStyles: { fillColor: hexToRgb(THEMES[currentTheme].p600) },
             columnStyles: {
-                2: { halign: 'center' },
+                2: { fontSize: 8 },
                 3: { halign: 'right' },
                 4: { halign: 'right' },
                 5: { halign: 'right', textColor: [225, 29, 72], fontStyle: 'bold' }
             }
         });
         
-        doc.save(`PurchasePlan_${window.currentPurchaseType}_${window.currentPurchaseQty}kits.pdf`);
+        doc.save(`PurchasePlan_MultiType.pdf`);
         showToast('ดาวน์โหลดไฟล์ PDF เรียบร้อยแล้ว', 'success');
     };
 
@@ -2517,9 +2613,10 @@
                 matType = mat ? (mat.type || mat.Type || mat['ประเภท'] || mat['type'] || '') : '';
             }
             
-            i._resolvedType = String(matType) || '-'; 
+            const matTypes = parseTypes(matType);
+            i._resolvedType = matTypes.length > 0 ? matTypes.join(', ') : '-'; 
 
-            if(typeVal !== 'all' && i._resolvedType !== typeVal) return false;
+            if(typeVal !== 'all' && !matTypes.includes(typeVal)) return false;
 
             return true;
         };
@@ -2843,12 +2940,13 @@
             document.getElementById('matLocation').value = m.location || m.Location || m['ที่เก็บ'] || m['ชั้นวาง'] || '';
             
             const mType = m.type || m.Type || m['ประเภท'] || '';
+            const mTypes = parseTypes(mType);
             const mCat = m.category || m.Category || m['หมวดหมู่ย่อย'] || m.category_name || '';
             
-            updateModalDropdowns(mType, mCat);
+            updateModalDropdowns(mTypes, mCat);
         } else {
             document.getElementById('matId').value = '';
-            updateModalDropdowns('', '');
+            updateModalDropdowns([], '');
         }
         document.getElementById('materialModal').classList.remove('hidden');
     }
@@ -2906,20 +3004,16 @@
         const id = document.getElementById('matId').value;
         const fileInput = document.getElementById('matImgFile');
         
-        const typeSelect = document.getElementById('matTypeSelect');
-        const typeInput = document.getElementById('matTypeNew');
-        const finalType = typeSelect.value === 'NEW_TYPE' ? typeInput.value.trim() : typeSelect.value;
+        if (currentSelectedTypes.length === 0) return showToast('กรุณาระบุอย่างน้อย 1 ประเภท', 'error');
         
         const catSelect = document.getElementById('matCatSelect');
         const catInput = document.getElementById('matCatNew');
         const finalCat = catSelect.value === 'NEW_CAT' ? catInput.value.trim() : catSelect.value;
 
-        if (!finalType) return showToast('กรุณาระบุประเภทวัสดุ', 'error');
-
         let payload = { 
             name: document.getElementById('matName').value, 
             location: document.getElementById('matLocation').value,
-            type: finalType, 
+            type: currentSelectedTypes, // send as array
             category: finalCat, // New field mapped to M column
             image_url: document.getElementById('matImgUrl').value 
         };
@@ -3300,4 +3394,3 @@
   </script>
 </body>
 </html>
-
