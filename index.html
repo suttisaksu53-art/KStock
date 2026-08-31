@@ -185,6 +185,7 @@
       -webkit-user-drag: none;
     }
     img { pointer-events: none; }
+    .inventory-card img, .dashboard-card img, #imageModal img { pointer-events: auto !important; cursor: pointer; }
     input, textarea { -webkit-user-select: text; user-select: text; } /* Allow typing in inputs */
   </style>
 </head>
@@ -446,9 +447,9 @@
         </div>
 
         <div>
-          <label class="block text-sm font-bold mb-1 text-gray-700">หมวดหมู่ย่อย (Category) <span class="text-red-500">*</span></label>
+          <label class="block text-sm font-bold mb-1 text-gray-700">หมวดหมู่ย่อย (Category)</label>
           <div class="flex flex-col gap-2">
-              <select id="matCatSelect" onchange="handleModalCatChange()" class="w-full px-4 py-2 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none transition border-custom" required>
+              <select id="matCatSelect" onchange="handleModalCatChange()" class="w-full px-4 py-2 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none transition border-custom">
                 <!-- Injected via JS based on Type -->
               </select>
               <input type="text" id="matCatNew" class="hidden w-full px-4 py-2 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none transition border-custom" placeholder="ระบุหมวดหมู่ใหม่...">
@@ -468,6 +469,11 @@
         <div>
           <label class="block text-sm font-bold mb-1 text-gray-700">ราคาประมาณการต่อหน่วย (บาท)</label>
           <input type="number" step="0.01" min="0" id="matPrice" class="w-full px-4 py-2 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none transition border-custom" placeholder="0.00" required>
+        </div>
+
+        <div>
+          <label class="block text-sm font-bold mb-1 text-gray-700">หน่วยนับ (Unit)</label>
+          <input type="text" id="matUnits" class="w-full px-4 py-2 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none transition border-custom" placeholder="เช่น กล่อง, ชิ้น, แผ่น, ขวด">
         </div>
 
         <div>
@@ -1385,7 +1391,7 @@
                          <p class="text-[10px] text-gray-500 truncate">${parseTypes(m.type || m.Type || m['ประเภท'] || m['type']).join(', ') || '-'} ${m.category ? `> ${m.category}` : ''}</p>
                      </div>
                      <div class="text-right shrink-0">
-                         <span class="text-xl font-black ${isOut ? 'text-red-500' : 'text-primary-500'} drop-shadow-md">${m.qty}</span>
+                         <span class="text-xl font-black ${isOut ? 'text-red-500' : 'text-primary-500'} drop-shadow-md">${m.qty}</span>${(m.units || m.Units) ? `<span class="text-xs font-bold ml-1 text-gray-500" style="text-shadow:none;">${m.units || m.Units}</span>` : ''}
                      </div>
                  </div>
                  `;
@@ -1859,7 +1865,7 @@
                         </div>
                         <div class="text-right">
                             <span class="block text-[10px] font-bold uppercase tracking-widest mb-1 text-gray-500">Quantity</span>
-                            <span class="text-3xl font-black ${isOut ? 'text-red-500' : 'text-primary-500'} leading-none drop-shadow-sm">${m.qty}</span>
+                            <span class="text-3xl font-black ${isOut ? 'text-red-500' : 'text-primary-500'} leading-none drop-shadow-sm">${m.qty}</span>${(m.units || m.Units) ? `<span class="text-xs font-bold ml-1 text-gray-500" style="text-shadow:none;">${m.units || m.Units}</span>` : ''}
                         </div>
                     </div>
                 </div>
@@ -2463,7 +2469,7 @@
                 <img src="${m.image_url || 'https://via.placeholder.com/150'}" class="w-16 h-16 object-contain rounded-lg border border-custom p-1" style="background: var(--input-bg);">
                 <div class="flex-1 min-w-0">
                     <p class="font-bold text-sm text-gray-800 truncate" title="${m.name}">${m.name}</p>
-                    <p class="text-[10px] text-gray-500 truncate">สต๊อก: <span class="font-bold text-primary-500">${m.qty}</span> ${dispCat ? `| หมวด: ${dispCat}` : ''}</p>
+                    <p class="text-[10px] text-gray-500 truncate">สต๊อก: <span class="font-bold text-primary-500">${m.qty}</span>${(m.units || m.Units) ? ` ${m.units || m.Units}` : ''} ${dispCat ? `| หมวด: ${dispCat}` : ''}</p>
                 </div>
                 <div class="w-24 shrink-0 text-right">
                     <label class="text-[10px] font-bold text-gray-500 mb-1 block">ใช้/ชุด</label>
@@ -3139,11 +3145,12 @@
             item.name,
             item.type || item.Type || item['ประเภท'] || '-',
             item.location || item.Location || item['ที่เก็บ'] || item['ชั้นวาง'] || '-',
-            item.transQty.toString()
+            item.transQty.toString(),
+            item.units || item.Units || '-'
         ]);
         
         doc.autoTable({
-            head: [['ลำดับ', 'รหัสวัสดุ', 'รายการ', 'ประเภท', 'ที่เก็บ', 'จำนวน']],
+            head: [['ลำดับ', 'รหัสวัสดุ', 'รายการ', 'ประเภท', 'ที่เก็บ', 'จำนวน', 'หน่วย']],
             body: tableData,
             startY: 58,
             styles: { font: 'Sarabun', fontSize: 15, textColor: [0, 0, 0] },
@@ -3570,6 +3577,7 @@
             document.getElementById('matName').value = m.name;
             document.getElementById('matLocation').value = m.location || m.Location || m['ที่เก็บ'] || m['ชั้นวาง'] || '';
             document.getElementById('matPrice').value = m.price || m.Price || m['ราคา'] || m[Object.keys(m)[13]] || 0;
+            document.getElementById('matUnits').value = m.units || m.Units || '';
             
             const mType = m.type || m.Type || m['ประเภท'] || '';
             const mTypes = parseTypes(mType);
@@ -3646,6 +3654,7 @@
             name: document.getElementById('matName').value, 
             location: document.getElementById('matLocation').value,
             price: parseFloat(document.getElementById('matPrice').value) || 0,
+            units: document.getElementById('matUnits').value.trim(),
             type: currentSelectedTypes, // send as array
             category: finalCat, // New field mapped to M column
             image_url: document.getElementById('matImgUrl').value 
@@ -3709,16 +3718,18 @@
             const rawRef = getRefNote(r);
             
             let matType = r.type || r.Type || r['ประเภท'] || r['type'];
+            let matUnits = '';
+            const mat = state.materials.find(m => m.material_id === r.material_id);
             if (!matType) {
-                const mat = state.materials.find(m => m.material_id === r.material_id);
                 matType = mat ? (mat.type || mat.Type || mat['ประเภท'] || '-') : '-';
             }
+            matUnits = mat ? (mat.units || mat.Units || '-') : '-';
             
-            return [datePart, timePart, r.action_type, r.material_name, matType, r.qty, cleanRefDoc(rawRef) || '-', r.user_name];
+            return [datePart, timePart, r.action_type, r.material_name, matType, r.qty, matUnits, cleanRefDoc(rawRef) || '-', r.user_name];
         });
         
         doc.autoTable({
-            head: [['วันที่', 'เวลา', 'ประเภททำรายการ', 'รายการ', 'หมวดหมู่', 'จำนวน', 'หมายเหตุ', 'ผู้ทำรายการ']],
+            head: [['วันที่', 'เวลา', 'ประเภททำรายการ', 'รายการ', 'หมวดหมู่', 'จำนวน', 'หน่วย', 'หมายเหตุ', 'ผู้ทำรายการ']],
             body: data,
             startY: 35,
             margin: { top: 35, bottom: 20 },
@@ -3754,7 +3765,7 @@
         
         d.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
         
-        const c = "\uFEFFวันที่,เวลา,ประเภททำรายการ,รายการ,หมวดหมู่,จำนวน,หมายเหตุ,ผู้ทำรายการ\n" + d.map(e => {
+        const c = "\uFEFFวันที่,เวลา,ประเภททำรายการ,รายการ,หมวดหมู่,จำนวน,หน่วย,หมายเหตุ,ผู้ทำรายการ\n" + d.map(e => {
             const dateStr = formatDate(e.timestamp);
             const datePart = dateStr.split(' ')[0];
             const timePart = dateStr.split(' ')[1] || '-';
@@ -3763,12 +3774,14 @@
             const safeRef = cleanRef.replace(/"/g, '""');
             
             let matType = e.type || e.Type || e['ประเภท'] || e['type'];
+            let matUnits = '';
+            const mat = state.materials.find(m => m.material_id === e.material_id);
             if (!matType) {
-                const mat = state.materials.find(m => m.material_id === e.material_id);
                 matType = mat ? (mat.type || mat.Type || mat['ประเภท'] || '-') : '-';
             }
+            matUnits = mat ? (mat.units || mat.Units || '-') : '-';
             
-            return `${datePart},${timePart},${e.action_type},"${e.material_name}","${matType}",${e.qty},"${safeRef}","${e.user_name}"`;
+            return `${datePart},${timePart},${e.action_type},"${e.material_name}","${matType}",${e.qty},"${matUnits}","${safeRef}","${e.user_name}"`;
         }).join("\n");
         
         const l = document.createElement("a");
@@ -3781,7 +3794,7 @@
     function exportInventoryPDF() {
         if (!window.jspdf) { alert("PDF Library not loaded"); return; }
         const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
+        const doc = new jsPDF('l', 'mm', 'a4');
         setupThaiFont(doc);
         
         const filteredData = getFilteredInventory();
@@ -3792,11 +3805,12 @@
             m.category || m.Category || m['หมวดหมู่'] || '-',
             m.location || m.Location || m['ที่เก็บ'] || m['ชั้นวาง'] || '-',
             m.qty.toString(), 
+            m.units || m.Units || '-',
             formatDate(m.last_import_date || m.last_withdraw_date).split(' ')[0]
         ]);
         
         doc.autoTable({
-            head: [['ลำดับ', 'ชื่อวัสดุ', 'ประเภท', 'หมวดหมู่', 'ที่เก็บ', 'คงเหลือ', 'อัปเดตล่าสุด']],
+            head: [['ลำดับ', 'ชื่อวัสดุ', 'ประเภท', 'หมวดหมู่', 'ที่เก็บ', 'คงเหลือ', 'หน่วย', 'อัปเดตล่าสุด']],
             body: data,
             startY: 35,
             margin: { top: 35, bottom: 20 },
@@ -3825,11 +3839,12 @@
     function exportInventoryCSV() {
         const filteredData = getFilteredInventory();
         if (!filteredData || filteredData.length === 0) return showToast('ไม่มีข้อมูลที่จะส่งออก', 'error');
-        const c = "\uFEFFลำดับที่,ชื่อวัสดุ,ประเภท,หมวดหมู่ย่อย,ที่เก็บ,คงเหลือ,อัปเดตล่าสุด\n" + filteredData.map((m, index) => {
+        const c = "\uFEFFลำดับที่,ชื่อวัสดุ,ประเภท,หมวดหมู่ย่อย,ที่เก็บ,คงเหลือ,หน่วย,อัปเดตล่าสุด\n" + filteredData.map((m, index) => {
             const loc = m.location || m.Location || m['ที่เก็บ'] || m['ชั้นวาง'] || '-';
             const matType = m.type || m.Type || m['ประเภท'] || '-';
             const matCat = m.category || m.Category || m['หมวดหมู่'] || '-';
-            return `${index + 1},"${m.name}","${matType}","${matCat}","${loc}",${m.qty},${formatDate(m.last_import_date || m.last_withdraw_date).split(' ')[0]}`;
+            const matUnits = m.units || m.Units || '-';
+            return `${index + 1},"${m.name}","${matType}","${matCat}","${loc}",${m.qty},"${matUnits}",${formatDate(m.last_import_date || m.last_withdraw_date).split(' ')[0]}`;
         }).join("\n");
         const l = document.createElement("a");
         l.href = URL.createObjectURL(new Blob([c], {type:"text/csv;charset=utf-8;"}));
