@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>ระบบจัดการสต๊อกวัสดุ Test Kit CyberLab - กลุ่มวิจัยเคมีดิน</title>
+  <title>ระบบจัดการสต๊อกวัสดุ Test Kit Pro - กลุ่มวิจัยเคมีดิน</title>
   
   <!-- ================= LIBRARIES ================= -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -165,53 +165,6 @@
     html[data-theme="brutal"] input, html[data-theme="brutal"] select { border: 3px solid #000 !important; box-shadow: 4px 4px 0px #000 !important; font-weight: bold; }
     
     
-    
-    /* Futuristic Cyber Glow & Micro-effects */
-    .cyber-card {
-      position: relative;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    .cyber-card::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      border-radius: 1rem;
-      padding: 1.5px;
-      background: linear-gradient(135deg, rgba(59,130,246,0.6), rgba(16,185,129,0.3), rgba(139,92,246,0.6));
-      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-      -webkit-mask-composite: xor;
-      mask-composite: exclude;
-      opacity: 0;
-      transition: opacity 0.3s ease;
-      pointer-events: none;
-      z-index: 10;
-    }
-    .cyber-card:hover::before {
-      opacity: 1;
-    }
-    
-    /* Neon Status Dots */
-    .neon-green { box-shadow: 0 0 8px rgba(16, 185, 129, 0.8), 0 0 16px rgba(16, 185, 129, 0.4); }
-    .neon-amber { box-shadow: 0 0 8px rgba(245, 158, 11, 0.8), 0 0 16px rgba(245, 158, 11, 0.4); }
-    .neon-rose  { box-shadow: 0 0 8px rgba(244, 63, 94, 0.8), 0 0 16px rgba(244, 63, 94, 0.4); }
-    
-    /* Compact Table Left Accent Line on Hover */
-    .compact-table tbody tr {
-      transition: all 0.15s ease;
-      border-left: 3px solid transparent;
-    }
-    .compact-table tbody tr:hover {
-      background-color: rgba(59, 130, 246, 0.05) !important;
-      border-left: 3px solid var(--p-500) !important;
-    }
-    
-    /* Bounce Short for Badge */
-    @keyframes bounceShort {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-4px); }
-    }
-    .animate-bounce-short { animation: bounceShort 1.5s infinite; }
-
     /* Modern Clean Lab Shimmer & Micro-effects */
     @keyframes shimmer {
       0% { background-position: -200% 0; }
@@ -481,21 +434,32 @@
          <!-- Content will be dynamically injected here -->
       </main>
       
-      <!-- SLICK CIRCULAR CART FAB (ORIGINAL POSITION + GLOW WAVE EFFECT) -->
-      <div id="cartFab" class="fixed bottom-6 right-6 z-[60] hidden transition-all duration-300 group">
-        <!-- Glowing Pulse Ring Effect -->
-        <span id="cartPulseWave" class="absolute inset-0 rounded-full animate-ping opacity-35 pointer-events-none bg-primary-500"></span>
-        <button onclick="openCartModal()" id="cartFabBtn" class="relative flex items-center justify-center w-16 h-16 rounded-full shadow-[0_10px_30px_rgba(0,0,0,0.3)] border-4 border-white transition-all duration-300 transform active:scale-90 hover:scale-105 btn-primary">
-            <i id="cartFabIcon" class="fas fa-shopping-cart text-2xl text-white drop-shadow-md"></i>
-            <span id="cartBadge" class="absolute -top-2 -right-2 bg-gradient-to-tr from-rose-600 to-amber-500 text-white text-xs font-black px-2.5 py-0.5 rounded-full shadow-lg border-2 border-white min-w-[26px] text-center animate-bounce-short">0</span>
-        </button>
-        <!-- Futuristic Hover Tooltip -->
-        <div class="absolute right-full mr-3 top-1/2 -translate-y-1/2 hidden group-hover:flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-900/95 text-white text-xs font-bold whitespace-nowrap shadow-2xl backdrop-blur-md pointer-events-none transition-all border border-white/10">
-          <span id="cartFabTooltip">เปิดดูตะกร้า (0 รายการ)</span>
-          <i class="fas fa-chevron-right text-[10px] text-cyan-400"></i>
+      <!-- MODERN FLOATING CART ACTION DOCK -->
+      <div id="cartFab" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] hidden transition-all duration-300 w-[92%] max-w-xl">
+        <div class="backdrop-blur-xl bg-white/95 rounded-2xl shadow-[0_12px_40px_rgba(0,0,0,0.18)] border border-slate-200/90 p-3 sm:p-3.5 flex items-center justify-between gap-3 text-slate-800 modal-content">
+          <div class="flex items-center gap-3 pl-1 min-w-0">
+            <div id="cartDockIcon" class="w-11 h-11 rounded-xl bg-primary-500 text-white flex items-center justify-center font-bold shadow-md shrink-0">
+              <i class="fas fa-shopping-basket text-lg"></i>
+            </div>
+            <div class="min-w-0">
+              <div class="flex items-center gap-2">
+                <span id="cartDockMode" class="text-[11px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-primary-100 text-primary-700">เบิกวัสดุ</span>
+                <span id="cartBadge" class="text-xs font-black text-rose-500 font-mono">0 ชิ้น</span>
+              </div>
+              <p id="cartDockSummary" class="text-xs text-slate-500 font-medium truncate mt-0.5">เลือกแล้ว 0 รายการ</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-2 shrink-0">
+            <button type="button" onclick="clearCart()" class="text-xs font-bold text-slate-400 hover:text-rose-500 px-2.5 py-2 rounded-xl transition" title="ล้างรายการที่เลือกทั้งหมด">
+              <i class="fas fa-trash-alt mr-1"></i> ล้าง
+            </button>
+            <button type="button" onclick="openCartModal()" id="cartDockSubmitBtn" class="px-4 py-2.5 rounded-xl text-xs font-bold text-white shadow-md transition transform active:scale-95 flex items-center gap-1.5 btn-primary">
+              <span>ดูตะกร้า</span>
+              <i class="fas fa-arrow-right text-[11px]"></i>
+            </button>
+          </div>
         </div>
       </div>
-    </div>
     </div>
   </div>
 
@@ -764,12 +728,6 @@
     
     // รวมมิตร 16 ธีมระดับพรีเมียม!
     var THEMES = {
-        // --- หมวดล้ำสมัยสไตล์สว่าง (Futuristic Light / Sci-Fi Lab) ---
-        'quantum_lab': { name: 'Quantum Lab', type: 'light', glass: false, bg: '#f0f9ff', card: '#ffffff', text: '#0c4a6e', border: '#bae6fd', p500: '#0284c7', icon: 'fas fa-atom', desc: 'ควอนตัม ไฮเทคแล็บ สว่างล้ำยุค', input: '#f8fafc' },
-        'cyber_clean': { name: 'Cyber Clean', type: 'light', glass: false, bg: '#f5f7ff', card: '#ffffff', text: '#1e1b4b', border: '#c7d2fe', p500: '#4f46e5', icon: 'fas fa-microchip', desc: 'นีออนอินดิโก สว่างล้ำสมัย ทางการ', input: '#f8faff' },
-        'bio_matrix': { name: 'Bio Matrix', type: 'light', glass: false, bg: '#f0fdf9', card: '#ffffff', text: '#134e4a', border: '#99f6e4', p500: '#0d9488', icon: 'fas fa-dna', desc: 'ไบโอเทค สะอาดตา ทันสมัยขั้นสุด', input: '#f0fdfa' },
-        'aero_glow': { name: 'Aero Glow', type: 'light', glass: false, bg: '#f8fafc', card: '#ffffff', text: '#0f172a', border: '#e2e8f0', p500: '#2563eb', icon: 'fas fa-meteor', desc: 'เรียบหรูไฮเทค กราฟิกเรืองแสง', input: '#f1f5f9' },
-
         // --- หมวดทางการ / เรียบง่าย (Formal / Solid) ---
         'classic_light': { name: 'Classic Blue', type: 'light', glass: false, bg: '#f3f4f6', card: '#ffffff', text: '#0f172a', border: '#e2e8f0', p500: '#3b82f6', icon: 'fas fa-briefcase', desc: 'ทางการ คลาสสิก', input: '#f8fafc' },
         'corporate': { name: 'Corporate Dark', type: 'dark', glass: false, bg: '#0f172a', card: '#1e293b', text: '#f8fafc', border: '#334155', p500: '#3b82f6', icon: 'fas fa-building', desc: 'สุขุม ดูเป็นมืออาชีพ', input: '#0f172a' },
@@ -1950,11 +1908,11 @@
 
                 let statusBadge = '';
                 if (isOut) {
-                    statusBadge = '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-rose-50 text-rose-600 border border-rose-200"><span class="w-1.5 h-1.5 rounded-full bg-rose-500 neon-rose"></span>หมด</span>';
+                    statusBadge = '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-rose-50 text-rose-600 border border-rose-200"><span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>หมด</span>';
                 } else if (isLow) {
                     statusBadge = '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-600 border border-amber-200"><span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>ใกล้หมด</span>';
                 } else {
-                    statusBadge = '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-200"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500 neon-green"></span>พร้อมใช้</span>';
+                    statusBadge = '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-200"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>พร้อมใช้</span>';
                 }
 
                 let rowAction = '';
@@ -2061,19 +2019,19 @@
             if (isOut) {
                 statusBadge = `
                 <div class="absolute top-3 right-3 z-10 flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black backdrop-blur-md bg-rose-500/15 text-rose-600 border border-rose-500/30 shadow-sm">
-                    <span class="w-1.5 h-1.5 rounded-full bg-rose-500 neon-rose"></span>
+                    <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
                     <span>หมด!</span>
                 </div>`;
             } else if (isLow) {
                 statusBadge = `
                 <div class="absolute top-3 right-3 z-10 flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black backdrop-blur-md bg-amber-500/15 text-amber-600 border border-amber-500/30 shadow-sm">
-                    <span class="w-1.5 h-1.5 rounded-full bg-amber-500 pulse-dot neon-amber"></span>
+                    <span class="w-1.5 h-1.5 rounded-full bg-amber-500 pulse-dot"></span>
                     <span>ใกล้หมด</span>
                 </div>`;
             } else {
                 statusBadge = `
                 <div class="absolute top-3 right-3 z-10 flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black backdrop-blur-md bg-emerald-500/15 text-emerald-600 border border-emerald-500/30 shadow-sm">
-                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 neon-green"></span>
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
                     <span>พร้อมใช้</span>
                 </div>`;
             }
@@ -2134,7 +2092,7 @@
             const cardThumb = getThumbUrl(m.image_url, 300);
 
             htmlString += `
-            <div class="group relative bg-white rounded-2xl border border-custom shadow-custom hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 flex flex-col overflow-hidden dashboard-card cyber-card">
+            <div class="group relative bg-white rounded-2xl border border-custom shadow-custom hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col overflow-hidden dashboard-card">
                 <!-- Image Header with Gradient Backdrop -->
                 <div class="relative h-44 p-3 flex items-center justify-center overflow-hidden border-b border-custom" style="background: rgba(128,128,128,0.03);">
                     ${pinBadge}
@@ -3252,33 +3210,36 @@
     function updateCartUI() {
         const fab = document.getElementById('cartFab');
         const badge = document.getElementById('cartBadge');
-        const fabBtn = document.getElementById('cartFabBtn');
-        const fabIcon = document.getElementById('cartFabIcon');
-        const pulseWave = document.getElementById('cartPulseWave');
-        const tooltip = document.getElementById('cartFabTooltip');
-        if (!fab || !badge) return;
+        const summary = document.getElementById('cartDockSummary');
+        const modeTag = document.getElementById('cartDockMode');
+        const dockIcon = document.getElementById('cartDockIcon');
+        const submitBtn = document.getElementById('cartDockSubmitBtn');
+        if (!fab) return;
 
         if (transCart.length > 0) {
             fab.classList.remove('hidden');
             fab.classList.add('fade-in');
             const totalItems = transCart.reduce((sum, item) => sum + (parseInt(item.transQty) || 1), 0);
-            badge.innerText = totalItems > 99 ? '99+' : totalItems;
+            if (badge) badge.innerText = `${totalItems.toLocaleString()} ชิ้น`;
+            if (summary) summary.innerText = `เลือกแล้ว ${transCart.length} รายการ`;
             
             const isImport = currentTransMode === 'import';
-            if (tooltip) {
-                tooltip.innerText = `เปิดดูตะกร้า${isImport ? 'นำเข้า' : 'เบิก'} (${transCart.length} รายการ, รวม ${totalItems.toLocaleString()} ชิ้น)`;
+            if (modeTag) {
+                modeTag.innerText = isImport ? 'นำเข้าสต๊อก' : 'เบิกวัสดุ';
+                modeTag.className = isImport 
+                    ? 'text-[11px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-700'
+                    : 'text-[11px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-rose-100 text-rose-700';
             }
-
-            if (fabBtn) {
-                if (isImport) {
-                    fabBtn.className = 'relative flex items-center justify-center w-16 h-16 rounded-full shadow-[0_12px_32px_rgba(16,185,129,0.45)] border-4 border-white transition-all duration-300 transform active:scale-90 hover:scale-105 bg-gradient-to-tr from-emerald-600 via-teal-500 to-cyan-400 text-white';
-                    if (pulseWave) pulseWave.className = 'absolute inset-0 rounded-full animate-ping opacity-40 bg-emerald-400 pointer-events-none';
-                    if (fabIcon) fabIcon.className = 'fas fa-truck-loading text-2xl text-white drop-shadow-md';
-                } else {
-                    fabBtn.className = 'relative flex items-center justify-center w-16 h-16 rounded-full shadow-[0_12px_32px_rgba(244,63,94,0.45)] border-4 border-white transition-all duration-300 transform active:scale-90 hover:scale-105 bg-gradient-to-tr from-rose-600 via-pink-500 to-amber-500 text-white';
-                    if (pulseWave) pulseWave.className = 'absolute inset-0 rounded-full animate-ping opacity-40 bg-rose-400 pointer-events-none';
-                    if (fabIcon) fabIcon.className = 'fas fa-hand-holding text-2xl text-white drop-shadow-md';
-                }
+            if (dockIcon) {
+                dockIcon.className = isImport 
+                    ? 'w-11 h-11 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold shadow-md shrink-0'
+                    : 'w-11 h-11 rounded-xl bg-rose-600 text-white flex items-center justify-center font-bold shadow-md shrink-0';
+                dockIcon.innerHTML = isImport ? '<i class="fas fa-truck-loading text-lg"></i>' : '<i class="fas fa-hand-holding text-lg"></i>';
+            }
+            if (submitBtn) {
+                submitBtn.className = isImport 
+                    ? 'px-4 py-2.5 rounded-xl text-xs font-bold text-white shadow-md transition transform active:scale-95 flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700'
+                    : 'px-4 py-2.5 rounded-xl text-xs font-bold text-white shadow-md transition transform active:scale-95 flex items-center gap-1.5 bg-rose-600 hover:bg-rose-700';
             }
         } else {
             fab.classList.add('hidden');
