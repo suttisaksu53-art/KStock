@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>ระบบจัดการสต๊อกวัสดุ Test Kit - กลุ่มวิจัยเคมีดิน</title>
+  <title>ระบบจัดการสต๊อกวัสดุ Test Kit - กลุ่มวิจัยเคมีดิน กรมพัฒนาที่ดิน</title>
   
   <!-- ================= LIBRARIES ================= -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -164,6 +164,102 @@
     html[data-theme="brutal"] button:active { transform: translate(4px, 4px) !important; box-shadow: 0px 0px 0px #000 !important; }
     html[data-theme="brutal"] input, html[data-theme="brutal"] select { border: 3px solid #000 !important; box-shadow: 4px 4px 0px #000 !important; font-weight: bold; }
     
+    
+    
+    
+    /* --- LDD SMART SOIL (OSD101) THEME ENHANCEMENTS --- */
+    html[data-theme="ldd_soil"] header {
+      border-top: 3px solid #B30655 !important;
+      background: #ffffff !important;
+    }
+    html[data-theme="ldd_soil"] .nav-item.active {
+      background: linear-gradient(135deg, #B30655 0%, #8c0543 100%) !important;
+      color: #ffffff !important;
+      box-shadow: 0 4px 14px rgba(179, 6, 85, 0.35) !important;
+    }
+    html[data-theme="ldd_soil"] .btn-primary {
+      background: linear-gradient(135deg, #B30655 0%, #8c0543 100%) !important;
+      box-shadow: 0 4px 12px rgba(179, 6, 85, 0.3) !important;
+    }
+    html[data-theme="ldd_soil"] .btn-primary:hover {
+      background: linear-gradient(135deg, #cc0862 0%, #B30655 100%) !important;
+    }
+    html[data-theme="ldd_soil"] .text-primary-500, html[data-theme="ldd_soil"] .text-primary-600 {
+      color: #B30655 !important;
+    }
+    html[data-theme="ldd_soil"] .bg-primary-500 {
+      background-color: #B30655 !important;
+    }
+
+    /* Futuristic Cyber Glow & Micro-effects */
+    .cyber-card {
+      position: relative;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .cyber-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 1rem;
+      padding: 1.5px;
+      background: linear-gradient(135deg, rgba(59,130,246,0.6), rgba(16,185,129,0.3), rgba(139,92,246,0.6));
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      pointer-events: none;
+      z-index: 10;
+    }
+    .cyber-card:hover::before {
+      opacity: 1;
+    }
+    
+    /* Neon Status Dots */
+    .neon-green { box-shadow: 0 0 8px rgba(16, 185, 129, 0.8), 0 0 16px rgba(16, 185, 129, 0.4); }
+    .neon-amber { box-shadow: 0 0 8px rgba(245, 158, 11, 0.8), 0 0 16px rgba(245, 158, 11, 0.4); }
+    .neon-rose  { box-shadow: 0 0 8px rgba(244, 63, 94, 0.8), 0 0 16px rgba(244, 63, 94, 0.4); }
+    
+    /* Compact Table Left Accent Line on Hover */
+    .compact-table tbody tr {
+      transition: all 0.15s ease;
+      border-left: 3px solid transparent;
+    }
+    .compact-table tbody tr:hover {
+      background-color: rgba(59, 130, 246, 0.05) !important;
+      border-left: 3px solid var(--p-500) !important;
+    }
+    
+    /* Bounce Short for Badge */
+    @keyframes bounceShort {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-4px); }
+    }
+    .animate-bounce-short { animation: bounceShort 1.5s infinite; }
+
+    /* Modern Clean Lab Shimmer & Micro-effects */
+    @keyframes shimmer {
+      0% { background-position: -200% 0; }
+      100% { background-position: 200% 0; }
+    }
+    .shimmer-effect {
+      background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0) 100%);
+      background-size: 200% 100%;
+      animation: shimmer 1.8s infinite;
+    }
+    @keyframes pulseDot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.85); }
+    }
+    .pulse-dot { animation: pulseDot 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+    
+    /* Smooth View Transitions */
+    .view-transition { transition: opacity 0.2s ease-in-out, transform 0.2s ease-in-out; }
+    
+    /* Table row subtle hover */
+    .compact-table tbody tr { transition: background-color 0.15s ease; }
+    .compact-table tbody tr:hover { background-color: rgba(59, 130, 246, 0.04) !important; }
+
     /* Neumorphism overrides */
     html[data-theme="neumorph"] .bg-white, html[data-theme="neumorph"] .dashboard-card { border: none !important; box-shadow: 9px 9px 16px rgb(163,177,198,0.6), -9px -9px 16px rgba(255,255,255, 0.5) !important; }
     html[data-theme="neumorph"] input, html[data-theme="neumorph"] select { box-shadow: inset 6px 6px 10px 0 rgba(163,177,198, 0.7), inset -6px -6px 10px 0 rgba(255,255,255, 0.8) !important; border: none !important; }
@@ -410,13 +506,21 @@
          <!-- Content will be dynamically injected here -->
       </main>
       
-      <!-- CART FAB (Floating Action Button) -->
-      <div id="cartFab" class="fixed bottom-6 right-6 z-[60] hidden transition-all duration-300">
-        <button onclick="openCartModal()" class="relative flex items-center justify-center w-16 h-16 rounded-full shadow-2xl border-4 border-white transition transform active:scale-95 btn-primary">
-            <i class="fas fa-shopping-cart text-2xl text-white"></i>
-            <span id="cartBadge" class="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-black px-2 py-0.5 rounded-full shadow-lg border-2 border-white min-w-[24px] text-center">0</span>
+      <!-- SLICK CIRCULAR CART FAB (ORIGINAL POSITION + GLOW WAVE EFFECT) -->
+      <div id="cartFab" class="fixed bottom-6 right-6 z-[60] hidden transition-all duration-300 group">
+        <!-- Glowing Pulse Ring Effect -->
+        <span id="cartPulseWave" class="absolute inset-0 rounded-full animate-ping opacity-35 pointer-events-none bg-primary-500"></span>
+        <button onclick="openCartModal()" id="cartFabBtn" class="relative flex items-center justify-center w-16 h-16 rounded-full shadow-[0_10px_30px_rgba(0,0,0,0.3)] border-4 border-white transition-all duration-300 transform active:scale-90 hover:scale-105 btn-primary">
+            <i id="cartFabIcon" class="fas fa-shopping-cart text-2xl text-white drop-shadow-md"></i>
+            <span id="cartBadge" class="absolute -top-2 -right-2 bg-gradient-to-tr from-rose-600 to-amber-500 text-white text-xs font-black px-2.5 py-0.5 rounded-full shadow-lg border-2 border-white min-w-[26px] text-center animate-bounce-short">0</span>
         </button>
+        <!-- Futuristic Hover Tooltip -->
+        <div class="absolute right-full mr-3 top-1/2 -translate-y-1/2 hidden group-hover:flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-900/95 text-white text-xs font-bold whitespace-nowrap shadow-2xl backdrop-blur-md pointer-events-none transition-all border border-white/10">
+          <span id="cartFabTooltip">เปิดดูตะกร้า (0 รายการ)</span>
+          <i class="fas fa-chevron-right text-[10px] text-cyan-400"></i>
+        </div>
       </div>
+    </div>
     </div>
   </div>
 
@@ -685,6 +789,27 @@
     
     // รวมมิตร 16 ธีมระดับพรีเมียม!
     var THEMES = {
+        // --- ธีมแรงบันดาลใจจากระบบตรวจสอบดิน กรมพัฒนาที่ดิน (OSD101 LDD) ---
+        'ldd_soil': { 
+            name: 'LDD Smart Soil', 
+            type: 'light', 
+            glass: false, 
+            bg: '#f1f1f8', 
+            card: '#ffffff', 
+            text: '#202020', 
+            border: '#e2d5de', 
+            p500: '#B30655', 
+            icon: 'fas fa-seedling', 
+            desc: 'กลิ่นอายระบบตรวจสอบดินเพื่อการเกษตร กรมพัฒนาที่ดิน (osd101.ldd.go.th)', 
+            input: '#ffffff' 
+        },
+
+        // --- หมวดล้ำสมัยสไตล์สว่าง (Futuristic Light / Sci-Fi Lab) ---
+        'quantum_lab': { name: 'Quantum Lab', type: 'light', glass: false, bg: '#f0f9ff', card: '#ffffff', text: '#0c4a6e', border: '#bae6fd', p500: '#0284c7', icon: 'fas fa-atom', desc: 'ควอนตัม ไฮเทคแล็บ สว่างล้ำยุค', input: '#f8fafc' },
+        'cyber_clean': { name: 'Cyber Clean', type: 'light', glass: false, bg: '#f5f7ff', card: '#ffffff', text: '#1e1b4b', border: '#c7d2fe', p500: '#4f46e5', icon: 'fas fa-microchip', desc: 'นีออนอินดิโก สว่างล้ำสมัย ทางการ', input: '#f8faff' },
+        'bio_matrix': { name: 'Bio Matrix', type: 'light', glass: false, bg: '#f0fdf9', card: '#ffffff', text: '#134e4a', border: '#99f6e4', p500: '#0d9488', icon: 'fas fa-dna', desc: 'ไบโอเทค สะอาดตา ทันสมัยขั้นสุด', input: '#f0fdfa' },
+        'aero_glow': { name: 'Aero Glow', type: 'light', glass: false, bg: '#f8fafc', card: '#ffffff', text: '#0f172a', border: '#e2e8f0', p500: '#2563eb', icon: 'fas fa-meteor', desc: 'เรียบหรูไฮเทค กราฟิกเรืองแสง', input: '#f1f5f9' },
+
         // --- หมวดทางการ / เรียบง่าย (Formal / Solid) ---
         'classic_light': { name: 'Classic Blue', type: 'light', glass: false, bg: '#f3f4f6', card: '#ffffff', text: '#0f172a', border: '#e2e8f0', p500: '#3b82f6', icon: 'fas fa-briefcase', desc: 'ทางการ คลาสสิก', input: '#f8fafc' },
         'corporate': { name: 'Corporate Dark', type: 'dark', glass: false, bg: '#0f172a', card: '#1e293b', text: '#f8fafc', border: '#334155', p500: '#3b82f6', icon: 'fas fa-building', desc: 'สุขุม ดูเป็นมืออาชีพ', input: '#0f172a' },
@@ -711,6 +836,61 @@
         'luxury': { name: 'Gold Luxury', type: 'dark', glass: false, bg: '#0c0a09', card: '#1c1917', text: '#fef08a', border: '#ca8a04', p500: '#eab308', icon: 'fas fa-crown', desc: 'หรูหรา ดำ-ทอง', input: '#292524' }
     };
     var currentTheme = 'classic_light';
+
+    // --- MODERN IMAGE OPTIMIZER & SVG PLACEHOLDER ---
+    const NO_IMG_SVG = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 150' fill='%23e2e8f0'%3E%3Crect width='200' height='150' fill='%23f8fafc'/%3E%3Cpath d='M85 60h30v30H85z' fill='%23cbd5e1'/%3E%3Ccircle cx='70' cy='50' r='10' fill='%23cbd5e1'/%3E%3Cpath d='M40 110l35-45 25 30 30-40 40 55H40z' fill='%23cbd5e1'/%3E%3C/svg%3E";
+
+    function getThumbUrl(url, size = 300) {
+        if (!url || typeof url !== 'string') return NO_IMG_SVG;
+        if (url.includes('via.placeholder.com')) return NO_IMG_SVG;
+        if (url.includes('drive.google.com/thumbnail')) {
+            if (/&sz=w\d+/.test(url)) {
+                return url.replace(/&sz=w\d+/, `&sz=w${size}`);
+            } else {
+                return url + `&sz=w${size}`;
+            }
+        }
+        return url;
+    }
+
+    // --- SEARCH DEBOUNCE TIMER ---
+    let searchDebounceTimer = null;
+    function onSearchInput(val, mode) {
+        clearTimeout(searchDebounceTimer);
+        searchDebounceTimer = setTimeout(() => {
+            renderMaterialList(mode);
+        }, 250);
+    }
+
+    // --- INVENTORY VIEW MODE (GRID vs TABLE) ---
+    var currentInventoryViewMode = localStorage.getItem('inventory_view_mode') || 'grid';
+
+    function setInventoryViewMode(viewMode, transMode) {
+        currentInventoryViewMode = viewMode;
+        try { localStorage.setItem('inventory_view_mode', viewMode); } catch(e) {}
+        
+        const btnGrid = document.getElementById('btnViewGrid');
+        const btnTable = document.getElementById('btnViewTable');
+        if (btnGrid && btnTable) {
+            if (viewMode === 'grid') {
+                btnGrid.className = 'py-2 px-3 rounded-xl text-xs font-bold transition shadow-sm bg-primary-500 text-white';
+                btnTable.className = 'py-2 px-3 rounded-xl text-xs font-bold transition border-custom text-gray-500 hover:bg-gray-100';
+            } else {
+                btnTable.className = 'py-2 px-3 rounded-xl text-xs font-bold transition shadow-sm bg-primary-500 text-white';
+                btnGrid.className = 'py-2 px-3 rounded-xl text-xs font-bold transition border-custom text-gray-500 hover:bg-gray-100';
+            }
+        }
+        renderMaterialList(transMode);
+    }
+
+    function clearCart() {
+        if (transCart.length === 0) return;
+        transCart = [];
+        updateCartUI();
+        renderMaterialList(currentTransMode || 'view');
+        showToast('ล้างรายการในตะกร้าเรียบร้อยแล้ว', 'info');
+    }
+
 
     function applyTheme(themeId) {
         const t = THEMES[themeId] || THEMES['classic_light'];
@@ -1092,7 +1272,7 @@
         // Prevent Race Condition: Generate a unique ID for this specific route instance
         currentViewID = Date.now().toString();
         const viewID = currentViewID;
-        sessionStorage.setItem('last_view', page);
+        try { sessionStorage.setItem('last_view', page); } catch(e) {}
 
         document.querySelectorAll('.nav-item').forEach(el => {
             const isActive = el.dataset.page === page;
@@ -1113,12 +1293,17 @@
         
         toggleSidebar(false);
 
-        // OPTIMIZATION: Safety check before destroying charts
+        // OPTIMIZATION & iOS WEB-PROCESS STABILITY:
+        // Set canvas width & height to 0 before destroy to release WebKit GPU texture buffers immediately
         try {
+            ['stockChart', 'bottomChart', 'statusChart'].forEach(id => {
+                const cv = document.getElementById(id);
+                if (cv) { cv.width = 0; cv.height = 0; }
+            });
             if (window.stockChartInstance) { window.stockChartInstance.destroy(); window.stockChartInstance = null; }
             if (window.statusChartInstance) { window.statusChartInstance.destroy(); window.statusChartInstance = null; }
             if (window.bottomChartInstance) { window.bottomChartInstance.destroy(); window.bottomChartInstance = null; }
-        } catch(e) { console.warn("Chart destroy ignored during rapid switch"); }
+        } catch(e) { console.warn("Chart destroy ignored during rapid switch", e); }
 
         const container = document.getElementById('contentArea');
         if (!container) return;
@@ -1528,6 +1713,7 @@
 
          // Ensure charts load after DOM paints using setTimeout
          setTimeout(() => {
+             if (currentViewID !== viewID) return;
              const ctx1 = document.getElementById('stockChart');
              if(ctx1) {
                  if (window.stockChartInstance) { window.stockChartInstance.destroy(); }
@@ -1623,8 +1809,10 @@
         const sort = sortQty ? sortQty.value : 'desc';
 
         let filtered = state.materials.filter(m => {
-            const safeName = String(m.name || '');
-            const matchName = safeName.toLowerCase().includes(txt);
+            const safeName = String(m.name || '').toLowerCase();
+            const safeId = String(m.material_id || '').toLowerCase();
+            const safeLoc = String(m.location || m.Location || '').toLowerCase();
+            const matchName = safeName.includes(txt) || safeId.includes(txt) || safeLoc.includes(txt);
             const q = parseInt(m.qty || 0);
             let matchStatus = true;
             if (status === 'low') matchStatus = q > 0 && q < 150;
@@ -1694,9 +1882,18 @@
                     </div>
                     
                     <div class="flex flex-wrap justify-start md:justify-end items-center gap-2 w-full md:w-auto mt-3 md:mt-0">
-                        <div class="relative flex-1 min-w-[150px]">
-                            <i class="fas fa-search absolute left-4 top-3 text-gray-500 opacity-70"></i>
-                            <input type="text" id="searchInput" placeholder="ค้นหาชื่อ..." class="w-full pl-10 pr-4 py-2.5 rounded-xl text-sm font-medium focus:ring-2 focus:ring-primary-500 outline-none transition" onkeyup="renderMaterialList('${mode}')">
+                        <div class="relative flex-1 min-w-[160px]">
+                            <i class="fas fa-search absolute left-3.5 top-3 text-gray-400 text-sm"></i>
+                            <input type="text" id="searchInput" placeholder="ค้นหาชื่อ, รหัส, ที่เก็บ..." class="w-full pl-9 pr-4 py-2.5 rounded-xl text-sm font-medium focus:ring-2 focus:ring-primary-500 outline-none transition" oninput="onSearchInput(this.value, '${mode}')">
+                        </div>
+                        <!-- View Switcher (Grid vs Compact Table) -->
+                        <div class="flex items-center gap-1 p-1 rounded-xl border border-custom" style="background: var(--input-bg);">
+                            <button id="btnViewGrid" onclick="setInventoryViewMode('grid', '${mode}')" class="py-2 px-3 rounded-xl text-xs font-bold transition shadow-sm ${currentInventoryViewMode === 'grid' ? 'bg-primary-500 text-white' : 'text-gray-500 hover:bg-gray-100'}" title="มุมมองการ์ด (Grid)">
+                                <i class="fas fa-th-large"></i>
+                            </button>
+                            <button id="btnViewTable" onclick="setInventoryViewMode('table', '${mode}')" class="py-2 px-3 rounded-xl text-xs font-bold transition ${currentInventoryViewMode === 'table' ? 'bg-primary-500 text-white shadow-sm' : 'text-gray-500 hover:bg-gray-100'}" title="มุมมองตารางสรุปเร็ว (Compact Table)">
+                                <i class="fas fa-list-ul"></i>
+                            </button>
                         </div>
                         <select id="filterType" onchange="document.getElementById('filterCategory').value='all'; updateFilterDropdowns(this.value); renderMaterialList('${mode}');" class="py-2.5 px-3 rounded-xl text-sm font-medium focus:ring-2 focus:ring-primary-500 outline-none transition cursor-pointer">
                             <option value="all">ทุกประเภท (All Types)</option>
@@ -1769,116 +1966,270 @@
         const filtered = getFilteredInventory();
         
         if (filtered.length === 0) {
+            container.style.display = 'block';
             container.innerHTML = `
-                <div style="grid-column: 1 / -1;" class="py-20 flex flex-col items-center justify-center bg-white rounded-2xl shadow-sm border-custom dashboard-card">
-                    <i class="fas fa-box-open text-6xl mb-4 opacity-50 text-gray-500"></i>
+                <div class="py-20 flex flex-col items-center justify-center bg-white rounded-2xl shadow-sm border-custom dashboard-card text-center px-4">
+                    <div class="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center text-gray-400 mb-4 shadow-inner">
+                        <i class="fas fa-box-open text-3xl opacity-60"></i>
+                    </div>
                     <p class="text-xl font-bold text-gray-800">ไม่พบรายการวัสดุ</p>
-                    <p class="text-sm mt-1 text-gray-500">ลองเปลี่ยนคำค้นหา หรือเปลี่ยนตัวกรอง</p>
+                    <p class="text-sm mt-1 text-gray-500">ลองเปลี่ยนคำค้นหา หรือเลือกตัวกรองประเภทอื่น</p>
                 </div>`;
             return;
         }
 
+        // --- 1. COMPACT TABLE VIEW ---
+        if (currentInventoryViewMode === 'table') {
+            container.style.display = 'block';
+            let rowsHtml = '';
+            
+            filtered.forEach(m => {
+                const qtyNum = parseInt(m.qty || 0);
+                const isLow = qtyNum > 0 && qtyNum < 150;
+                const isOut = qtyNum === 0;
+                const isPinned = m.pinned === true || m.pinned === 'true' || m.pinned === 1 || m.pinned === 'TRUE';
+                const inCart = transCart.some(item => item.material_id === m.material_id);
+                
+                const dispTypes = parseTypes(m.type || m.Type || m['ประเภท'] || m['type'] || '');
+                const dispCat = m.category || m.Category || m['หมวดหมู่'] || m['category'] || '-';
+                const thumbUrl = getThumbUrl(m.image_url, 120);
+
+                let statusBadge = '';
+                if (isOut) {
+                    statusBadge = '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-rose-50 text-rose-600 border border-rose-200"><span class="w-1.5 h-1.5 rounded-full bg-rose-500 neon-rose"></span>หมด</span>';
+                } else if (isLow) {
+                    statusBadge = '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-600 border border-amber-200"><span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>ใกล้หมด</span>';
+                } else {
+                    statusBadge = '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-200"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500 neon-green"></span>พร้อมใช้</span>';
+                }
+
+                let rowAction = '';
+                if (mode === 'view') {
+                    if (canManage) {
+                        rowAction = `
+                        <div class="flex items-center justify-end gap-1.5">
+                            <button onclick="openMaterialModalById('${m.material_id}')" class="px-3 py-1.5 text-xs font-bold rounded-lg border border-custom hover:text-primary-500 transition shadow-sm" style="background: var(--input-bg);">แก้ไข</button>
+                            <button onclick="deleteMaterial('${m.material_id}')" class="px-2.5 py-1.5 text-xs font-bold rounded-lg border border-custom text-red-500 hover:bg-red-50 transition shadow-sm" style="background: var(--input-bg);">ลบ</button>
+                        </div>`;
+                    } else {
+                        rowAction = '<span class="text-xs text-gray-400">ดูได้อย่างเดียว</span>';
+                    }
+                } else if (mode === 'withdraw') {
+                    if (canWithdraw) {
+                        if (inCart) {
+                            rowAction = `<button onclick="removeFromCart('${m.material_id}', '${mode}')" class="px-3 py-1.5 text-xs font-bold rounded-lg bg-emerald-100 text-emerald-700 border border-emerald-300 transition shadow-sm active:scale-95"><i class="fas fa-check mr-1"></i> เลือกแล้ว</button>`;
+                        } else {
+                            rowAction = `<button onclick="addToCart('${m.material_id}', 'withdraw')" class="px-3 py-1.5 text-xs font-bold rounded-lg bg-rose-600 hover:bg-rose-700 text-white transition shadow-sm active:scale-95"><i class="fas fa-plus mr-1"></i> เบิก</button>`;
+                        }
+                    } else {
+                        rowAction = '<span class="text-xs text-gray-400"><i class="fas fa-lock mr-1"></i> ล็อค</span>';
+                    }
+                } else if (mode === 'import') {
+                    if (canImport) {
+                        if (inCart) {
+                            rowAction = `<button onclick="removeFromCart('${m.material_id}', '${mode}')" class="px-3 py-1.5 text-xs font-bold rounded-lg bg-emerald-100 text-emerald-700 border border-emerald-300 transition shadow-sm active:scale-95"><i class="fas fa-check mr-1"></i> เลือกแล้ว</button>`;
+                        } else {
+                            rowAction = `<button onclick="addToCart('${m.material_id}', 'import')" class="px-3 py-1.5 text-xs font-bold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white transition shadow-sm active:scale-95"><i class="fas fa-plus mr-1"></i> นำเข้า</button>`;
+                        }
+                    } else {
+                        rowAction = '<span class="text-xs text-gray-400"><i class="fas fa-lock mr-1"></i> ล็อค</span>';
+                    }
+                }
+
+                rowsHtml += `
+                <tr class="transition hover:bg-slate-50/60 border-b border-custom">
+                    <td class="p-3 pl-4 text-center">
+                        <img src="${thumbUrl}" loading="lazy" decoding="async" class="w-11 h-11 object-contain rounded-xl border border-custom mx-auto bg-slate-50 cursor-pointer shadow-sm" onerror="this.onerror=null; this.src='${NO_IMG_SVG}';" onclick="openImageModal('${m.image_url}')">
+                    </td>
+                    <td class="p-3">
+                        <div class="flex items-center gap-2">
+                            ${isAdmin ? `<button onclick="togglePin('${m.material_id}', ${isPinned}, event)" class="text-xs ${isPinned ? 'text-amber-500' : 'text-gray-300 hover:text-amber-400'}" title="ปักหมุด"><i class="fas fa-thumbtack ${isPinned ? '-rotate-45' : ''}"></i></button>` : ''}
+                            <span class="font-bold text-sm text-gray-800 line-clamp-1" title="${m.name}">${m.name}</span>
+                        </div>
+                        <span class="text-[11px] font-mono text-gray-400 block mt-0.5">#${m.material_id.slice(-5)}</span>
+                    </td>
+                    <td class="p-3">
+                        <div class="flex flex-wrap gap-1">
+                            ${dispTypes.map(t => `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-primary-50 text-primary-600 border border-primary-100">${t}</span>`).join('')}
+                            ${dispCat !== '-' ? `<span class="px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-600">${dispCat}</span>` : ''}
+                        </div>
+                    </td>
+                    <td class="p-3 text-xs text-gray-500">
+                        <span class="flex items-center gap-1"><i class="fas fa-map-marker-alt text-rose-400 text-[11px]"></i> ${m.location || m.Location || '-'}</span>
+                    </td>
+                    <td class="p-3 text-right">
+                        <span class="font-black text-base ${isOut ? 'text-rose-500' : 'text-gray-800'} font-mono">${qtyNum.toLocaleString()}</span>
+                        <span class="text-xs text-gray-500 ml-1">${m.units || m.Units || ''}</span>
+                    </td>
+                    <td class="p-3 text-center">${statusBadge}</td>
+                    <td class="p-3 text-right pr-4">${rowAction}</td>
+                </tr>`;
+            });
+
+            container.innerHTML = `
+            <div class="bg-white rounded-2xl shadow-custom border border-custom overflow-hidden dashboard-card mb-20">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm border-collapse compact-table">
+                        <thead>
+                            <tr class="border-b border-custom text-xs font-bold text-gray-500 uppercase tracking-wider" style="background: rgba(128,128,128,0.05);">
+                                <th class="p-3.5 pl-4 w-16 text-center">รูป</th>
+                                <th class="p-3.5">ชื่อวัสดุ / Stock ID</th>
+                                <th class="p-3.5">หมวดหมู่ / ประเภท</th>
+                                <th class="p-3.5">ที่เก็บ</th>
+                                <th class="p-3.5 text-right">คงเหลือ</th>
+                                <th class="p-3.5 text-center">สถานะ</th>
+                                <th class="p-3.5 text-right pr-4">การดำเนินการ</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-custom">
+                            ${rowsHtml}
+                        </tbody>
+                    </table>
+                </div>
+            </div>`;
+            return;
+        }
+
+        // --- 2. MODERN CLEAN LAB GRID VIEW ---
+        container.style.display = 'grid';
+        container.style.gridTemplateColumns = 'repeat(auto-fill, minmax(260px, 1fr))';
+        container.style.gap = '1.5rem';
+
         let htmlString = '';
         filtered.forEach(m => {
-            const isLow = parseInt(m.qty) > 0 && parseInt(m.qty) < 150;
-            const isOut = parseInt(m.qty) === 0;
+            const qtyNum = parseInt(m.qty || 0);
+            const isLow = qtyNum > 0 && qtyNum < 150;
+            const isOut = qtyNum === 0;
             const isPinned = m.pinned === true || m.pinned === 'true' || m.pinned === 1 || m.pinned === 'TRUE';
             
+            // Modern Glowing Pill Badges
             let statusBadge = '';
-            if (isOut) statusBadge = `<div class="absolute top-3 right-3 bg-red-500 text-white text-[10px] font-black px-3 py-1 rounded-full shadow-lg">หมด!</div>`;
-            else if (isLow) statusBadge = `<div class="absolute top-3 right-3 bg-amber-500 text-white text-[10px] font-black px-3 py-1 rounded-full shadow-lg">ใกล้หมด</div>`;
+            if (isOut) {
+                statusBadge = `
+                <div class="absolute top-3 right-3 z-10 flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black backdrop-blur-md bg-rose-500/15 text-rose-600 border border-rose-500/30 shadow-sm">
+                    <span class="w-1.5 h-1.5 rounded-full bg-rose-500 neon-rose"></span>
+                    <span>หมด!</span>
+                </div>`;
+            } else if (isLow) {
+                statusBadge = `
+                <div class="absolute top-3 right-3 z-10 flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black backdrop-blur-md bg-amber-500/15 text-amber-600 border border-amber-500/30 shadow-sm">
+                    <span class="w-1.5 h-1.5 rounded-full bg-amber-500 pulse-dot neon-amber"></span>
+                    <span>ใกล้หมด</span>
+                </div>`;
+            } else {
+                statusBadge = `
+                <div class="absolute top-3 right-3 z-10 flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black backdrop-blur-md bg-emerald-500/15 text-emerald-600 border border-emerald-500/30 shadow-sm">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 neon-green"></span>
+                    <span>พร้อมใช้</span>
+                </div>`;
+            }
 
             let pinBadge = '';
             if (isAdmin) {
-                pinBadge = `<button onclick="togglePin('${m.material_id}', ${isPinned}, event)" class="absolute top-3 left-3 w-8 h-8 rounded-full flex items-center justify-center shadow-lg transition transform active:scale-95 z-20 ${isPinned ? 'bg-amber-500 text-white border-2 border-white' : 'bg-gray-100 text-gray-600 hover:bg-white'}"><i class="fas fa-thumbtack ${isPinned ? '-rotate-45 text-white' : ''}"></i></button>`;
+                pinBadge = `<button onclick="togglePin('${m.material_id}', ${isPinned}, event)" class="absolute top-3 left-3 w-8 h-8 rounded-full flex items-center justify-center shadow-md transition transform active:scale-95 z-20 ${isPinned ? 'bg-amber-500 text-white border-2 border-white' : 'bg-white/90 text-gray-500 hover:text-amber-500 border border-slate-200'}" title="ปักหมุดรายการนี้"><i class="fas fa-thumbtack ${isPinned ? '-rotate-45 text-white' : ''}"></i></button>`;
             } else if (isPinned) {
-                pinBadge = `<div class="absolute top-3 left-3 w-8 h-8 rounded-full bg-amber-500 text-white border-2 border-white flex items-center justify-center shadow-lg z-20"><i class="fas fa-thumbtack -rotate-45 text-white"></i></div>`;
+                pinBadge = `<div class="absolute top-3 left-3 w-8 h-8 rounded-full bg-amber-500 text-white border-2 border-white flex items-center justify-center shadow-md z-20"><i class="fas fa-thumbtack -rotate-45 text-white"></i></div>`;
             }
 
             let actionButtons = '';
             const inCart = transCart.some(item => item.material_id === m.material_id);
 
-            // Using openMaterialModalById to prevent JSON stringify syntax errors
             if (mode === 'view') {
                 if (canManage) {
                     actionButtons = `
-                    <div class="flex gap-3">
-                        <button onclick="openMaterialModalById('${m.material_id}')" class="flex-1 py-2.5 text-xs rounded-xl hover:text-primary-500 font-bold transition shadow-sm transform active:scale-95 border-custom" style="background: var(--input-bg); color: var(--text-main);">แก้ไข</button>
-                        <button onclick="deleteMaterial('${m.material_id}')" class="flex-1 py-2.5 text-xs rounded-xl font-bold transition shadow-sm transform active:scale-95 border-custom text-red-500 hover:bg-red-50" style="background: var(--input-bg);">ลบ</button>
+                    <div class="flex gap-2">
+                        <button onclick="openMaterialModalById('${m.material_id}')" class="flex-1 py-2.5 text-xs rounded-xl hover:text-primary-600 font-bold transition shadow-sm transform active:scale-95 border border-custom" style="background: var(--input-bg); color: var(--text-main);">
+                            <i class="fas fa-edit mr-1"></i> แก้ไข
+                        </button>
+                        <button onclick="deleteMaterial('${m.material_id}')" class="py-2.5 px-3.5 text-xs rounded-xl font-bold transition shadow-sm transform active:scale-95 border border-custom text-red-500 hover:bg-red-50" style="background: var(--input-bg);" title="ลบรายการ">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
                     </div>`;
                 } else {
-                    actionButtons = `<button disabled class="w-full py-2.5 text-xs rounded-xl opacity-50 font-bold cursor-not-allowed border-custom text-gray-500" style="background: var(--input-bg);"><i class="fas fa-lock mr-1"></i> ไม่มีสิทธิ์จัดการข้อมูล</button>`;
+                    actionButtons = `<button disabled class="w-full py-2.5 text-xs rounded-xl opacity-50 font-bold cursor-not-allowed border border-custom text-gray-400" style="background: var(--input-bg);"><i class="fas fa-lock mr-1"></i> ดูได้อย่างเดียว</button>`;
                 }
             } else if (mode === 'withdraw') {
                 if (canWithdraw) {
                     if (inCart) {
-                        actionButtons = `<button onclick="removeFromCart('${m.material_id}', '${mode}')" class="w-full py-3 text-sm font-bold rounded-xl transition flex items-center justify-center gap-2 shadow-sm transform active:scale-95 border-custom text-gray-800" style="background: var(--input-bg);"><i class="fas fa-check text-emerald-500"></i> เลือกแล้ว (ยกเลิก)</button>`;
+                        actionButtons = `<button onclick="removeFromCart('${m.material_id}', '${mode}')" class="w-full py-2.5 text-xs font-bold rounded-xl transition flex items-center justify-center gap-1.5 shadow-sm transform active:scale-95 border border-emerald-300 bg-emerald-50 text-emerald-700"><i class="fas fa-check"></i> เลือกแล้ว (คลิกเพื่อยกเลิก)</button>`;
                     } else {
-                        actionButtons = `<button onclick="addToCart('${m.material_id}', 'withdraw')" class="w-full py-3 text-sm font-bold bg-rose-600 hover:bg-rose-700 text-white rounded-xl transition transform active:scale-95 flex items-center justify-center gap-2 shadow-sm">
-                            <i class="fas fa-cart-plus text-white"></i> เลือกเพื่อเบิก
+                        actionButtons = `<button onclick="addToCart('${m.material_id}', 'withdraw')" class="w-full py-2.5 text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white rounded-xl transition transform active:scale-95 flex items-center justify-center gap-1.5 shadow-sm">
+                            <i class="fas fa-plus text-xs"></i> เลือกเพื่อเบิก
                         </button>`;
                     }
                 } else {
-                    actionButtons = `<button disabled class="w-full py-3 text-sm font-bold rounded-xl opacity-50 cursor-not-allowed flex items-center justify-center gap-2 border-custom text-gray-500" style="background: var(--input-bg);">
-                        <i class="fas fa-lock"></i> ไม่มีสิทธิ์เบิกวัสดุ
-                    </button>`;
+                    actionButtons = `<button disabled class="w-full py-2.5 text-xs font-bold rounded-xl opacity-50 cursor-not-allowed flex items-center justify-center gap-1.5 border border-custom text-gray-400" style="background: var(--input-bg);"><i class="fas fa-lock"></i> ไม่มีสิทธิ์เบิก</button>`;
                 }
             } else if (mode === 'import') {
                 if (canImport) {
                     if (inCart) {
-                        actionButtons = `<button onclick="removeFromCart('${m.material_id}', '${mode}')" class="w-full py-3 text-sm font-bold rounded-xl transition flex items-center justify-center gap-2 shadow-sm transform active:scale-95 border-custom text-gray-800" style="background: var(--input-bg);"><i class="fas fa-check text-emerald-500"></i> เลือกแล้ว (ยกเลิก)</button>`;
+                        actionButtons = `<button onclick="removeFromCart('${m.material_id}', '${mode}')" class="w-full py-2.5 text-xs font-bold rounded-xl transition flex items-center justify-center gap-1.5 shadow-sm transform active:scale-95 border border-emerald-300 bg-emerald-50 text-emerald-700"><i class="fas fa-check"></i> เลือกแล้ว (คลิกเพื่อยกเลิก)</button>`;
                     } else {
-                        actionButtons = `<button onclick="addToCart('${m.material_id}', 'import')" class="w-full py-3 text-sm font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition transform active:scale-95 flex items-center justify-center gap-2 shadow-sm">
-                            <i class="fas fa-cart-plus text-white"></i> เลือกเพื่อนำเข้า
+                        actionButtons = `<button onclick="addToCart('${m.material_id}', 'import')" class="w-full py-2.5 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition transform active:scale-95 flex items-center justify-center gap-1.5 shadow-sm">
+                            <i class="fas fa-plus text-xs"></i> เลือกเพื่อนำเข้า
                         </button>`;
                     }
                 } else {
-                    actionButtons = `<button disabled class="w-full py-3 text-sm font-bold rounded-xl opacity-50 cursor-not-allowed flex items-center justify-center gap-2 border-custom text-gray-500" style="background: var(--input-bg);">
-                        <i class="fas fa-lock"></i> ไม่มีสิทธิ์นำเข้าวัสดุ
-                    </button>`;
+                    actionButtons = `<button disabled class="w-full py-2.5 text-xs font-bold rounded-xl opacity-50 cursor-not-allowed flex items-center justify-center gap-1.5 border border-custom text-gray-400" style="background: var(--input-bg);"><i class="fas fa-lock"></i> ไม่มีสิทธิ์นำเข้า</button>`;
                 }
             }
 
             const dispTypes = parseTypes(m.type || m.Type || m['ประเภท'] || m['type'] || '');
             if (dispTypes.length === 0) dispTypes.push('ไม่ได้ระบุประเภท');
             const dispCat = m.category || m.Category || m['หมวดหมู่'] || m['category'];
-            
+            const cardThumb = getThumbUrl(m.image_url, 300);
+
             htmlString += `
-            <div class="inventory-card rounded-2xl shadow-custom overflow-hidden hover:-translate-y-1 transition-all duration-300 flex flex-col group relative border-custom">
-                <div class="h-44 relative overflow-hidden border-b border-custom p-2 flex items-center justify-center" style="background: rgba(128,128,128,0.05);">
+            <div class="group relative bg-white rounded-2xl border border-custom shadow-custom hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 flex flex-col overflow-hidden dashboard-card cyber-card">
+                <!-- Image Header with Gradient Backdrop -->
+                <div class="relative h-44 p-3 flex items-center justify-center overflow-hidden border-b border-custom" style="background: rgba(128,128,128,0.03);">
                     ${pinBadge}
-                    <img src="${m.image_url || 'https://via.placeholder.com/400x300?text=No+Image'}" class="max-w-full max-h-full object-contain transition-transform duration-700 group-hover:scale-105 cursor-pointer drop-shadow-md" onerror="this.src='https://via.placeholder.com/400x300?text=Image+Error'" onclick="openImageModal('${m.image_url || 'https://via.placeholder.com/800x600?text=No+Image'}')">
                     ${statusBadge}
+                    <img src="${cardThumb}" 
+                         loading="lazy" 
+                         decoding="async"
+                         class="max-h-36 max-w-full object-contain drop-shadow-sm group-hover:scale-105 transition-transform duration-500 cursor-pointer" 
+                         onerror="this.onerror=null; this.src='${NO_IMG_SVG}';" 
+                         onclick="openImageModal('${m.image_url}')">
                 </div>
                 
-                <div class="p-5 flex-1 flex flex-col">
-                    <div class="flex flex-wrap gap-1 mb-2">
-                        ${dispTypes.map(t => `<span class="px-2 py-0.5 text-[10px] rounded-md font-bold inline-block w-max text-primary-600 border border-primary-500/30" style="background: rgba(59,130,246,0.1); text-shadow:none;">${t}</span>`).join('')}
-                        ${dispCat ? `<span class="px-2 py-0.5 text-[10px] rounded-md font-bold inline-block w-max text-emerald-600 border border-emerald-500/30" style="background: rgba(16,185,129,0.1); text-shadow:none;">${dispCat}</span>` : ''}
+                <!-- Details Body -->
+                <div class="p-4 flex-1 flex flex-col">
+                    <div class="flex flex-wrap items-center gap-1.5 mb-2">
+                        ${dispTypes.map(t => `<span class="px-2 py-0.5 rounded-md text-[10px] font-bold text-primary-600 border border-primary-500/30" style="background: rgba(59,130,246,0.08);">${t}</span>`).join('')}
+                        ${dispCat ? `<span class="px-2 py-0.5 rounded-md text-[10px] font-bold text-emerald-600 border border-emerald-500/30" style="background: rgba(16,185,129,0.08);">${dispCat}</span>` : ''}
                     </div>
-                    <h4 class="font-bold text-base line-clamp-2 mb-1 leading-tight text-gray-800" title="${m.name}">${m.name}</h4>
-                    <p class="text-xs mb-3 flex items-start gap-1 text-gray-500"><i class="fas fa-map-marker-alt mt-0.5 text-red-500"></i> <span>${m.location || m.Location || m['ที่เก็บ'] || m['ชั้นวาง'] || 'ไม่ได้ระบุ'}</span></p>
-                    <div class="mt-auto flex justify-between items-end">
+
+                    <h3 class="font-bold text-gray-800 text-sm line-clamp-2 leading-snug group-hover:text-primary-600 transition-colors" title="${m.name}">${m.name}</h3>
+                    
+                    <p class="text-xs text-gray-400 mt-1 flex items-center gap-1">
+                        <i class="fas fa-map-marker-alt text-rose-400"></i>
+                        <span class="truncate">${m.location || m.Location || 'ไม่ได้ระบุ'}</span>
+                    </p>
+
+                    <!-- Bottom Stats -->
+                    <div class="mt-auto pt-3 border-t border-custom flex items-baseline justify-between">
                         <div>
-                            <span class="block text-[10px] font-bold uppercase tracking-widest mb-1 text-gray-500">Stock ID</span>
-                            <span class="text-xs font-mono font-bold px-2 py-1 rounded-md border border-custom text-gray-600" style="background: var(--input-bg);">#${m.material_id.slice(-5)}</span>
+                            <span class="block text-[10px] font-bold uppercase tracking-widest text-gray-400">Stock ID</span>
+                            <span class="text-xs font-mono font-bold text-gray-600" style="background: var(--input-bg);">#${m.material_id.slice(-5)}</span>
                         </div>
                         <div class="text-right">
-                            <span class="block text-[10px] font-bold uppercase tracking-widest mb-1 text-gray-500">Quantity</span>
-                            <span class="text-3xl font-black ${isOut ? 'text-red-500' : 'text-primary-500'} leading-none drop-shadow-sm">${m.qty}</span>${(m.units || m.Units) ? `<span class="text-xs font-bold ml-1 text-gray-500" style="text-shadow:none;">${m.units || m.Units}</span>` : ''}
+                            <span class="text-2xl font-black ${isOut ? 'text-rose-500' : 'text-gray-800'} font-mono tracking-tight">${qtyNum.toLocaleString()}</span>
+                            <span class="text-xs font-semibold text-gray-500 ml-1">${m.units || m.Units || ''}</span>
                         </div>
                     </div>
-                </div>
-                
-                <div class="p-4 border-t border-custom" style="background: rgba(128,128,128,0.02);">
-                    ${actionButtons}
+
+                    <!-- Action Button -->
+                    <div class="mt-3">
+                        ${actionButtons}
+                    </div>
                 </div>
             </div>`;
         });
+
         container.innerHTML = htmlString;
     }
 
-    // --- BOM PRODUCTION LOGIC ---
     async function renderBomSetup(c, viewID) {
         if(currentViewID !== viewID) return;
         
@@ -2947,19 +3298,33 @@
     function updateCartUI() {
         const fab = document.getElementById('cartFab');
         const badge = document.getElementById('cartBadge');
+        const fabBtn = document.getElementById('cartFabBtn');
+        const fabIcon = document.getElementById('cartFabIcon');
+        const pulseWave = document.getElementById('cartPulseWave');
+        const tooltip = document.getElementById('cartFabTooltip');
         if (!fab || !badge) return;
 
         if (transCart.length > 0) {
             fab.classList.remove('hidden');
             fab.classList.add('fade-in');
-            const totalItems = transCart.reduce((sum, item) => sum + item.transQty, 0);
-            badge.innerText = totalItems;
+            const totalItems = transCart.reduce((sum, item) => sum + (parseInt(item.transQty) || 1), 0);
+            badge.innerText = totalItems > 99 ? '99+' : totalItems;
             
-            const btn = fab.querySelector('button');
-            if(currentTransMode === 'import') {
-                btn.className = 'relative flex items-center justify-center w-16 h-16 rounded-full shadow-2xl transition transform active:scale-95 bg-emerald-600 hover:bg-emerald-700 text-white';
-            } else {
-                btn.className = 'relative flex items-center justify-center w-16 h-16 rounded-full shadow-2xl transition transform active:scale-95 bg-rose-600 hover:bg-rose-700 text-white';
+            const isImport = currentTransMode === 'import';
+            if (tooltip) {
+                tooltip.innerText = `เปิดดูตะกร้า${isImport ? 'นำเข้า' : 'เบิก'} (${transCart.length} รายการ, รวม ${totalItems.toLocaleString()} ชิ้น)`;
+            }
+
+            if (fabBtn) {
+                if (isImport) {
+                    fabBtn.className = 'relative flex items-center justify-center w-16 h-16 rounded-full shadow-[0_12px_32px_rgba(16,185,129,0.45)] border-4 border-white transition-all duration-300 transform active:scale-90 hover:scale-105 bg-gradient-to-tr from-emerald-600 via-teal-500 to-cyan-400 text-white';
+                    if (pulseWave) pulseWave.className = 'absolute inset-0 rounded-full animate-ping opacity-40 bg-emerald-400 pointer-events-none';
+                    if (fabIcon) fabIcon.className = 'fas fa-truck-loading text-2xl text-white drop-shadow-md';
+                } else {
+                    fabBtn.className = 'relative flex items-center justify-center w-16 h-16 rounded-full shadow-[0_12px_32px_rgba(244,63,94,0.45)] border-4 border-white transition-all duration-300 transform active:scale-90 hover:scale-105 bg-gradient-to-tr from-rose-600 via-pink-500 to-amber-500 text-white';
+                    if (pulseWave) pulseWave.className = 'absolute inset-0 rounded-full animate-ping opacity-40 bg-rose-400 pointer-events-none';
+                    if (fabIcon) fabIcon.className = 'fas fa-hand-holding text-2xl text-white drop-shadow-md';
+                }
             }
         } else {
             fab.classList.add('hidden');
@@ -3912,7 +4277,8 @@
     function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
 
     function openImageModal(imgUrl) {
-        document.getElementById('fullSizeImage').src = imgUrl;
+        if (!imgUrl || imgUrl.includes('No+Image') || imgUrl === NO_IMG_SVG) return;
+        document.getElementById('fullSizeImage').src = getThumbUrl(imgUrl, 1200);
         document.getElementById('imageModal').classList.remove('hidden');
     }
     
@@ -3935,7 +4301,16 @@
     function adjQty(d) { const el = document.getElementById('transQty'); el.value = Math.max(1, parseInt(el.value)+d); }
     
     function cardSkeleton() { 
-        return `<div class="bg-white p-6 rounded-2xl shadow-custom border border-custom h-32 animate-pulse flex flex-col justify-between dashboard-card"><div class="h-4 bg-gray-200 rounded w-1/2 opacity-50"></div><div class="h-8 bg-gray-200 rounded w-1/3 opacity-50"></div></div>`; 
+        return `
+        <div class="bg-white rounded-2xl border border-custom shadow-custom p-4 flex flex-col h-72 animate-pulse dashboard-card">
+            <div class="h-36 bg-gray-200/60 rounded-xl mb-3 shimmer-effect"></div>
+            <div class="h-4 bg-gray-200/60 rounded w-3/4 mb-2"></div>
+            <div class="h-3 bg-gray-200/60 rounded w-1/2 mb-auto"></div>
+            <div class="flex justify-between items-center pt-3 border-t border-custom">
+                <div class="h-6 bg-gray-200/60 rounded w-16"></div>
+                <div class="h-8 bg-gray-200/60 rounded w-20"></div>
+            </div>
+        </div>`; 
     }
     
     function statCard(title, value, icon, colorClass) { 
@@ -4031,23 +4406,7 @@
             showToast('ระบบจำลองการปักหมุดสำเร็จ (กรุณาเพิ่มคอลัมน์ pinned ใน Backend)', 'success');
         }
     }
-    // --- SOURCE CODE PROTECTION (JS OBFUSCATION & ANTI-INSPECT) ---
-    (function(){
-        document['addEventListener']('contextmenu', _0x3c4d => _0x3c4d['preventDefault']());
-        document['addEventListener']('keydown', _0x5e6f => {
-            if (_0x5e6f['keyCode'] === 123 || (_0x5e6f['ctrlKey'] && _0x5e6f['shiftKey'] && (_0x5e6f['keyCode'] === 73 || _0x5e6f['keyCode'] === 74 || _0x5e6f['keyCode'] === 67)) || (_0x5e6f['ctrlKey'] && (_0x5e6f['keyCode'] === 85 || _0x5e6f['keyCode'] === 83))) {
-                _0x5e6f['preventDefault']();
-                return !1;
-            }
-        });
-        setInterval(function(){
-            var _0x7g8h = new Date()['getTime']();
-            debugger;
-            var _0x9i0j = new Date()['getTime']();
-            if(_0x9i0j - _0x7g8h > 100) { document['body']['innerHTML'] = '<div style="display:flex;justify-content:center;align-items:center;height:100vh;background:#000;color:#0f0;font-family:monospace;font-size:24px;">⛔ Security Violation: Developer Tools Detected</div>'; }
-        }, 1000);
-    })();
-
+    // --- INITIALIZATION ---
     window.onload = initApp;
   </script>
 </body>
