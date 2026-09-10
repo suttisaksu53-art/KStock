@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>ระบบจัดการสต๊อกวัสดุ Test Kit - กลุ่มวิจัยเคมีดิน กรมพัฒนาที่ดิน (v12 Animated Dashboard)</title>
+  <title>ระบบจัดการสต๊อกวัสดุ Test Kit - กลุ่มวิจัยเคมีดิน กรมพัฒนาที่ดิน (v13 Fast Mobile & Unified Theme)</title>
   
   <!-- ================= LIBRARIES ================= -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -911,14 +911,21 @@
         return "#"+RR+GG+BB;
     }
     
-    async function loadGlobalTheme() {
-        const localTheme = localStorage.getItem('global_theme');
-        if (localTheme) {
-            currentTheme = localTheme;
-            applyTheme(localTheme);
-        }
+    function loadLocalTheme() {
+        const localTheme = localStorage.getItem('global_theme') || 'ldd_soil';
+        currentTheme = localTheme;
+        applyTheme(localTheme);
+    }
+
+    async function syncGlobalTheme() {
+        // Only sync if logged in and not checked recently (within 2 hours)
+        if (!state.user) return;
+        const lastSync = parseInt(localStorage.getItem('kstore_theme_sync_time') || '0', 10);
+        if (Date.now() - lastSync < 2 * 60 * 60 * 1000) return; // 2 hours
+
         try {
             const globalTheme = await api('getGlobalTheme');
+            localStorage.setItem('kstore_theme_sync_time', Date.now().toString());
             if (globalTheme && THEMES[globalTheme] && globalTheme !== currentTheme) {
                 currentTheme = globalTheme;
                 applyTheme(globalTheme);
@@ -983,7 +990,36 @@
         filter: { search: '', sort: 'newest' } 
     };
     
-    var cache = { materials: null, bom: null, users: null, reports: null };
+    // PERSISTENT LOCAL STORAGE BACKED CACHE (Instant 0.01s load & offline resilience)
+    var cache = new Proxy({
+        materials: null,
+        bom: null,
+        users: null,
+        reports: null
+    }, {
+        get(target, prop) {
+            if (target[prop] !== null && target[prop] !== undefined) return target[prop];
+            try {
+                const val = localStorage.getItem('kstore_cache_' + String(prop));
+                if (val) {
+                    target[prop] = val;
+                    return val;
+                }
+            } catch(e) {}
+            return target[prop];
+        },
+        set(target, prop, value) {
+            target[prop] = value;
+            try {
+                if (value === null || value === undefined) {
+                    localStorage.removeItem('kstore_cache_' + String(prop));
+                } else {
+                    localStorage.setItem('kstore_cache_' + String(prop), typeof value === 'string' ? value : JSON.stringify(value));
+                }
+            } catch(e) {}
+            return true;
+        }
+    });
     
     window.stockChartInstance = null;
     window.statusChartInstance = null;
@@ -1033,8 +1069,8 @@
     setInterval(updateClock, 1000);
 
     // --- 3. API HANDLER & SHARED PROMISE ---
-    async function api(action, payload = {}, retries = 1) {
-        const isBackground = ['getMaterials', 'getBOM', 'getReports', 'getGlobalTheme'].includes(action);
+    async function api(action, payload = {}, retries = 2) {
+        const isBackground = ['getMaterials', 'getBOM', 'getReports', 'getGlobalTheme', 'getInitialData'].includes(action);
         const showOverlay = !isBackground;
         if (showOverlay) {
             const el = document.getElementById('loadingOverlay');
@@ -1051,12 +1087,22 @@
                         .apiHandler({ action, payload });
                 });
             } else {
-                const res = await fetch(WEB_APP_URL, {
-                    method: 'POST',
-                    redirect: 'follow',
-                    headers: { "Content-Type": "text/plain;charset=utf-8" },
-                    body: JSON.stringify({ action: action, payload: payload })
-                });
+                // AbortController with 28s timeout (GAS takes ~10-12s on cold start)
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 28000);
+
+                let res;
+                try {
+                    res = await fetch(WEB_APP_URL, {
+                        method: 'POST',
+                        redirect: 'follow',
+                        headers: { "Content-Type": "text/plain;charset=utf-8" },
+                        body: JSON.stringify({ action: action, payload: payload }),
+                        signal: controller.signal
+                    });
+                } finally {
+                    clearTimeout(timeoutId);
+                }
                 
                 // WebKit Safe response reading
                 const rawText = await res.text();
@@ -1067,7 +1113,7 @@
                     console.warn(`[api] Action "${action}" non-JSON response:`, rawText ? rawText.slice(0, 150) : '(empty)');
                     if (action === 'getGlobalTheme') return null;
                     if (retries > 0) {
-                        await new Promise(r => setTimeout(r, 600));
+                        await new Promise(r => setTimeout(r, 1200));
                         return await api(action, payload, retries - 1);
                     }
                     throw new Error("เซิร์ฟเวอร์ตอบสนองไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง");
@@ -1093,20 +1139,31 @@
             // Never show toast for silent background theme sync
             if (action === 'getGlobalTheme') return null;
 
-            // Auto-retry once on mobile network drops (e.g. Load failed / socket reset)
-            if (retries > 0 && (err.name === 'TypeError' || String(err.message).includes('Load failed') || String(err.message).includes('Failed to fetch'))) {
-                await new Promise(r => setTimeout(r, 800));
+            // Auto-retry on mobile network drops (AbortError, TypeError, Load failed, Failed to fetch)
+            const isNetworkError = err.name === 'AbortError' || 
+                                   err.name === 'TypeError' || 
+                                   String(err.message).includes('Load failed') || 
+                                   String(err.message).includes('Failed to fetch') ||
+                                   String(err.message).includes('NetworkError');
+
+            if (retries > 0 && isNetworkError) {
+                const backoff = (3 - retries) * 1500; // Progressive backoff: 1.5s, 3s
+                await new Promise(r => setTimeout(r, backoff));
                 return await api(action, payload, retries - 1);
             }
 
             // User-friendly message instead of raw iOS WebKit technical jargon
             let userMsg = err.message || 'เกิดข้อผิดพลาดในการเชื่อมต่อ';
-            if (userMsg.includes('Load failed') || userMsg.includes('Failed to fetch')) {
+            if (userMsg.includes('Load failed') || userMsg.includes('Failed to fetch') || err.name === 'AbortError') {
                 userMsg = 'การเชื่อมต่ออินเทอร์เน็ตขัดข้อง กรุณาลองใหม่อีกครั้ง';
             } else if (userMsg.includes('did not match the expected pattern')) {
                 userMsg = 'เซิร์ฟเวอร์กำลังประมวลผล กรุณาลองใหม่อีกครั้ง';
             }
-            showToast(userMsg, 'error');
+
+            // Only show toast if it's NOT a silent background update or if action is login/mutation
+            if (!isBackground || action === 'login') {
+                showToast(userMsg, 'error');
+            }
             throw err;
         }
     }
@@ -1126,9 +1183,34 @@
         return bomPromise;
     }
 
+    // OPTIMIZATION: Unified dashboard fetcher (Bundled 1-shot or safe sequential fallback)
+    let dashboardDataPromise = null;
+    async function fetchDashboardData() {
+        if (dashboardDataPromise) return dashboardDataPromise;
+
+        dashboardDataPromise = (async () => {
+            // 1. Try unified getInitialData first to save round-trips and prevent connection drop
+            try {
+                const initRes = await api('getInitialData');
+                if (initRes && initRes.materials && initRes.bom) {
+                    return initRes;
+                }
+            } catch(e) {}
+
+            // 2. Sequential fallback to prevent concurrent POST redirect drops on mobile WebKit
+            const matData = await fetchMaterialsData();
+            const bomData = await fetchBOMData();
+            return { materials: matData, bom: bomData };
+        })().finally(() => {
+            dashboardDataPromise = null;
+        });
+
+        return dashboardDataPromise;
+    }
+
     // --- 4. AUTHENTICATION & INIT ---
     function initApp() {
-        loadGlobalTheme(); 
+        loadLocalTheme(); // Local only! Zero network overhead before login
         updateClock(); 
         
         const savedUserStr = sessionStorage.getItem('user_session');
@@ -1139,6 +1221,7 @@
                     setupUI();
                     const lastView = sessionStorage.getItem('last_view') || 'dashboard';
                     route(lastView);
+                    syncGlobalTheme(); // Silent background check after session is validated
                 } else {
                     throw new Error("Invalid session data");
                 }
@@ -1191,9 +1274,23 @@
             });
             state.user = user;
             sessionStorage.setItem('user_session', JSON.stringify(state.user));
+
+            // Instant data hydration if server returned bundled initialData
+            if (user && user.initialData) {
+                if (user.initialData.materials) {
+                    state.materials = user.initialData.materials;
+                    cache.materials = JSON.stringify(user.initialData.materials);
+                }
+                if (user.initialData.bom) {
+                    state.bom = user.initialData.bom;
+                    cache.bom = JSON.stringify(user.initialData.bom);
+                }
+            }
+
             setupUI();
             route('dashboard');
             showToast(`ยินดีต้อนรับเข้าสู่ระบบ, ${user.fullname.split(' ')[0]}`, 'success');
+            syncGlobalTheme();
         } catch (e) {}
     };
 
@@ -1500,25 +1597,27 @@
                 <div class="h-80 bg-white rounded-2xl shadow-custom flex items-center justify-center"><div class="loader"></div></div>
             </div>`;
         
-        // Show cache first if both are available
+        // Instant render from persistent local cache if available (0.01s instant UI!)
         let renderedFromCache = false;
         if (cache.materials && cache.bom) { 
-            state.materials = JSON.parse(cache.materials); 
-            state.bom = JSON.parse(cache.bom);
-            updateDashboardUI(c, viewID); 
-            renderedFromCache = true;
+            try {
+                state.materials = typeof cache.materials === 'string' ? JSON.parse(cache.materials) : cache.materials; 
+                state.bom = typeof cache.bom === 'string' ? JSON.parse(cache.bom) : cache.bom;
+                updateDashboardUI(c, viewID); 
+                renderedFromCache = true;
+            } catch(e) {}
         }
         
         try {
-            // Background update using optimized safe fetch for both Materials and BOM
-            const [matData, bomData] = await Promise.all([
-                fetchMaterialsData(),
-                fetchBOMData()
-            ]);
+            // Background update using optimized safe fetch (unified bundled or sequential)
+            const initialData = await fetchDashboardData();
             if (currentViewID !== viewID) return; 
 
-            const oldMatStr = cache.materials || '';
-            const oldBomStr = cache.bom || '';
+            const matData = initialData.materials || [];
+            const bomData = initialData.bom || [];
+
+            const oldMatStr = typeof cache.materials === 'string' ? cache.materials : JSON.stringify(cache.materials || '');
+            const oldBomStr = typeof cache.bom === 'string' ? cache.bom : JSON.stringify(cache.bom || '');
             const newMatStr = JSON.stringify(matData);
             const newBomStr = JSON.stringify(bomData);
             const dataChanged = oldMatStr !== newMatStr || oldBomStr !== newBomStr;
@@ -1532,7 +1631,9 @@
             if (!renderedFromCache || dataChanged) {
                 updateDashboardUI(c, viewID);
             }
-        } catch(e) {}
+        } catch(e) {
+            console.warn("Background dashboard fetch completed with warning:", e);
+        }
     }
 
     function updateDashboardUI(c, viewID) {
@@ -1973,12 +2074,12 @@
                          
                          // Score
                          ctx.font = '900 28px Sarabun, sans-serif';
-                         ctx.fillStyle = readinessPercent >= 80 ? '#10b981' : (readinessPercent >= 50 ? '#f59e0b' : '#ef4444');
+                         ctx.fillStyle = '#10b981'; // สีเขียว Emerald สอดคล้องกับ "ปกติ (พร้อมใช้)"
                          ctx.fillText(`${currentPercent}%`, width / 2, height / 2 - 12);
                          
                          // Label
                          ctx.font = 'bold 11px Sarabun, sans-serif';
-                         ctx.fillStyle = '#64748b';
+                         ctx.fillStyle = '#059669'; // โทนเขียวเข้มเข้าชุด สบายตา
                          ctx.fillText('พร้อมใช้งาน', width / 2, height / 2 + 16);
                          ctx.restore();
                      }
@@ -2469,14 +2570,11 @@
 
         if (!cache.materials || !cache.bom) {
             try {
-                const [matData, bomData] = await Promise.all([
-                    fetchMaterialsData(),
-                    fetchBOMData()
-                ]);
-                state.materials = matData;
-                state.bom = bomData;
-                cache.materials = JSON.stringify(matData);
-                cache.bom = JSON.stringify(bomData);
+                const initData = await fetchDashboardData();
+                state.materials = initData.materials;
+                state.bom = initData.bom;
+                cache.materials = JSON.stringify(initData.materials);
+                cache.bom = JSON.stringify(initData.bom);
             } catch(e) {}
         }
 
@@ -2606,11 +2704,11 @@
 
         if (!cache.materials || !cache.bom) {
             try {
-                const [matData, bomData] = await Promise.all([ fetchMaterialsData(), fetchBOMData() ]);
-                state.materials = matData;
-                state.bom = bomData;
-                cache.materials = JSON.stringify(matData);
-                cache.bom = JSON.stringify(bomData);
+                const initData = await fetchDashboardData();
+                state.materials = initData.materials;
+                state.bom = initData.bom;
+                cache.materials = JSON.stringify(initData.materials);
+                cache.bom = JSON.stringify(initData.bom);
             } catch(e) {}
         }
 
@@ -2857,14 +2955,11 @@
 
         if (!cache.materials || !cache.bom) {
             try {
-                const [matData, bomData] = await Promise.all([
-                    fetchMaterialsData(),
-                    fetchBOMData()
-                ]);
-                state.materials = matData;
-                state.bom = bomData;
-                cache.materials = JSON.stringify(matData);
-                cache.bom = JSON.stringify(bomData);
+                const initData = await fetchDashboardData();
+                state.materials = initData.materials;
+                state.bom = initData.bom;
+                cache.materials = JSON.stringify(initData.materials);
+                cache.bom = JSON.stringify(initData.bom);
             } catch(e) {}
         }
 
