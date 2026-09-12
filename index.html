@@ -3,16 +3,17 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>ระบบจัดการสต๊อกวัสดุ Test Kit - กลุ่มวิจัยเคมีดิน กรมพัฒนาที่ดิน (v13 Enhanced Type Selection & Fast Mobile)</title>
+  <title>ระบบจัดการสต๊อกวัสดุ Test Kit - กลุ่มวิจัยเคมีดิน กรมพัฒนาที่ดิน (v14 Fast Mobile Login & Enhanced Type Selection)</title>
   
   <!-- ================= LIBRARIES ================= -->
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
+  <!-- Deferred non-critical libraries: do not block instant mobile login screen first paint -->
+  <script defer src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
   
   <!-- ================= THEME CONFIGURATION ================= -->
   <script>
@@ -1291,12 +1292,14 @@
                     state.bom = user.initialData.bom;
                     cache.bom = JSON.stringify(user.initialData.bom);
                 }
+                window.lastDataFetchTime = Date.now();
             }
 
             setupUI();
             route('dashboard');
             showToast(`ยินดีต้อนรับเข้าสู่ระบบ, ${user.fullname.split(' ')[0]}`, 'success');
-            syncGlobalTheme();
+            // Defer background theme sync by 2 seconds so login transition is 100% smooth without network bottleneck
+            setTimeout(syncGlobalTheme, 2000);
         } catch (e) {}
     };
 
@@ -1644,8 +1647,15 @@
         }
         
         try {
-            // Background update using optimized safe fetch (unified bundled or sequential)
-            const initialData = await fetchDashboardData();
+            // Background update: skip redundant fetch if fresh bundled data was hydrated within last 30s
+            const isFreshData = (window.lastDataFetchTime && (Date.now() - window.lastDataFetchTime < 30000));
+            let initialData = null;
+            if (!isFreshData || !renderedFromCache) {
+                initialData = await fetchDashboardData();
+                window.lastDataFetchTime = Date.now();
+            } else {
+                initialData = { materials: state.materials, bom: state.bom };
+            }
             if (currentViewID !== viewID) return; 
 
             const matData = initialData.materials || [];
@@ -1673,6 +1683,12 @@
 
     function updateDashboardUI(c, viewID) {
          if(currentViewID !== viewID || !document.contains(c)) return;
+
+         // Safety check: if deferred Chart.js is still loading in background, retry gracefully
+         if (typeof Chart === 'undefined') {
+             setTimeout(() => { if (typeof Chart !== 'undefined' && currentViewID === viewID) updateDashboardUI(c, viewID); }, 200);
+             return;
+         }
          
          const typeVal = document.getElementById('dashboardFilterType') ? document.getElementById('dashboardFilterType').value : 'all';
 
@@ -2109,12 +2125,12 @@
                          
                          // Score
                          ctx.font = '900 28px Sarabun, sans-serif';
-                         ctx.fillStyle = '#10b981'; // สีเขียว Emerald สอดคล้องกับ "ปกติ (พร้อมใช้)"
+                         ctx.fillStyle = '#10b981'; // Emerald
                          ctx.fillText(`${currentPercent}%`, width / 2, height / 2 - 12);
                          
                          // Label
                          ctx.font = 'bold 11px Sarabun, sans-serif';
-                         ctx.fillStyle = '#059669'; // โทนเขียวเข้มเข้าชุด สบายตา
+                         ctx.fillStyle = '#059669'; // Emerald text
                          ctx.fillText('พร้อมใช้งาน', width / 2, height / 2 + 16);
                          ctx.restore();
                      }
@@ -4903,7 +4919,12 @@
     }
 
 
-    window.onload = initApp;
+    // Instant DOM-ready boot on mobile: do not wait for background fonts/images before showing login
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initApp);
+    } else {
+        initApp();
+    }
   </script>
 </body>
 </html>
