@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>ระบบจัดการสต๊อกวัสดุ Test Kit - กลุ่มวิจัยเคมีดิน สำนักวิทยาศาสตร์เพื่อการพัฒนาที่ดิน (v28 SWR Always-Fresh Reports & Real-time Timeline)</title>
+  <title>ระบบจัดการสต๊อกวัสดุ Test Kit - กลุ่มวิจัยเคมีดิน สำนักวิทยาศาสตร์เพื่อการพัฒนาที่ดิน (v29 Brand, Remark & Full Material Details)</title>
   
   <!-- ================= LIBRARIES ================= -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -512,15 +512,28 @@
           <input type="text" id="matLocation" class="w-full px-4 py-2 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none transition border-custom" placeholder="ระบุพิกัดที่เก็บ เช่น ตู้ A ชั้น 2" required>
         </div>
 
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-bold mb-1 text-gray-700">ยี่ห้อ (Brand)</label>
+            <input type="text" id="matBrand" class="w-full px-4 py-2 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none transition border-custom" placeholder="เช่น Merck, Sigma, Ohaus (ถ้ามี)">
+          </div>
+          <div>
+            <label class="block text-sm font-bold mb-1 text-gray-700">หน่วยนับ (Unit)</label>
+            <input type="text" id="matUnits" class="w-full px-4 py-2 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none transition border-custom" placeholder="เช่น กล่อง, ชิ้น, แผ่น, ขวด">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-sm font-bold mb-1 text-gray-700">หมายเหตุ (Remark)</label>
+          <textarea id="matRemark" rows="2" class="w-full px-4 py-2 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none transition border-custom" placeholder="ระบุหมายเหตุเพิ่มเติม (ถ้ามี)"></textarea>
+        </div>
+
         <div>
           <label class="block text-sm font-bold mb-1 text-gray-700">ราคาประมาณการต่อหน่วย (บาท)</label>
           <input type="number" step="0.01" min="0" id="matPrice" class="w-full px-4 py-2 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none transition border-custom" placeholder="0.00" required>
         </div>
 
-        <div>
-          <label class="block text-sm font-bold mb-1 text-gray-700">หน่วยนับ (Unit)</label>
-          <input type="text" id="matUnits" class="w-full px-4 py-2 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none transition border-custom" placeholder="เช่น กล่อง, ชิ้น, แผ่น, ขวด">
-        </div>
+
 
         <div>
           <label class="block text-sm font-bold mb-2 text-gray-700">รูปภาพประกอบ</label>
@@ -623,6 +636,111 @@
       <div class="p-3 sm:p-4 border-t border-custom bg-slate-50/80 flex items-center justify-between text-xs text-gray-500 shrink-0">
         <span id="timelineTxCountInfo"><i class="fas fa-info-circle mr-1 text-primary-500"></i> แสดงประวัติทั้งหมดตั้งแต่เริ่มต้น</span>
         <button type="button" onclick="closeModal('materialTimelineModal')" class="px-4 py-2 rounded-xl bg-gray-200 hover:bg-gray-300 font-bold text-gray-700 transition">ปิดหน้าต่าง</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MATERIAL DETAIL MODAL (v29 Comprehensive Specs) ================= -->
+  <div id="materialDetailModal" class="fixed inset-0 bg-black/60 z-[80] hidden flex items-center justify-center p-3 sm:p-4 backdrop-blur-sm fade-in">
+    <div class="bg-white rounded-2xl w-full max-w-2xl shadow-2xl flex flex-col max-h-[92vh] border border-custom modal-content overflow-hidden">
+      <!-- Modal Header -->
+      <div class="p-4 sm:p-5 border-b border-custom flex justify-between items-center bg-slate-50/90 shrink-0">
+        <div class="flex items-center gap-3 min-w-0">
+          <div class="w-12 h-12 rounded-xl bg-white border border-custom p-1 flex items-center justify-center shrink-0 shadow-sm">
+            <img id="detailMatImg" src="" class="max-w-full max-h-full object-contain cursor-pointer" onerror="onImgError(this)" onclick="openImageModal(this.src)">
+          </div>
+          <div class="min-w-0">
+            <div class="flex items-center gap-2">
+              <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-primary-50 text-primary-700 border border-primary-200 uppercase tracking-wider"><i class="fas fa-info-circle mr-1"></i> รายละเอียดวัสดุ</span>
+              <span id="detailMatStockId" class="text-xs font-mono font-bold text-gray-500">#00000</span>
+            </div>
+            <h3 id="detailMatName" class="text-base sm:text-lg font-bold text-gray-800 truncate" title="ชื่อวัสดุ">ชื่อวัสดุ</h3>
+          </div>
+        </div>
+        <button type="button" onclick="closeModal('materialDetailModal')" class="w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition shrink-0 ml-2">
+          <i class="fas fa-times text-lg"></i>
+        </button>
+      </div>
+
+      <!-- Modal Body (Scrollable) -->
+      <div class="p-4 sm:p-6 overflow-y-auto space-y-4 text-sm">
+        <!-- Status & Stock Banner -->
+        <div class="p-4 rounded-2xl border border-custom flex flex-wrap items-center justify-between gap-4" style="background: var(--input-bg);">
+          <div>
+            <span class="text-xs font-bold text-gray-500 block">สถานะปัจจุบัน</span>
+            <div id="detailMatStatusBadge" class="mt-1"></div>
+          </div>
+          <div class="text-right">
+            <span class="text-xs font-bold text-gray-500 block">คงเหลือในคลัง</span>
+            <div class="flex items-baseline gap-1 justify-end">
+              <span id="detailMatQty" class="text-3xl font-black text-gray-800">0</span>
+              <span id="detailMatUnits" class="text-sm font-bold text-gray-500">ชิ้น</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Info Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div class="p-3.5 rounded-xl border border-custom bg-white shadow-2xs">
+            <span class="text-xs font-bold text-gray-400 flex items-center gap-1.5"><i class="fas fa-tag text-primary-500"></i> ยี่ห้อ (Brand)</span>
+            <p id="detailMatBrand" class="font-bold text-gray-800 mt-1 text-base">-</p>
+          </div>
+          <div class="p-3.5 rounded-xl border border-custom bg-white shadow-2xs">
+            <span class="text-xs font-bold text-gray-400 flex items-center gap-1.5"><i class="fas fa-map-marker-alt text-rose-500"></i> พิกัดชั้นวาง / ที่เก็บ</span>
+            <p id="detailMatLocation" class="font-bold text-gray-800 mt-1 text-base">-</p>
+          </div>
+          <div class="p-3.5 rounded-xl border border-custom bg-white shadow-2xs">
+            <span class="text-xs font-bold text-gray-400 flex items-center gap-1.5"><i class="fas fa-layer-group text-indigo-500"></i> ประเภท (Type)</span>
+            <div id="detailMatTypes" class="flex flex-wrap gap-1 mt-1"></div>
+          </div>
+          <div class="p-3.5 rounded-xl border border-custom bg-white shadow-2xs">
+            <span class="text-xs font-bold text-gray-400 flex items-center gap-1.5"><i class="fas fa-folder text-amber-500"></i> หมวดหมู่ (Category)</span>
+            <p id="detailMatCategory" class="font-bold text-gray-800 mt-1 text-base">-</p>
+          </div>
+          <div class="p-3.5 rounded-xl border border-custom bg-white shadow-2xs">
+            <span class="text-xs font-bold text-gray-400 flex items-center gap-1.5"><i class="fas fa-coins text-emerald-500"></i> ราคาประมาณการต่อหน่วย</span>
+            <p id="detailMatPrice" class="font-bold text-gray-800 mt-1 text-base">-</p>
+          </div>
+          <div class="p-3.5 rounded-xl border border-custom bg-white shadow-2xs">
+            <span class="text-xs font-bold text-gray-400 flex items-center gap-1.5"><i class="fas fa-calculator text-blue-500"></i> มูลค่าสต๊อกรวม</span>
+            <p id="detailMatTotalValue" class="font-bold text-gray-800 mt-1 text-base">-</p>
+          </div>
+        </div>
+
+        <!-- Remarks Box -->
+        <div class="p-4 rounded-xl border border-amber-200/60 bg-amber-50/40">
+          <span class="text-xs font-bold text-amber-800 flex items-center gap-1.5 mb-1.5">
+            <i class="fas fa-sticky-note text-amber-500"></i> หมายเหตุ (Remark)
+          </span>
+          <p id="detailMatRemark" class="text-gray-700 whitespace-pre-line leading-relaxed font-medium">-</p>
+        </div>
+
+        <!-- Timestamps & Activity Summary -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-gray-600">
+          <div class="p-3 rounded-xl border border-custom bg-slate-50/60">
+            <span class="font-bold text-gray-500 block mb-1"><i class="fas fa-arrow-down text-emerald-500 mr-1"></i> นำเข้าล่าสุด</span>
+            <span id="detailMatLastImport" class="block font-medium text-gray-700">-</span>
+          </div>
+          <div class="p-3 rounded-xl border border-custom bg-slate-50/60">
+            <span class="font-bold text-gray-500 block mb-1"><i class="fas fa-arrow-up text-rose-500 mr-1"></i> เบิกออกล่าสุด</span>
+            <span id="detailMatLastWithdraw" class="block font-medium text-gray-700">-</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="p-3 sm:p-4 border-t border-custom bg-slate-50/90 flex flex-wrap items-center justify-between gap-2 shrink-0">
+        <div class="flex items-center gap-2">
+          <button type="button" id="btnDetailOpenTimeline" class="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-sm transition flex items-center gap-1.5 transform active:scale-95">
+            <i class="fas fa-history"></i> ดูไทม์ไลน์ประวัติ
+          </button>
+          <button type="button" id="btnDetailEditMat" class="px-3.5 py-2 bg-gray-100 hover:bg-gray-200 border border-custom text-gray-700 rounded-xl text-xs font-bold shadow-xs transition flex items-center gap-1.5 transform active:scale-95 hidden">
+            <i class="fas fa-edit"></i> แก้ไขข้อมูล
+          </button>
+        </div>
+        <button type="button" onclick="closeModal('materialDetailModal')" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 font-bold text-gray-700 rounded-xl text-xs transition">
+          ปิดหน้าต่าง
+        </button>
       </div>
     </div>
   </div>
@@ -2860,6 +2978,7 @@
                     if (canManage) {
                         rowAction = `
                         <div class="flex items-center justify-end gap-1.5">
+                            <button onclick="openMaterialDetailModal('${m.material_id}')" class="px-2.5 py-1.5 text-xs font-bold rounded-lg border border-custom text-gray-700 hover:text-primary-600 transition shadow-sm flex items-center gap-1" style="background: var(--input-bg);" title="แสดงข้อมูลวัสดุทั้งหมด"><i class="fas fa-info-circle text-primary-500"></i> แสดงข้อมูล</button>
                             <button onclick="openMaterialTimeline('${m.material_id}')" class="px-2.5 py-1.5 text-xs font-bold rounded-lg border border-indigo-200 text-indigo-700 bg-indigo-50/50 hover:bg-indigo-100 transition shadow-sm flex items-center gap-1" title="ดูประวัติไทม์ไลน์ นำเข้า-เบิก"><i class="fas fa-history text-indigo-500"></i> ไทม์ไลน์</button>
                             <button onclick="openMaterialModalById('${m.material_id}')" class="px-3 py-1.5 text-xs font-bold rounded-lg border border-custom hover:text-primary-500 transition shadow-sm" style="background: var(--input-bg);">แก้ไข</button>
                             <button onclick="deleteMaterial('${m.material_id}')" class="px-2.5 py-1.5 text-xs font-bold rounded-lg border border-custom text-red-500 hover:bg-red-50 transition shadow-sm" style="background: var(--input-bg);">ลบ</button>
@@ -2867,8 +2986,8 @@
                     } else {
                         rowAction = `
                         <div class="flex items-center justify-end gap-1.5">
+                            <button onclick="openMaterialDetailModal('${m.material_id}')" class="px-2.5 py-1.5 text-xs font-bold rounded-lg border border-custom text-gray-700 hover:text-primary-600 transition shadow-sm flex items-center gap-1" style="background: var(--input-bg);" title="แสดงข้อมูลวัสดุทั้งหมด"><i class="fas fa-info-circle text-primary-500"></i> แสดงข้อมูล</button>
                             <button onclick="openMaterialTimeline('${m.material_id}')" class="px-2.5 py-1.5 text-xs font-bold rounded-lg border border-indigo-200 text-indigo-700 bg-indigo-50/50 hover:bg-indigo-100 transition shadow-sm flex items-center gap-1" title="ดูประวัติไทม์ไลน์ นำเข้า-เบิก"><i class="fas fa-history text-indigo-500"></i> ไทม์ไลน์</button>
-                            <span class="text-xs text-gray-400">ดูได้อย่างเดียว</span>
                         </div>`;
                     }
                 } else if (mode === 'withdraw') {
@@ -3061,6 +3180,7 @@
                     <div class="flex flex-wrap items-center gap-1.5 mb-2">
                         ${dispTypes.map(t => `<span class="px-2 py-0.5 rounded-md text-[10px] font-bold text-primary-600 border border-primary-500/30" style="background: rgba(59,130,246,0.08);">${t}</span>`).join('')}
                         ${dispCat ? `<span class="px-2 py-0.5 rounded-md text-[10px] font-bold text-emerald-600 border border-emerald-500/30" style="background: rgba(16,185,129,0.08);">${dispCat}</span>` : ''}
+                        ${(m.brand || m.Brand) ? `<span class="px-2 py-0.5 rounded-md text-[10px] font-bold text-indigo-700 border border-indigo-500/30" style="background: rgba(99,102,241,0.08);"><i class="fas fa-tag mr-1 text-[9px]"></i>${m.brand || m.Brand}</span>` : ''}
                     </div>
 
                     <h4 class="font-bold text-base line-clamp-2 mb-1 leading-tight text-gray-800" title="${m.name}">${m.name}</h4>
@@ -3082,8 +3202,11 @@
                         </div>
                     </div>
 
-                    <!-- Action Button -->
+                    <!-- Action Button & Details Button -->
                     <div class="mt-3">
+                        <button type="button" onclick="openMaterialDetailModal('${m.material_id}')" class="w-full mb-2 py-1.5 px-3 text-xs rounded-xl font-bold transition shadow-2xs transform active:scale-95 border border-custom text-gray-700 hover:text-primary-600 hover:bg-slate-50 flex items-center justify-center gap-1.5" style="background: var(--input-bg);" title="ดูรายละเอียดข้อมูลวัสดุทั้งหมด">
+                            <i class="fas fa-info-circle text-primary-500"></i> แสดงข้อมูล
+                        </button>
                         ${actionButtons}
                     </div>
                 </div>
@@ -5270,6 +5393,106 @@
         if (placeholder) placeholder.classList.remove('hidden');
     }
 
+    // --- VIEW: MATERIAL DETAIL MODAL (v29 Comprehensive Specs) ---
+    function openMaterialDetailModal(matId) {
+        const mat = (state.materials || []).find(m => String(m.material_id) === String(matId));
+        if (!mat) return showToast('ไม่พบข้อมูลวัสดุ', 'error');
+
+        const thumbUrl = getThumbUrl(mat.image_url, 300);
+        const imgEl = document.getElementById('detailMatImg');
+        if (imgEl) imgEl.src = thumbUrl;
+
+        document.getElementById('detailMatStockId').innerText = `#${mat.material_id.slice(-5)}`;
+        document.getElementById('detailMatName').innerText = mat.name;
+        document.getElementById('detailMatName').title = mat.name;
+
+        // Brand & Remark
+        const brandVal = mat.brand || mat.Brand || mat['ยี่ห้อ'] || '';
+        document.getElementById('detailMatBrand').innerText = brandVal || 'ไม่ได้ระบุ';
+        const remarkVal = mat.remark || mat.Remark || mat['หมายเหตุ'] || '';
+        document.getElementById('detailMatRemark').innerText = remarkVal || 'ไม่มีหมายเหตุเพิ่มเติม';
+
+        // Location
+        document.getElementById('detailMatLocation').innerText = mat.location || mat.Location || 'ไม่ได้ระบุ';
+
+        // Types
+        const dispTypes = parseTypes(mat.type || mat.Type || mat['ประเภท'] || mat['type'] || '');
+        const typesContainer = document.getElementById('detailMatTypes');
+        if (typesContainer) {
+            typesContainer.innerHTML = dispTypes.length > 0 
+                ? dispTypes.map(t => `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-primary-50 text-primary-700 border border-primary-200">${t}</span>`).join('')
+                : '<span class="text-xs text-gray-400">ไม่ได้ระบุ</span>';
+        }
+
+        // Category
+        document.getElementById('detailMatCategory').innerText = mat.category || mat.Category || mat['หมวดหมู่'] || 'ไม่ได้ระบุ';
+
+        // Stock & Pricing
+        const qtyNum = parseFloat(mat.qty || mat.Qty || mat['จำนวน'] || 0);
+        const units = mat.units || mat.Units || 'ชิ้น';
+        const price = parseFloat(mat.price || mat.Price || mat['ราคา'] || 0);
+        const totalValue = qtyNum * price;
+
+        document.getElementById('detailMatQty').innerText = qtyNum.toLocaleString();
+        document.getElementById('detailMatUnits').innerText = units;
+        document.getElementById('detailMatPrice').innerText = `฿${price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} บาท / ${units}`;
+        document.getElementById('detailMatTotalValue').innerText = `฿${totalValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} บาท`;
+
+        // Status Badge
+        const isOut = qtyNum === 0;
+        const isLow = qtyNum > 0 && qtyNum < 150;
+        const statusBadgeEl = document.getElementById('detailMatStatusBadge');
+        if (statusBadgeEl) {
+            if (isOut) {
+                statusBadgeEl.innerHTML = '<span class="px-3 py-1 rounded-full text-xs font-bold bg-rose-100 text-rose-700 border border-rose-200"><i class="fas fa-times-circle mr-1"></i> สินค้าหมด</span>';
+            } else if (isLow) {
+                statusBadgeEl.innerHTML = '<span class="px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-700 border border-amber-200"><i class="fas fa-exclamation-circle mr-1"></i> สต๊อกใกล้หมด</span>';
+            } else {
+                statusBadgeEl.innerHTML = '<span class="px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700 border border-emerald-200"><i class="fas fa-check-circle mr-1"></i> พร้อมใช้งาน</span>';
+            }
+        }
+
+        // Activity Timestamps
+        const lastImpDate = mat.last_import_date || mat['วันที่นำเข้าล่าสุด'] || mat.last_import;
+        const lastImpUser = mat.last_import_user || mat['ผู้นำเข้าล่าสุด'] || '';
+        document.getElementById('detailMatLastImport').innerText = lastImpDate 
+            ? `${formatDate(lastImpDate)} ${lastImpUser ? `(โดย ${lastImpUser})` : ''}` 
+            : '-';
+
+        const lastWithDate = mat.last_withdraw_date || mat['วันที่เบิกล่าสุด'] || mat.last_withdraw;
+        const lastWithUser = mat.last_withdraw_user || mat['ผู้เบิกล่าสุด'] || '';
+        document.getElementById('detailMatLastWithdraw').innerText = lastWithDate 
+            ? `${formatDate(lastWithDate)} ${lastWithUser ? `(โดย ${lastWithUser})` : ''}` 
+            : '-';
+
+        // Footer action buttons wiring
+        const btnTimeline = document.getElementById('btnDetailOpenTimeline');
+        if (btnTimeline) {
+            btnTimeline.onclick = () => {
+                closeModal('materialDetailModal');
+                openMaterialTimeline(matId);
+            };
+        }
+
+        const perms = (state.user && state.user.permissions) || [];
+        const role = (state.user && state.user.role || '').toLowerCase();
+        const canManage = role === 'admin' || perms.includes('manage_material');
+        const btnEdit = document.getElementById('btnDetailEditMat');
+        if (btnEdit) {
+            if (canManage) {
+                btnEdit.classList.remove('hidden');
+                btnEdit.onclick = () => {
+                    closeModal('materialDetailModal');
+                    openMaterialModalById(matId);
+                };
+            } else {
+                btnEdit.classList.add('hidden');
+            }
+        }
+
+        document.getElementById('materialDetailModal').classList.remove('hidden');
+    }
+
     function openMaterialModalById(id) {
         document.getElementById('materialForm').reset();
         clearModal('mat');
@@ -5284,6 +5507,8 @@
             document.getElementById('matId').value = m.material_id;
             document.getElementById('matName').value = m.name;
             document.getElementById('matLocation').value = m.location || m.Location || m['ที่เก็บ'] || m['ชั้นวาง'] || '';
+            if (document.getElementById('matBrand')) document.getElementById('matBrand').value = m.brand || m.Brand || m['ยี่ห้อ'] || '';
+            if (document.getElementById('matRemark')) document.getElementById('matRemark').value = m.remark || m.Remark || m['หมายเหตุ'] || '';
             document.getElementById('matPrice').value = m.price || m.Price || m['ราคา'] || m[Object.keys(m)[13]] || 0;
             document.getElementById('matUnits').value = m.units || m.Units || '';
             
@@ -5294,6 +5519,8 @@
             updateModalDropdowns(mTypes, mCat);
         } else {
             document.getElementById('matId').value = '';
+            if (document.getElementById('matBrand')) document.getElementById('matBrand').value = '';
+            if (document.getElementById('matRemark')) document.getElementById('matRemark').value = '';
             updateModalDropdowns([], '');
         }
         document.getElementById('materialModal').classList.remove('hidden');
@@ -5394,6 +5621,8 @@
         let payload = { 
             name: document.getElementById('matName').value, 
             location: document.getElementById('matLocation').value,
+            brand: document.getElementById('matBrand') ? document.getElementById('matBrand').value.trim() : '',
+            remark: document.getElementById('matRemark') ? document.getElementById('matRemark').value.trim() : '',
             price: parseFloat(document.getElementById('matPrice').value) || 0,
             units: document.getElementById('matUnits').value.trim(),
             type: currentSelectedTypes, // send as array
