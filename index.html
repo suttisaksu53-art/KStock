@@ -5473,27 +5473,98 @@
             }
         }
 
-        // Activity Timestamps (นำเข้าและเบิกออกล่าสุด - แสดงผลอย่างแม่นยำ 100%)
-        const lastImpDate = mat.last_import_date || mat['วันที่นำเข้าล่าสุด'] || mat.last_import;
-        const lastImpUser = mat.last_import_user || mat['ผู้นำเข้าล่าสุด'] || '';
-        const fmtImp = formatDate(lastImpDate);
-        if (fmtImp && fmtImp !== '-') {
-            document.getElementById('detailMatLastImport').innerText = `${fmtImp}${lastImpUser ? ` (โดย ${lastImpUser})` : ''}`;
-        } else if (lastImpUser) {
-            document.getElementById('detailMatLastImport').innerText = `โดย ${lastImpUser}`;
-        } else {
-            document.getElementById('detailMatLastImport').innerText = '-';
+        // Activity Timestamps: ซิงค์ตรงกับ Timeline ประวัติจริงในฐานข้อมูล 100%
+        function updateModalActivityFromTimeline(targetMatId, targetMat) {
+            let reportsData = state.reports;
+            if ((!reportsData || (!reportsData.withdraw?.length && !reportsData.import?.length)) && cache.reports) {
+                try {
+                    reportsData = typeof cache.reports === 'string' ? JSON.parse(cache.reports) : cache.reports;
+                    state.reports = reportsData;
+                } catch(e) {}
+            }
+
+            const allWithdraws = (reportsData && Array.isArray(reportsData.withdraw)) ? reportsData.withdraw : [];
+            const allImports = (reportsData && Array.isArray(reportsData.import)) ? reportsData.import : [];
+
+            const tId = String(targetMatId || '').trim().toLowerCase();
+            const tName = String(targetMat.name || '').trim().toLowerCase();
+
+            const matchTx = (tx) => {
+                const txId = String(tx.material_id || '').trim().toLowerCase();
+                const txName = String(tx.material_name || '').trim().toLowerCase();
+                if (txId && tId && txId === tId) return true;
+                if (txName && tName && txName === tName) return true;
+                return false;
+            };
+
+            // 1. เบิกออกล่าสุด (ดึงข้อมูลล่าสุดจาก Timeline ประวัติการเบิกออกจริง)
+            const matWithdraws = allWithdraws.filter(matchTx);
+            let lastWithDate = '';
+            let lastWithUser = '';
+
+            if (matWithdraws.length > 0) {
+                // จัดเรียงลำดับเวลาล่าสุดขึ้นก่อน
+                matWithdraws.sort((a, b) => {
+                    const tA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
+                    const tB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
+                    return tB - tA;
+                });
+                lastWithDate = matWithdraws[0].timestamp || '';
+                lastWithUser = matWithdraws[0].user_name || matWithdraws[0].username || '';
+            } else {
+                // Fallback: ใช้ข้อมูลจากตาราง Materials หากยังไม่มีในประวัติ
+                lastWithDate = targetMat.last_withdraw_date || targetMat['วันที่เบิกล่าสุด'] || targetMat['วันที่เบิกออกล่าสุด'] || targetMat.last_withdraw || '';
+                lastWithUser = targetMat.last_withdraw_user || targetMat['ผู้เบิกล่าสุด'] || targetMat['ผู้เบิกออกล่าสุด'] || '';
+            }
+
+            const fmtWith = formatDate(lastWithDate);
+            if (fmtWith && fmtWith !== '-') {
+                document.getElementById('detailMatLastWithdraw').innerText = `${fmtWith}${lastWithUser ? ` (โดย ${lastWithUser})` : ''}`;
+            } else if (lastWithUser) {
+                document.getElementById('detailMatLastWithdraw').innerText = `โดย ${lastWithUser}`;
+            } else {
+                document.getElementById('detailMatLastWithdraw').innerText = '-';
+            }
+
+            // 2. นำเข้าล่าสุด (ดึงข้อมูลล่าสุดจาก Timeline ประวัติการนำเข้าจริง)
+            const matImports = allImports.filter(matchTx);
+            let lastImpDate = '';
+            let lastImpUser = '';
+
+            if (matImports.length > 0) {
+                matImports.sort((a, b) => {
+                    const tA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
+                    const tB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
+                    return tB - tA;
+                });
+                lastImpDate = matImports[0].timestamp || '';
+                lastImpUser = matImports[0].user_name || matImports[0].username || '';
+            } else {
+                lastImpDate = targetMat.last_import_date || targetMat['วันที่นำเข้าล่าสุด'] || targetMat.last_import || '';
+                lastImpUser = targetMat.last_import_user || targetMat['ผู้นำเข้าล่าสุด'] || '';
+            }
+
+            const fmtImp = formatDate(lastImpDate);
+            if (fmtImp && fmtImp !== '-') {
+                document.getElementById('detailMatLastImport').innerText = `${fmtImp}${lastImpUser ? ` (โดย ${lastImpUser})` : ''}`;
+            } else if (lastImpUser) {
+                document.getElementById('detailMatLastImport').innerText = `โดย ${lastImpUser}`;
+            } else {
+                document.getElementById('detailMatLastImport').innerText = '-';
+            }
         }
 
-        const lastWithDate = mat.last_withdraw_date || mat['วันที่เบิกล่าสุด'] || mat['วันที่เบิกออกล่าสุด'] || mat.last_withdraw;
-        const lastWithUser = mat.last_withdraw_user || mat['ผู้เบิกล่าสุด'] || mat['ผู้เบิกออกล่าสุด'] || '';
-        const fmtWith = formatDate(lastWithDate);
-        if (fmtWith && fmtWith !== '-') {
-            document.getElementById('detailMatLastWithdraw').innerText = `${fmtWith}${lastWithUser ? ` (โดย ${lastWithUser})` : ''}`;
-        } else if (lastWithUser) {
-            document.getElementById('detailMatLastWithdraw').innerText = `โดย ${lastWithUser}`;
-        } else {
-            document.getElementById('detailMatLastWithdraw').innerText = '-';
+        // แสดงผลทันที 0ms จากข้อมูลประวัติในหน่วยความจำ
+        updateModalActivityFromTimeline(matId, mat);
+
+        // หากยังไม่มีประวัติในหน่วยความจำ ให้ดึงในพื้นหลังและอัปเดตให้อัตโนมัติ
+        if (!state.reports || (!state.reports.withdraw?.length && !state.reports.import?.length)) {
+            fetchReportsData().then(() => {
+                const modal = document.getElementById('materialDetailModal');
+                if (modal && !modal.classList.contains('hidden')) {
+                    updateModalActivityFromTimeline(matId, mat);
+                }
+            }).catch(() => {});
         }
 
         // Footer action buttons wiring
