@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>ระบบจัดการสต๊อกวัสดุ Test Kit - กลุ่มวิจัยเคมีดิน สำนักวิทยาศาสตร์เพื่อการพัฒนาที่ดิน (v30 Instant Login & Auto Keep-Alive)</title>
+  <title>ระบบจัดการสต๊อกวัสดุ Test Kit - กลุ่มวิจัยเคมีดิน สำนักวิทยาศาสตร์เพื่อการพัฒนาที่ดิน (v31 Brand & Remark Sync Fix)</title>
   
   <!-- ================= LIBRARIES ================= -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -3201,7 +3201,10 @@
                     <div class="flex flex-wrap items-center gap-1.5 mb-2">
                         ${dispTypes.map(t => `<span class="px-2 py-0.5 rounded-md text-[10px] font-bold text-primary-600 border border-primary-500/30" style="background: rgba(59,130,246,0.08);">${t}</span>`).join('')}
                         ${dispCat ? `<span class="px-2 py-0.5 rounded-md text-[10px] font-bold text-emerald-600 border border-emerald-500/30" style="background: rgba(16,185,129,0.08);">${dispCat}</span>` : ''}
-                        ${(m.brand || m.Brand) ? `<span class="px-2 py-0.5 rounded-md text-[10px] font-bold text-indigo-700 border border-indigo-500/30" style="background: rgba(99,102,241,0.08);"><i class="fas fa-tag mr-1 text-[9px]"></i>${m.brand || m.Brand}</span>` : ''}
+                        ${(() => {
+                            const b = typeof extractMaterialField === 'function' ? extractMaterialField(m, ['brand', 'Brand', 'ยี่ห้อ', 'แบรนด์'], 15) : (m.brand || m.Brand || '');
+                            return b ? `<span class="px-2 py-0.5 rounded-md text-[10px] font-bold text-indigo-700 border border-indigo-500/30" style="background: rgba(99,102,241,0.08);"><i class="fas fa-tag mr-1 text-[9px]"></i>${b}</span>` : '';
+                        })()}
                     </div>
 
                     <h4 class="font-bold text-base line-clamp-2 mb-1 leading-tight text-gray-800" title="${m.name}">${m.name}</h4>
@@ -5414,7 +5417,34 @@
         if (placeholder) placeholder.classList.remove('hidden');
     }
 
-    // --- VIEW: MATERIAL DETAIL MODAL (v29 Comprehensive Specs) ---
+    // Robust field extractor supporting case-insensitivity, trimmed keys, and positional fallbacks
+    function extractMaterialField(obj, candidates, fallbackIndex) {
+        if (!obj) return '';
+        // 1. Direct candidate match
+        for (const c of candidates) {
+            if (obj[c] !== undefined && obj[c] !== null && String(obj[c]).trim() !== '') {
+                return String(obj[c]).trim();
+            }
+        }
+        // 2. Case-insensitive and trimmed key search
+        const keys = Object.keys(obj);
+        for (const c of candidates) {
+            const matchedKey = keys.find(k => k.trim().toLowerCase() === c.toLowerCase());
+            if (matchedKey && obj[matchedKey] !== undefined && obj[matchedKey] !== null && String(obj[matchedKey]).trim() !== '') {
+                return String(obj[matchedKey]).trim();
+            }
+        }
+        // 3. Fallback to positional index (e.g. index 15 for Col P, 16 for Col Q)
+        if (typeof fallbackIndex === 'number' && keys[fallbackIndex] !== undefined) {
+            const val = obj[keys[fallbackIndex]];
+            if (val !== undefined && val !== null && String(val).trim() !== '') {
+                return String(val).trim();
+            }
+        }
+        return '';
+    }
+
+    // --- VIEW: MATERIAL DETAIL MODAL (v31 Comprehensive Specs with Robust Extraction) ---
     function openMaterialDetailModal(matId) {
         const mat = (state.materials || []).find(m => String(m.material_id) === String(matId));
         if (!mat) return showToast('ไม่พบข้อมูลวัสดุ', 'error');
@@ -5427,10 +5457,10 @@
         document.getElementById('detailMatName').innerText = mat.name;
         document.getElementById('detailMatName').title = mat.name;
 
-        // Brand & Remark
-        const brandVal = mat.brand || mat.Brand || mat['ยี่ห้อ'] || '';
+        // Brand & Remark (ดึงข้อมูลแบบครอบคลุมทุกคีย์ และตำแหน่งคอลัมน์ 15/16)
+        const brandVal = extractMaterialField(mat, ['brand', 'Brand', 'BRAND', 'ยี่ห้อ', 'แบรนด์', 'brand_name'], 15);
         document.getElementById('detailMatBrand').innerText = brandVal || 'ไม่ได้ระบุ';
-        const remarkVal = mat.remark || mat.Remark || mat['หมายเหตุ'] || '';
+        const remarkVal = extractMaterialField(mat, ['remark', 'Remark', 'REMARK', 'หมายเหตุ', 'หมายเหตุเพิ่มเติม', 'note', 'notes'], 16);
         document.getElementById('detailMatRemark').innerText = remarkVal || 'ไม่มีหมายเหตุเพิ่มเติม';
 
         // Location
@@ -5528,8 +5558,10 @@
             document.getElementById('matId').value = m.material_id;
             document.getElementById('matName').value = m.name;
             document.getElementById('matLocation').value = m.location || m.Location || m['ที่เก็บ'] || m['ชั้นวาง'] || '';
-            if (document.getElementById('matBrand')) document.getElementById('matBrand').value = m.brand || m.Brand || m['ยี่ห้อ'] || '';
-            if (document.getElementById('matRemark')) document.getElementById('matRemark').value = m.remark || m.Remark || m['หมายเหตุ'] || '';
+            const editBrand = extractMaterialField(m, ['brand', 'Brand', 'ยี่ห้อ', 'แบรนด์'], 15);
+            const editRemark = extractMaterialField(m, ['remark', 'Remark', 'หมายเหตุ'], 16);
+            if (document.getElementById('matBrand')) document.getElementById('matBrand').value = editBrand;
+            if (document.getElementById('matRemark')) document.getElementById('matRemark').value = editRemark;
             document.getElementById('matPrice').value = m.price || m.Price || m['ราคา'] || m[Object.keys(m)[13]] || 0;
             document.getElementById('matUnits').value = m.units || m.Units || '';
             
@@ -5658,7 +5690,31 @@
         try {
             await api(id ? 'updateMaterial' : 'addMaterial', { ...payload, material_id: id });
             closeModal('materialModal');
+            // Optimistic update in-memory to ensure new brand and remark show immediately
+            if (id) {
+                const targetMat = (state.materials || []).find(x => String(x.material_id) === String(id));
+                if (targetMat) {
+                    targetMat.brand = payload.brand;
+                    targetMat.Brand = payload.brand;
+                    targetMat['ยี่ห้อ'] = payload.brand;
+                    targetMat.remark = payload.remark;
+                    targetMat.Remark = payload.remark;
+                    targetMat['หมายเหตุ'] = payload.remark;
+                    targetMat.location = payload.location;
+                    targetMat.price = payload.price;
+                    targetMat.units = payload.units;
+                    targetMat.category = payload.category;
+                    targetMat.type = payload.type;
+                }
+            }
             cache.materials = null; // Clear cache to force refresh
+            fetchMaterialsData().then(data => {
+                if (Array.isArray(data) && data.length > 0) {
+                    state.materials = data;
+                    cache.materials = JSON.stringify(data);
+                    if (document.getElementById('inventoryContainer')) renderMaterialList(currentTransMode || 'view');
+                }
+            }).catch(() => {});
             renderInventory(document.getElementById('contentArea'), 'view', currentViewID);
             showToast('บันทึกข้อมูลวัสดุสำเร็จ', 'success');
         } catch(e) {}
