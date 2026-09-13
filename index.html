@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>ระบบจัดการสต๊อกวัสดุ Test Kit - กลุ่มวิจัยเคมีดิน สำนักวิทยาศาสตร์เพื่อการพัฒนาที่ดิน (v37 Resilient BOM Sync & Formula Protection)</title>
+  <title>ระบบจัดการสต๊อกวัสดุ Test Kit - กลุ่มวิจัยเคมีดิน สำนักวิทยาศาสตร์เพื่อการพัฒนาที่ดิน (v38 Zero-Queue Instant Login & Unified Hydration)</title>
   
   <!-- ================= LIBRARIES ================= -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -1854,8 +1854,10 @@
         loadLocalTheme(); 
         updateClock(); 
         
-        // ตรวจสอบธีมกลางทันทีเมื่อเปิดเว็บ ไม่ว่าจะมี Session หรือไม่ เพื่อให้ธีมตรงกันตั้งแต่หน้าแรก
-        syncGlobalTheme(true);
+        // โหลดธีมท้องถิ่นทันทีใน 0 ms และตรวจสอบธีมกลางเฉพาะเมื่อมี Session แล้ว เพื่อไม่แย่งคิวในหน้า Login
+        if (sessionStorage.getItem('user_session')) {
+            syncGlobalTheme(false);
+        }
 
         // --- PRE-WARMING BACKEND CONTAINER ---
         const savedUserStr = sessionStorage.getItem('user_session');
@@ -1925,6 +1927,12 @@
 
     document.getElementById('loginForm').onsubmit = async (e) => {
         e.preventDefault();
+        const submitBtn = e.target.querySelector('button[type="submit"]');
+        const originalBtnHtml = submitBtn ? submitBtn.innerHTML : '';
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i> กำลังเข้าสู่ระบบ...`;
+        }
         try {
             const user = await api('login', {
                 username: document.getElementById('loginUser').value.trim(),
@@ -1944,13 +1952,13 @@
                 localStorage.setItem('kstore_theme_sync_time', Date.now().toString());
             }
 
-            // Instant data hydration if server returned bundled initialData
+            // Instant data hydration: โหลดข้อมูลที่แพ็ครวมมากับผลลัพธ์ Login ทันที (ไม่ต้องยิงขอซ้ำ)
             if (user && user.initialData) {
-                if (user.initialData.materials) {
+                if (Array.isArray(user.initialData.materials) && user.initialData.materials.length > 0) {
                     state.materials = user.initialData.materials;
                     cache.materials = JSON.stringify(user.initialData.materials);
                 }
-                if (user.initialData.bom) {
+                if (Array.isArray(user.initialData.bom) && user.initialData.bom.length > 0) {
                     state.bom = user.initialData.bom;
                     cache.bom = JSON.stringify(user.initialData.bom);
                 }
@@ -1961,7 +1969,12 @@
             showToast(`ยินดีต้อนรับเข้าสู่ระบบ, ${user.fullname.split(' ')[0]}`, 'success');
             // Defer background theme check by 3 seconds so initial dashboard loading has full unshared network bandwidth
             setTimeout(syncGlobalTheme, 3000);
-        } catch (e) {}
+        } catch (e) {
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalBtnHtml;
+            }
+        }
     };
 
     document.getElementById('registerForm').onsubmit = async (e) => {
