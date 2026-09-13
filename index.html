@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>ระบบจัดการสต๊อกวัสดุ Test Kit - กลุ่มวิจัยเคมีดิน สำนักวิทยาศาสตร์เพื่อการพัฒนาที่ดิน (v35 Filter Lock & Position Persistence)</title>
+  <title>ระบบจัดการสต๊อกวัสดุ Test Kit - กลุ่มวิจัยเคมีดิน สำนักวิทยาศาสตร์เพื่อการพัฒนาที่ดิน (v37 Resilient BOM Sync & Formula Protection)</title>
   
   <!-- ================= LIBRARIES ================= -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -11,6 +11,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <!-- Deferred PDF export libraries: do not block mobile UI initial rendering -->
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
@@ -392,8 +393,8 @@
            <a onclick="openThemeModal()" class="nav-item" data-page="theme">
              <i class="fas fa-palette w-8 text-center text-lg text-primary-500"></i> <span class="text-primary-600 font-bold">ตั้งค่ารูปแบบธีมระบบ</span>
            </a>
-           <a onclick="confirmClearSystemCache()" class="nav-item cursor-pointer text-rose-600 hover:text-rose-700 hover:bg-rose-50/60 transition" data-page="clearCache" title="ล้างแคชระบบและซิงค์ข้อมูลใหม่จาก Google Sheets ทันที">
-             <i class="fas fa-broom w-8 text-center text-lg text-rose-500"></i> <span class="font-bold">ล้างแคชระบบ (Sync ชีต)</span>
+           <a onclick="confirmClearSystemCache()" class="nav-item cursor-pointer text-rose-600 hover:text-rose-700 hover:bg-rose-50/60 transition" data-page="clearCache">
+             <i class="fas fa-broom w-8 text-center text-lg text-rose-500"></i> <span class="font-bold">ล้างแคชระบบ</span>
            </a>
         </div>
       </nav>
@@ -1704,13 +1705,22 @@
     let bomPromise = null;
     async function fetchBOMData() {
         if (cache.bom && cache.bom !== 'null') {
-            try { return typeof cache.bom === 'string' ? JSON.parse(cache.bom) : cache.bom; } catch(e) {}
+            try {
+                const parsed = typeof cache.bom === 'string' ? JSON.parse(cache.bom) : cache.bom;
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                    state.bom = parsed;
+                    return parsed;
+                }
+            } catch(e) {}
         }
         if (bomPromise) return bomPromise;
         bomPromise = api('getBOM').then(data => {
-            if (data) cache.bom = JSON.stringify(data);
-            return data;
-        }).catch(() => []).finally(() => { bomPromise = null; });
+            if (Array.isArray(data) && data.length > 0) {
+                state.bom = data;
+                cache.bom = JSON.stringify(data);
+            }
+            return state.bom || [];
+        }).catch(() => state.bom || []).finally(() => { bomPromise = null; });
         return bomPromise;
     }
 
@@ -2011,6 +2021,7 @@
 
     async function route(page) {
         if(page === 'theme') return; 
+        state.currentPage = page;
         
         // Prevent Race Condition: Generate a unique ID for this specific route instance
         currentViewID = Date.now().toString();
@@ -6086,44 +6097,18 @@
         return dt.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' }) + ' เวลา ' + dt.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.';
     }
 
-    // --- ADMIN: CLEAR SYSTEM CACHE & LIVE GOOGLE SHEETS SYNC (v33) ---
+    // --- ADMIN: CLEAR SYSTEM CACHE & LIVE GOOGLE SHEETS SYNC (v37: Formula Protection & Direct Sheet Sync) ---
     async function confirmClearSystemCache() {
         if ((state.user?.role || '').toLowerCase() !== 'admin') {
             return showToast('เฉพาะผู้ดูแลระบบ (Admin) เท่านั้นที่สามารถล้างแคชได้', 'error');
         }
 
-        const result = await Swal.fire({
-            title: 'ยืนยันล้างแคชระบบ?',
-            html: `<div class="text-left text-xs text-gray-600 space-y-2">
-                <p>ระบบจะทำการ:</p>
-                <ul class="list-disc pl-5 space-y-1">
-                    <li><b>ล้างแคชบนเซิร์ฟเวอร์</b> (Apps Script CacheService) ทั้งหมด</li>
-                    <li><b>ล้างแคชในเครื่องเบราว์เซอร์</b> (localStorage)</li>
-                    <li><b>ดึงข้อมูลสดใหม่ทั้งหมด</b> จาก Google Sheets เข้าสู่ระบบทันที</li>
-                </ul>
-                <p class="text-amber-600 font-bold mt-2"><i class="fas fa-info-circle"></i> เหมาะสำหรับใช้เมื่อคุณเข้าไปแก้ไขหรือลบข้อมูลใน Google Sheets โดยตรง</p>
-            </div>`,
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#e11d48',
-            cancelButtonColor: '#64748b',
-            confirmButtonText: '<i class="fas fa-broom mr-1"></i> ล้างแคชและซิงค์ทันที',
-            cancelButtonText: 'ยกเลิก',
-            customClass: {
-                popup: 'rounded-2xl shadow-2xl border border-custom'
-            }
-        });
+        if (!confirm('ยืนยันล้างแคชระบบ?')) return;
 
-        if (!result.isConfirmed) return;
+        showToast('กำลังล้างแคชและซิงค์ข้อมูลจากชีต...', 'success');
 
-        Swal.fire({
-            title: 'กำลังล้างแคชและซิงค์ฐานข้อมูล...',
-            html: '<p class="text-xs text-gray-500">กรุณารอสักครู่ ระบบกำลังดึงข้อมูลล่าสุดจาก Google Sheets</p>',
-            allowOutsideClick: false,
-            didOpen: () => {
-                Swal.showLoading();
-            }
-        });
+        // สำรองสูตร BOM ที่มีอยู่ในหน่วยความจำไว้ล่วงหน้า ป้องกันกรณีชีต BOM ใน Google Sheets ยังว่างอยู่
+        const previousBomBackup = (Array.isArray(state.bom) && state.bom.length > 0) ? [...state.bom] : null;
 
         try {
             // 1. สั่ง Backend Apps Script ล้าง CacheService ทั้งหมด และอุ่น users_auth ล่วงหน้า
@@ -6145,46 +6130,45 @@
             cache.logs = null;
             cache.reports = null;
 
-            // 3. ดึงข้อมูลสดใหม่ทั้งหมดเข้าสู่เครื่องพร้อมกันใน Parallel
-            const [freshDashboard, freshReports, freshUsers] = await Promise.all([
-                fetchDashboardData(),
+            // 3. ดึงข้อมูลสดใหม่ทั้งหมดจาก Google Sheets โดยตรงแบบ Parallel
+            const [matData, bomData, freshReports, freshUsers] = await Promise.all([
+                api('getMaterials'),
+                api('getBOM'),
                 fetchReportsData(true),
                 fetchUsersData(true)
             ]);
 
-            if (freshDashboard && freshDashboard.materials) {
-                state.materials = freshDashboard.materials;
-                state.bom = freshDashboard.bom || [];
+            state.materials = matData || [];
+            
+            // ซิงค์สูตรการผลิต (BOM Sync & Protection)
+            if (Array.isArray(bomData) && bomData.length > 0) {
+                state.bom = bomData;
+                cache.bom = JSON.stringify(bomData);
+            } else if (previousBomBackup && previousBomBackup.length > 0) {
+                // หาก Google Sheets ชีต BOM ยังไม่มีข้อมูล ให้ใช้สูตรสำรองเดิม ไม่ให้สูตรหายเด็ดขาด
+                state.bom = previousBomBackup;
+                cache.bom = JSON.stringify(previousBomBackup);
+                console.warn("[Kstore] Google Sheets BOM returned 0 items, preserved local BOM formula backup.");
+            } else {
+                state.bom = [];
+                cache.bom = JSON.stringify([]);
             }
+
+            cache.materials = JSON.stringify(state.materials);
             if (freshReports) state.reports = freshReports;
 
-            // 4. รีเรนเดอร์หน้าปัจจุบันทันที
-            if (state.currentPage === 'inventory') {
-                renderMaterialList('view');
-            } else if (state.currentPage === 'dashboard') {
-                renderDashboard(document.getElementById('contentArea'), currentViewID);
-            } else if (state.currentPage === 'users') {
-                renderUsers(document.getElementById('contentArea'), currentViewID, true);
-            } else if (state.currentPage === 'reports') {
-                renderReports(document.getElementById('contentArea'), currentViewID);
-            }
+            // 4. รีเรนเดอร์หน้าจอตามมุมมองปัจจุบันทันที (Dashboard จะคำนวณกำลังผลิตใหม่ทันที)
+            updateFilterDropdowns();
+            const activeView = sessionStorage.getItem('last_view') || state.currentPage || 'inventory';
+            await route(activeView);
 
-            Swal.fire({
-                icon: 'success',
-                title: 'ล้างแคชและซิงค์ข้อมูลสำเร็จ!',
-                text: 'ระบบได้ดึงข้อมูลสดใหม่ล่าสุดจาก Google Sheets เรียบร้อยแล้ว',
-                timer: 2000,
-                showConfirmButton: false,
-                customClass: { popup: 'rounded-2xl' }
-            });
-
+            showToast('ล้างแคชระบบและซิงค์ข้อมูลสำเร็จ', 'success');
         } catch (err) {
-            Swal.fire({
-                icon: 'error',
-                title: 'เกิดข้อผิดพลาดในการล้างแคช',
-                text: err.message,
-                customClass: { popup: 'rounded-2xl' }
-            });
+            if (previousBomBackup) {
+                state.bom = previousBomBackup;
+                cache.bom = JSON.stringify(previousBomBackup);
+            }
+            showToast('เกิดข้อผิดพลาดในการล้างแคช: ' + (err.message || err), 'error');
         }
     }
 
