@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>ระบบจัดการสต๊อกวัสดุ Test Kit - กลุ่มวิจัยเคมีดิน สำนักวิทยาศาสตร์เพื่อการพัฒนาที่ดิน (v27 Real-time Multi-User Theme Sync & Zero-Lag UX)</title>
+  <title>ระบบจัดการสต๊อกวัสดุ Test Kit - กลุ่มวิจัยเคมีดิน สำนักวิทยาศาสตร์เพื่อการพัฒนาที่ดิน (v28 SWR Always-Fresh Reports & Real-time Timeline)</title>
   
   <!-- ================= LIBRARIES ================= -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -566,9 +566,14 @@
             <h3 id="timelineMatName" class="text-base sm:text-lg font-bold text-gray-800 truncate" title="ชื่อวัสดุ">ชื่อวัสดุ</h3>
           </div>
         </div>
-        <button type="button" onclick="closeModal('materialTimelineModal')" class="w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition shrink-0 ml-2">
-          <i class="fas fa-times text-lg"></i>
-        </button>
+        <div class="flex items-center gap-1.5 shrink-0 ml-2">
+          <button type="button" onclick="manualRefreshTimeline()" id="btnRefreshTimeline" class="w-8 h-8 rounded-full flex items-center justify-center text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 border border-indigo-200 transition shadow-xs" title="คลิกเพื่อดึงข้อมูลประวัติล่าสุดจากฐานข้อมูล Google Sheets">
+            <i class="fas fa-sync-alt text-xs transition-transform" id="iconRefreshTimeline"></i>
+          </button>
+          <button type="button" onclick="closeModal('materialTimelineModal')" class="w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition">
+            <i class="fas fa-times text-lg"></i>
+          </button>
+        </div>
       </div>
 
       <!-- Quick Stats & Filter Toolbar -->
@@ -1543,7 +1548,9 @@
 
     // SHARED REPORTS FETCHER: ป้องกันการส่งคำขอ getReports ซ้ำซ้อน และใช้แคชเพื่อเรนเดอร์ใน 0.01 วินาที
     let reportsPromise = null;
+    let lastReportsSyncTime = 0;
     async function fetchReportsData(forceRefresh = false) {
+        // หากไม่ forceRefresh และมีข้อมูลในแคช ให้ใช้แคชก่อนทันทีเพื่อความเร็ว 0.01 วินาที
         if (!forceRefresh && cache.reports && cache.reports !== 'null') {
             try {
                 const cached = typeof cache.reports === 'string' ? JSON.parse(cache.reports) : cache.reports;
@@ -1553,11 +1560,16 @@
                 }
             } catch(e) {}
         }
+
+        // ป้องกันการส่งคำขอซ้ำซ้อนพร้อมกัน
         if (reportsPromise) return reportsPromise;
-        reportsPromise = api('getReports').then(data => {
+
+        reportsPromise = api('getReports', { force: forceRefresh }).then(data => {
             if (data && (data.withdraw || data.import)) {
                 state.reports = data;
                 cache.reports = JSON.stringify(data);
+                lastReportsSyncTime = Date.now();
+                localStorage.setItem('kstore_reports_last_sync', lastReportsSyncTime.toString());
             }
             return state.reports;
         }).catch(err => {
@@ -1664,10 +1676,10 @@
                     route(lastView);
                     syncGlobalTheme(false); // Silent background check after session is validated
                     
-                    // v17 Background Warmup for Reports (so Timeline is ready immediately on first click)
+                    // v17 Background Warmup for Reports (so Timeline is ready immediately on first click with fresh DB records)
                     setTimeout(async () => {
                         try {
-                            await fetchReportsData(false);
+                            await fetchReportsData(true);
                         } catch(e) {}
                     }, 800);
                 } else {
@@ -3947,11 +3959,17 @@
             
             showToast(`สั่งผลิตสำเร็จ! Ref: ${res.ref_doc}`, 'success');
             
-            // force fetch new data to reflect stock reduction
+            // force fetch new data to reflect stock reduction and production logs
             cache.materials = null;
-            const matData = await fetchMaterialsData();
+            cache.reports = null;
+            const [matData, repData] = await Promise.all([
+                fetchMaterialsData(),
+                fetchReportsData(true)
+            ]);
             state.materials = matData;
             cache.materials = JSON.stringify(matData);
+            state.reports = repData;
+            cache.reports = JSON.stringify(repData);
             
             // Re-render
             calculatePurchase(true);
@@ -4522,15 +4540,23 @@
             renderInventory(document.getElementById('contentArea'), currentTransMode, currentViewID);
             showToast(`ทำรายการเสร็จสมบูรณ์ทั้งหมด ${count} รายการ`, 'success');
 
-            // ซิงค์ข้อมูลเบื้องหลังแบบเงียบๆ ไม่บล็อกหน้าจอ
-            setTimeout(() => {
-                fetchMaterialsData().then(freshData => {
-                    if (freshData && freshData.length) {
-                        state.materials = freshData;
-                        cache.materials = JSON.stringify(freshData);
+            // ซิงค์ข้อมูลสต๊อกและประวัติเบื้องหลังแบบเงียบๆ ไม่บล็อกหน้าจอ
+            setTimeout(async () => {
+                try {
+                    const [freshMats, freshReports] = await Promise.all([
+                        fetchMaterialsData(),
+                        fetchReportsData(true)
+                    ]);
+                    if (freshMats && freshMats.length) {
+                        state.materials = freshMats;
+                        cache.materials = JSON.stringify(freshMats);
                     }
-                }).catch(() => {});
-            }, 2500);
+                    if (freshReports && (freshReports.withdraw || freshReports.import)) {
+                        state.reports = freshReports;
+                        cache.reports = JSON.stringify(freshReports);
+                    }
+                } catch(e) {}
+            }, 800);
 
         } catch (err) {
             // ถ้า Backend ยังไม่ได้ Deploy code4.gs (ไม่พบ batchTransaction) ให้ fallback ทำงานแบบทีละรายการโดยปิด Auto-retry
@@ -4622,6 +4648,24 @@
         } else {
             showToast(`ทำรายการเสร็จสมบูรณ์ทั้งหมด ${successCount} รายการ`, 'success');
         }
+
+        // ซิงค์ข้อมูลสต๊อกและประวัติเบื้องหลัง
+        setTimeout(async () => {
+            try {
+                const [freshMats, freshReports] = await Promise.all([
+                    fetchMaterialsData(),
+                    fetchReportsData(true)
+                ]);
+                if (freshMats && freshMats.length) {
+                    state.materials = freshMats;
+                    cache.materials = JSON.stringify(freshMats);
+                }
+                if (freshReports && (freshReports.withdraw || freshReports.import)) {
+                    state.reports = freshReports;
+                    cache.reports = JSON.stringify(freshReports);
+                }
+            } catch(e) {}
+        }, 800);
     }
 
     function exportCartPDF() {
@@ -4782,6 +4826,11 @@
                         <input type="date" id="filterEndDate" class="text-sm font-medium border-none bg-transparent outline-none focus:ring-0 pr-2" onchange="filterReports()">
                     </div>
                     <div class="h-8 w-px bg-gray-300 mx-1 hidden sm:block"></div>
+                    <button id="btnRefreshReports" onclick="manualRefreshReports()" class="px-3.5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-md transition flex items-center gap-2 transform active:scale-95 cursor-pointer" title="คลิกเพื่อดึงข้อมูลประวัติล่าสุดจากฐานข้อมูล Google Sheets">
+                        <i class="fas fa-sync-alt text-sm transition-transform" id="iconRefreshReports"></i>
+                        <span id="labelRefreshReports">รีเฟรชข้อมูล</span>
+                    </button>
+                    <div class="h-8 w-px bg-gray-300 mx-1 hidden sm:block"></div>
                     <button onclick="exportCSV()" class="px-4 py-2.5 bg-gray-800 text-white rounded-xl text-xs font-bold shadow-md transition flex items-center gap-2 transform active:scale-95"><i class="fas fa-file-csv text-white text-base"></i> CSV</button>
                     <button onclick="exportPDF()" class="px-4 py-2.5 bg-red-600 text-white rounded-xl text-xs font-bold shadow-md transition flex items-center gap-2 transform active:scale-95"><i class="fas fa-file-pdf text-white text-base"></i> PDF</button>
                 </div>
@@ -4827,22 +4876,45 @@
             } catch(e) {}
         }
 
-        // 2. ซิงค์ข้อมูลล่าสุดจากเซิร์ฟเวอร์แบบเงียบๆ
-        try {
-            const data = await fetchReportsData(false);
+        // 2. ซิงค์ข้อมูลสดจากเซิร์ฟเวอร์แบบเงียบๆ (Silent Background Revalidation - SWR)
+        fetchReportsData(true).then(freshData => {
             if (currentViewID !== viewID) return;
-            if (data && (data.withdraw || data.import)) {
-                state.reports = data;
-                cache.reports = JSON.stringify(data);
+            if (freshData && (freshData.withdraw || freshData.import)) {
+                state.reports = freshData;
+                cache.reports = JSON.stringify(freshData);
                 filterReports();
             }
-        } catch(e) {
+        }).catch(err => {
+            console.warn("Silent reports sync error:", err);
             if (!hasRenderedCache) {
                 const wLog = document.getElementById('withdrawLog');
                 const iLog = document.getElementById('importLog');
-                if (wLog) wLog.innerHTML = `<div class="p-6 text-center text-rose-500 font-bold text-sm">โหลดข้อมูลไม่สำเร็จ: ${e.message}</div>`;
-                if (iLog) iLog.innerHTML = `<div class="p-6 text-center text-rose-500 font-bold text-sm">โหลดข้อมูลไม่สำเร็จ: ${e.message}</div>`;
+                if (wLog) wLog.innerHTML = `<div class="p-6 text-center text-rose-500 font-bold text-sm">โหลดข้อมูลไม่สำเร็จ: ${err.message}</div>`;
+                if (iLog) iLog.innerHTML = `<div class="p-6 text-center text-rose-500 font-bold text-sm">โหลดข้อมูลไม่สำเร็จ: ${err.message}</div>`;
             }
+        });
+    }
+
+    async function manualRefreshReports() {
+        const icon = document.getElementById('iconRefreshReports');
+        const label = document.getElementById('labelRefreshReports');
+        if (icon) icon.classList.add('fa-spin');
+        if (label) label.innerText = 'กำลังดึงข้อมูล...';
+        showToast('กำลังดึงข้อมูลล่าสุดจากฐานข้อมูล...', 'info');
+
+        try {
+            const freshData = await fetchReportsData(true);
+            if (freshData && (freshData.withdraw || freshData.import)) {
+                state.reports = freshData;
+                cache.reports = JSON.stringify(freshData);
+                filterReports();
+            }
+            showToast('อัปเดตข้อมูลรายงานประวัติล่าสุดสำเร็จ', 'success');
+        } catch(err) {
+            showToast('ไม่สามารถดึงข้อมูลล่าสุดได้: ' + err.message, 'error');
+        } finally {
+            if (icon) icon.classList.remove('fa-spin');
+            if (label) label.innerText = 'รีเฟรชข้อมูล';
         }
     }
 
@@ -5635,6 +5707,15 @@
                 }
                 renderMaterialTimeline();
             } catch(e) {}
+
+            // Silent Background Revalidation for Timeline
+            fetchReportsData(true).then(freshData => {
+                if (currentTimelineMatId === matId && !document.getElementById('materialTimelineModal').classList.contains('hidden')) {
+                    state.reports = freshData;
+                    cache.reports = JSON.stringify(freshData);
+                    renderMaterialTimeline();
+                }
+            }).catch(() => {});
         } else {
             // กรณีไม่มีข้อมูลแคชเลย ให้แสดงตัวโหลดเฉพาะใน modal
             container.innerHTML = `
@@ -5654,6 +5735,25 @@
                     </div>`;
                 return;
             }
+        }
+    }
+
+    async function manualRefreshTimeline() {
+        const icon = document.getElementById('iconRefreshTimeline');
+        if (icon) icon.classList.add('fa-spin');
+        showToast('กำลังดึงประวัติล่าสุดจากฐานข้อมูล...', 'info');
+        try {
+            const freshData = await fetchReportsData(true);
+            if (freshData && (freshData.withdraw || freshData.import)) {
+                state.reports = freshData;
+                cache.reports = JSON.stringify(freshData);
+                renderMaterialTimeline();
+            }
+            showToast('อัปเดต Timeline ล่าสุดสำเร็จ', 'success');
+        } catch(err) {
+            showToast('ไม่สามารถดึงข้อมูลได้: ' + err.message, 'error');
+        } finally {
+            if (icon) icon.classList.remove('fa-spin');
         }
     }
 
@@ -6112,6 +6212,10 @@
     // Auto-sync theme เมื่อผู้ใช้สลับแท็บกลับมา หรือตรวจเช็กอัตโนมัติในพื้นหลังทุก 60 วินาที
     window.addEventListener('focus', () => {
         syncGlobalTheme(false);
+        // หากผู้ใช้กำลังเปิดดูหน้ารายงานประวัติอยู่ ให้ซิงค์ประวัติสดเบื้องหลัง
+        if (typeof currentViewID !== 'undefined' && currentViewID === 'reports') {
+            fetchReportsData(true).then(() => filterReports()).catch(() => {});
+        }
     });
     document.addEventListener('visibilitychange', () => {
         if (!document.hidden) {
