@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>ระบบจัดการสต๊อกวัสดุ Test Kit - กลุ่มวิจัยเคมีดิน สำนักวิทยาศาสตร์เพื่อการพัฒนาที่ดิน (v30 Instant Login & Auto Keep-Alive)</title>
+  <title>ระบบจัดการสต๊อกวัสดุ Test Kit - กลุ่มวิจัยเคมีดิน สำนักวิทยาศาสตร์เพื่อการพัฒนาที่ดิน (v32 Pure Timeline Sync & Zero Ghost Cache)</title>
   
   <!-- ================= LIBRARIES ================= -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -5473,7 +5473,7 @@
             }
         }
 
-        // Activity Timestamps: ซิงค์ตรงกับ Timeline ประวัติจริงในฐานข้อมูล 100%
+        // Activity Timestamps: ซิงค์ตรงกับ Timeline ประวัติจริงในฐานข้อมูล 100% (ป้องกันข้อมูลผี/ข้อมูลที่ถูกลบไปแล้ว)
         function updateModalActivityFromTimeline(targetMatId, targetMat) {
             let reportsData = state.reports;
             if ((!reportsData || (!reportsData.withdraw?.length && !reportsData.import?.length)) && cache.reports) {
@@ -5497,13 +5497,13 @@
                 return false;
             };
 
-            // 1. เบิกออกล่าสุด (ดึงข้อมูลล่าสุดจาก Timeline ประวัติการเบิกออกจริง)
+            // 1. เบิกออกล่าสุด (ดึงตรงจาก Timeline ประวัติการเบิกออกจริง 100%)
+            // หากไม่มีรายการใน Timeline (หรือถูกลบออกจากฐานข้อมูลไปแล้ว) จะแสดง '-' เสมอ ไม่ดึงค่าตกค้างเก่าใน Sheet มาแสดงเด็ดขาด
             const matWithdraws = allWithdraws.filter(matchTx);
             let lastWithDate = '';
             let lastWithUser = '';
 
             if (matWithdraws.length > 0) {
-                // จัดเรียงลำดับเวลาล่าสุดขึ้นก่อน
                 matWithdraws.sort((a, b) => {
                     const tA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
                     const tB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
@@ -5511,10 +5511,6 @@
                 });
                 lastWithDate = matWithdraws[0].timestamp || '';
                 lastWithUser = matWithdraws[0].user_name || matWithdraws[0].username || '';
-            } else {
-                // Fallback: ใช้ข้อมูลจากตาราง Materials หากยังไม่มีในประวัติ
-                lastWithDate = targetMat.last_withdraw_date || targetMat['วันที่เบิกล่าสุด'] || targetMat['วันที่เบิกออกล่าสุด'] || targetMat.last_withdraw || '';
-                lastWithUser = targetMat.last_withdraw_user || targetMat['ผู้เบิกล่าสุด'] || targetMat['ผู้เบิกออกล่าสุด'] || '';
             }
 
             const fmtWith = formatDate(lastWithDate);
@@ -5526,7 +5522,8 @@
                 document.getElementById('detailMatLastWithdraw').innerText = '-';
             }
 
-            // 2. นำเข้าล่าสุด (ดึงข้อมูลล่าสุดจาก Timeline ประวัติการนำเข้าจริง)
+            // 2. นำเข้าล่าสุด (ดึงตรงจาก Timeline ประวัติการนำเข้าจริง 100%)
+            // หากไม่มีรายการใน Timeline จะแสดง '-'
             const matImports = allImports.filter(matchTx);
             let lastImpDate = '';
             let lastImpUser = '';
@@ -5539,9 +5536,6 @@
                 });
                 lastImpDate = matImports[0].timestamp || '';
                 lastImpUser = matImports[0].user_name || matImports[0].username || '';
-            } else {
-                lastImpDate = targetMat.last_import_date || targetMat['วันที่นำเข้าล่าสุด'] || targetMat.last_import || '';
-                lastImpUser = targetMat.last_import_user || targetMat['ผู้นำเข้าล่าสุด'] || '';
             }
 
             const fmtImp = formatDate(lastImpDate);
@@ -5554,18 +5548,20 @@
             }
         }
 
-        // แสดงผลทันที 0ms จากข้อมูลประวัติในหน่วยความจำ
+        // แสดงผลทันที 0ms จากข้อมูลประวัติ Timeline
         updateModalActivityFromTimeline(matId, mat);
 
-        // หากยังไม่มีประวัติในหน่วยความจำ ให้ดึงในพื้นหลังและอัปเดตให้อัตโนมัติ
-        if (!state.reports || (!state.reports.withdraw?.length && !state.reports.import?.length)) {
-            fetchReportsData().then(() => {
+        // Silent SWR Revalidation: ดึงข้อมูลสดจากฐานข้อมูลในพื้นหลังเสมอ เพื่อตรวจจับกรณีมีคนลบ/แก้ไขข้อมูลใน Google Sheets
+        fetchReportsData(true).then(freshReports => {
+            if (freshReports && (freshReports.withdraw || freshReports.import)) {
+                state.reports = freshReports;
+                cache.reports = JSON.stringify(freshReports);
                 const modal = document.getElementById('materialDetailModal');
                 if (modal && !modal.classList.contains('hidden')) {
                     updateModalActivityFromTimeline(matId, mat);
                 }
-            }).catch(() => {});
-        }
+            }
+        }).catch(() => {});
 
         // Footer action buttons wiring
         const btnTimeline = document.getElementById('btnDetailOpenTimeline');
