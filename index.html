@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>ระบบจัดการสต๊อกวัสดุ Test Kit - กลุ่มวิจัยเคมีดิน สำนักวิทยาศาสตร์เพื่อการพัฒนาที่ดิน (v29 Brand, Remark & Full Material Details)</title>
+  <title>ระบบจัดการสต๊อกวัสดุ Test Kit - กลุ่มวิจัยเคมีดิน สำนักวิทยาศาสตร์เพื่อการพัฒนาที่ดิน (v30 Instant Login & Auto Keep-Alive)</title>
   
   <!-- ================= LIBRARIES ================= -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -1538,7 +1538,7 @@
 
     // --- 3. API HANDLER & SHARED PROMISE ---
     async function api(action, payload = {}, retries = 2) {
-        const isBackground = ['getMaterials', 'getBOM', 'getReports', 'getUsers', 'getLogs', 'getGlobalTheme', 'getInitialData'].includes(action);
+        const isBackground = ['ping', 'warmup', 'getMaterials', 'getBOM', 'getReports', 'getUsers', 'getLogs', 'getGlobalTheme', 'getInitialData'].includes(action);
         const showOverlay = !isBackground;
         if (showOverlay) {
             const el = document.getElementById('loadingOverlay');
@@ -1604,8 +1604,8 @@
             }
             console.error(`API Error [${action}]:`, err);
 
-            // Never show toast for silent background theme sync
-            if (action === 'getGlobalTheme') return null;
+            // Never show toast for silent background theme sync or ping/warmup
+            if (action === 'getGlobalTheme' || action === 'ping' || action === 'warmup') return null;
 
             // Auto-retry on mobile network drops (AbortError, TypeError, Load failed, Failed to fetch)
             const isNetworkError = err.name === 'AbortError' || 
@@ -1776,6 +1776,19 @@
         return dashboardDataPromise;
     }
 
+    // --- PRE-WARMING BACKEND CONTAINER (Instant Login Wake-up) ---
+    let isBackendWarmed = false;
+    function triggerBackendWarmup() {
+        if (isBackendWarmed || sessionStorage.getItem('user_session')) return;
+        isBackendWarmed = true;
+        try {
+            // ยิง ping ไปยัง Apps Script ในพื้นหลังแบบ silent เพื่อปลุก Google Cloud Container ให้ตื่นล่วงหน้าระหว่างที่ผู้ใช้กำลังพิมพ์ชื่อ/รหัสผ่าน
+            api('ping').then(data => {
+                if (data) console.log("[KStore] Backend container is awake and ready:", data);
+            }).catch(() => {});
+        } catch(e) {}
+    }
+
     // --- 4. AUTHENTICATION & INIT ---
     function initApp() {
         loadLocalTheme(); 
@@ -1784,6 +1797,7 @@
         // ตรวจสอบธีมกลางทันทีเมื่อเปิดเว็บ ไม่ว่าจะมี Session หรือไม่ เพื่อให้ธีมตรงกันตั้งแต่หน้าแรก
         syncGlobalTheme(true);
 
+        // --- PRE-WARMING BACKEND CONTAINER ---
         const savedUserStr = sessionStorage.getItem('user_session');
         if (savedUserStr) {
             try {
@@ -1806,9 +1820,15 @@
             } catch(e) {
                 sessionStorage.removeItem('user_session');
                 document.getElementById('authPage').classList.remove('hidden');
+                triggerBackendWarmup();
             }
         } else {
             document.getElementById('authPage').classList.remove('hidden');
+            triggerBackendWarmup();
+            const uInput = document.getElementById('loginUser');
+            const pInput = document.getElementById('loginPass');
+            if (uInput && uInput.addEventListener) uInput.addEventListener('focus', triggerBackendWarmup, { once: true });
+            if (pInput && pInput.addEventListener) pInput.addEventListener('focus', triggerBackendWarmup, { once: true });
         }
     }
 
@@ -1915,6 +1935,7 @@
             rf.classList.add('hidden');
             lf.classList.remove('hidden');
             lf.classList.add('fade-in');
+            triggerBackendWarmup();
         }
     }
 
