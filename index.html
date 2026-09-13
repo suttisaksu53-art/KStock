@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>ระบบจัดการสต๊อกวัสดุ Test Kit - กลุ่มวิจัยเคมีดิน สำนักวิทยาศาสตร์เพื่อการพัฒนาที่ดิน (v32 Pure Timeline Sync & Zero Ghost Cache)</title>
+  <title>ระบบจัดการสต๊อกวัสดุ Test Kit - กลุ่มวิจัยเคมีดิน สำนักวิทยาศาสตร์เพื่อการพัฒนาที่ดิน (v35 Filter Lock & Position Persistence)</title>
   
   <!-- ================= LIBRARIES ================= -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -391,6 +391,9 @@
            </a>
            <a onclick="openThemeModal()" class="nav-item" data-page="theme">
              <i class="fas fa-palette w-8 text-center text-lg text-primary-500"></i> <span class="text-primary-600 font-bold">ตั้งค่ารูปแบบธีมระบบ</span>
+           </a>
+           <a onclick="confirmClearSystemCache()" class="nav-item cursor-pointer text-rose-600 hover:text-rose-700 hover:bg-rose-50/60 transition" data-page="clearCache" title="ล้างแคชระบบและซิงค์ข้อมูลใหม่จาก Google Sheets ทันที">
+             <i class="fas fa-broom w-8 text-center text-lg text-rose-500"></i> <span class="font-bold">ล้างแคชระบบ (Sync ชีต)</span>
            </a>
         </div>
       </nav>
@@ -1206,9 +1209,44 @@
         return url;
     }
 
+    // --- INVENTORY FILTERS STATE & LOCK (v35: Keep selected filters locked across edits & re-renders) ---
+    var currentInventoryFilters = {
+        search: '',
+        type: 'all',
+        category: 'all',
+        status: 'all'
+    };
+
+    function captureInventoryFilters() {
+        const searchInput = document.getElementById('searchInput');
+        const filterStatus = document.getElementById('filterStatus');
+        const filterType = document.getElementById('filterType');
+        const filterCategory = document.getElementById('filterCategory');
+
+        if (searchInput) currentInventoryFilters.search = searchInput.value;
+        if (filterStatus) currentInventoryFilters.status = filterStatus.value;
+        if (filterType) currentInventoryFilters.type = filterType.value;
+        if (filterCategory) currentInventoryFilters.category = filterCategory.value;
+    }
+
+    function resetInventoryFilters(mode) {
+        currentInventoryFilters = { search: '', type: 'all', category: 'all', status: 'all' };
+        const searchInput = document.getElementById('searchInput');
+        const filterStatus = document.getElementById('filterStatus');
+        const filterType = document.getElementById('filterType');
+        const filterCategory = document.getElementById('filterCategory');
+        if (searchInput) searchInput.value = '';
+        if (filterStatus) filterStatus.value = 'all';
+        if (filterType) filterType.value = 'all';
+        if (filterCategory) filterCategory.value = 'all';
+        updateFilterDropdowns();
+        renderMaterialList(mode);
+    }
+
     // --- SEARCH DEBOUNCE TIMER ---
     let searchDebounceTimer = null;
     function onSearchInput(val, mode) {
+        currentInventoryFilters.search = val;
         clearTimeout(searchDebounceTimer);
         searchDebounceTimer = setTimeout(() => {
             renderMaterialList(mode);
@@ -1234,6 +1272,18 @@
             }
         }
         renderMaterialList(transMode);
+    }
+
+    // --- INVENTORY SORT MODE (Desc, Asc, Name A-Z, Name Z-A) (v34) ---
+    var currentInventorySort = localStorage.getItem('inventory_sort') || 'desc';
+    if (!['desc', 'asc', 'name_asc', 'name_desc'].includes(currentInventorySort)) {
+        currentInventorySort = 'desc';
+    }
+
+    function setInventorySort(sortMode, mode) {
+        currentInventorySort = sortMode;
+        try { localStorage.setItem('inventory_sort', sortMode); } catch(e) {}
+        renderMaterialList(mode);
     }
 
     function clearCart() {
@@ -2065,33 +2115,45 @@
         return map;
     }
 
-    // Update the dropdowns in the filters - Types and Categories are completely independent
+    // Update the dropdowns in the filters - Types and Categories are completely independent (v35: Lock selection)
     function updateFilterDropdowns() {
         const typeSelect = document.getElementById('filterType');
         const catSelect = document.getElementById('filterCategory');
         if (!typeSelect || !catSelect) return;
 
-        const currentType = typeSelect.value || 'all';
-        const currentCat = catSelect.value || 'all';
+        const currentType = currentInventoryFilters.type || typeSelect.value || 'all';
+        const currentCat = currentInventoryFilters.category || catSelect.value || 'all';
 
         const types = getUniqueTypes();
         const cats = getUniqueCategories();
 
         // 1. Rebuild Type Dropdown (preserve active selection)
-        let typeHtml = `<option value="all">ทุกประเภท (All Types)</option>`;
+        let typeHtml = `<option value="all" ${currentType === 'all' ? 'selected' : ''}>ทุกประเภท (All Types)</option>`;
         types.forEach(t => {
             typeHtml += `<option value="${t}" ${currentType === t ? 'selected' : ''}>${t}</option>`;
         });
         typeSelect.innerHTML = typeHtml;
-        if (types.includes(currentType)) typeSelect.value = currentType;
+        if (types.includes(currentType) || currentType === 'all') {
+            typeSelect.value = currentType;
+            currentInventoryFilters.type = currentType;
+        } else {
+            typeSelect.value = 'all';
+            currentInventoryFilters.type = 'all';
+        }
 
         // 2. Rebuild Category Dropdown - ALL categories, NOT separated by type! (preserve active selection)
-        let catHtml = `<option value="all">ทุกหมวดหมู่ (All Categories)</option>`;
+        let catHtml = `<option value="all" ${currentCat === 'all' ? 'selected' : ''}>ทุกหมวดหมู่ (All Categories)</option>`;
         cats.forEach(c => {
             catHtml += `<option value="${c}" ${currentCat === c ? 'selected' : ''}>${c}</option>`;
         });
         catSelect.innerHTML = catHtml;
-        if (cats.includes(currentCat)) catSelect.value = currentCat;
+        if (cats.includes(currentCat) || currentCat === 'all') {
+            catSelect.value = currentCat;
+            currentInventoryFilters.category = currentCat;
+        } else {
+            catSelect.value = 'all';
+            currentInventoryFilters.category = 'all';
+        }
     }
 
     let currentSelectedTypes = [];
@@ -2785,17 +2847,19 @@
          }, 70);
     }
     function getFilteredInventory() {
+        captureInventoryFilters();
+
         const searchInput = document.getElementById('searchInput');
         const filterStatus = document.getElementById('filterStatus');
         const filterType = document.getElementById('filterType');
         const filterCategory = document.getElementById('filterCategory');
         const sortQty = document.getElementById('sortQty');
 
-        const txt = searchInput ? searchInput.value.toLowerCase() : '';
-        const status = filterStatus ? filterStatus.value : 'all';
-        const typeVal = filterType ? filterType.value : 'all';
-        const catVal = filterCategory ? filterCategory.value : 'all';
-        const sort = sortQty ? sortQty.value : 'desc';
+        const txt = (currentInventoryFilters.search || '').toLowerCase();
+        const status = currentInventoryFilters.status || 'all';
+        const typeVal = currentInventoryFilters.type || 'all';
+        const catVal = currentInventoryFilters.category || 'all';
+        const sort = sortQty ? sortQty.value : (currentInventorySort || 'desc');
 
         let filtered = state.materials.filter(m => {
             const safeName = String(m.name || '').toLowerCase();
@@ -2822,10 +2886,34 @@
             
             if (aPinned !== bPinned) return bPinned - aPinned; // Pinned items first
 
+            if (sort === 'name_asc') {
+                const nameA = String(a.name || a.Name || a.material_id || '').trim();
+                const nameB = String(b.name || b.Name || b.material_id || '').trim();
+                const cmp = nameA.localeCompare(nameB, 'th', { sensitivity: 'base', numeric: true });
+                if (cmp !== 0) return cmp;
+                return String(a.material_id || '').localeCompare(String(b.material_id || ''));
+            }
+            if (sort === 'name_desc') {
+                const nameA = String(a.name || a.Name || a.material_id || '').trim();
+                const nameB = String(b.name || b.Name || b.material_id || '').trim();
+                const cmp = nameB.localeCompare(nameA, 'th', { sensitivity: 'base', numeric: true });
+                if (cmp !== 0) return cmp;
+                return String(b.material_id || '').localeCompare(String(a.material_id || ''));
+            }
+
             const qa = parseInt(a.qty || 0);
             const qb = parseInt(b.qty || 0);
-            if (sort === 'desc') return qb - qa;
-            return qa - qb;
+            if (sort === 'asc') {
+                if (qa !== qb) return qa - qb;
+                const nameA = String(a.name || a.Name || a.material_id || '').trim();
+                const nameB = String(b.name || b.Name || b.material_id || '').trim();
+                return nameA.localeCompare(nameB, 'th', { sensitivity: 'base', numeric: true });
+            }
+            // default 'desc' (มากไปน้อย)
+            if (qb !== qa) return qb - qa;
+            const nameA = String(a.name || a.Name || a.material_id || '').trim();
+            const nameB = String(b.name || b.Name || b.material_id || '').trim();
+            return nameA.localeCompare(nameB, 'th', { sensitivity: 'base', numeric: true });
         });
 
         return filtered;
@@ -2873,7 +2961,7 @@
                     <div class="flex flex-wrap justify-start md:justify-end items-center gap-1.5 md:gap-2 w-full md:w-auto mt-1 md:mt-0">
                         <div class="relative flex-1 min-w-[140px] md:min-w-[160px]">
                             <i class="fas fa-search absolute left-3 md:left-3.5 top-2 md:top-2.5 text-gray-400 text-xs md:text-sm"></i>
-                            <input type="text" id="searchInput" placeholder="ค้นหาชื่อ, รหัส, ที่เก็บ..." class="w-full pl-8 md:pl-9 pr-3 md:pr-4 py-2 md:py-2.5 rounded-xl text-xs md:text-sm font-medium focus:ring-2 focus:ring-primary-500 outline-none transition" oninput="onSearchInput(this.value, '${mode}')">
+                            <input type="text" id="searchInput" value="${(currentInventoryFilters.search || '').replace(/"/g, '&quot;')}" placeholder="ค้นหาชื่อ, รหัส, ที่เก็บ..." class="w-full pl-8 md:pl-9 pr-3 md:pr-4 py-2 md:py-2.5 rounded-xl text-xs md:text-sm font-medium focus:ring-2 focus:ring-primary-500 outline-none transition" oninput="onSearchInput(this.value, '${mode}')">
                         </div>
                         <!-- View Switcher (Grid vs Compact Table) -->
                         <div class="flex items-center gap-1 p-0.5 md:p-1 rounded-xl border border-custom" style="background: var(--input-bg);">
@@ -2884,20 +2972,22 @@
                                 <i class="fas fa-list-ul"></i>
                             </button>
                         </div>
-                        <select id="filterType" onchange="renderMaterialList('${mode}');" class="py-2 md:py-2.5 px-2 md:px-3 rounded-xl text-xs md:text-sm font-medium focus:ring-2 focus:ring-primary-500 outline-none transition cursor-pointer">
+                        <select id="filterType" onchange="captureInventoryFilters(); renderMaterialList('${mode}');" class="py-2 md:py-2.5 px-2 md:px-3 rounded-xl text-xs md:text-sm font-medium focus:ring-2 focus:ring-primary-500 outline-none transition cursor-pointer">
                             <option value="all">ทุกประเภท (All Types)</option>
                         </select>
-                        <select id="filterCategory" onchange="renderMaterialList('${mode}')" class="py-2 md:py-2.5 px-2 md:px-3 rounded-xl text-xs md:text-sm font-medium focus:ring-2 focus:ring-primary-500 outline-none transition cursor-pointer">
+                        <select id="filterCategory" onchange="captureInventoryFilters(); renderMaterialList('${mode}')" class="py-2 md:py-2.5 px-2 md:px-3 rounded-xl text-xs md:text-sm font-medium focus:ring-2 focus:ring-primary-500 outline-none transition cursor-pointer">
                             <option value="all">ทุกหมวดหมู่ (All Categories)</option>
                         </select>
-                        <select id="filterStatus" onchange="renderMaterialList('${mode}')" class="py-2 md:py-2.5 px-2 md:px-3 rounded-xl text-xs md:text-sm font-medium focus:ring-2 focus:ring-primary-500 outline-none transition cursor-pointer">
-                            <option value="all">สถานะทั้งหมด</option>
-                            <option value="low">ใกล้หมด</option>
-                            <option value="out">หมด</option>
+                        <select id="filterStatus" onchange="captureInventoryFilters(); renderMaterialList('${mode}')" class="py-2 md:py-2.5 px-2 md:px-3 rounded-xl text-xs md:text-sm font-medium focus:ring-2 focus:ring-primary-500 outline-none transition cursor-pointer">
+                            <option value="all" ${currentInventoryFilters.status === 'all' ? 'selected' : ''}>สถานะทั้งหมด</option>
+                            <option value="low" ${currentInventoryFilters.status === 'low' ? 'selected' : ''}>ใกล้หมด</option>
+                            <option value="out" ${currentInventoryFilters.status === 'out' ? 'selected' : ''}>หมด</option>
                         </select>
-                        <select id="sortQty" onchange="renderMaterialList('${mode}')" class="py-2 md:py-2.5 px-2 md:px-3 rounded-xl text-xs md:text-sm font-medium focus:ring-2 focus:ring-primary-500 outline-none transition cursor-pointer">
-                            <option value="desc">มากไปน้อย</option>
-                            <option value="asc">น้อยไปมาก</option>
+                        <select id="sortQty" onchange="setInventorySort(this.value, '${mode}')" class="py-2 md:py-2.5 px-2 md:px-3 rounded-xl text-xs md:text-sm font-medium focus:ring-2 focus:ring-primary-500 outline-none transition cursor-pointer">
+                            <option value="desc" ${currentInventorySort === 'desc' ? 'selected' : ''}>มากไปน้อย</option>
+                            <option value="asc" ${currentInventorySort === 'asc' ? 'selected' : ''}>น้อยไปมาก</option>
+                            <option value="name_asc" ${currentInventorySort === 'name_asc' ? 'selected' : ''}>เรียงตามตัวอักษร (ก - ฮ)</option>
+                            <option value="name_desc" ${currentInventorySort === 'name_desc' ? 'selected' : ''}>เรียงตามตัวอักษร (ฮ - ก)</option>
                         </select>
                         ${mode === 'view' ? `
                         <button onclick="exportInventoryCSV()" class="bg-gray-800 text-white px-2.5 md:px-3.5 py-2 md:py-2.5 rounded-xl text-xs md:text-sm font-bold shadow-md transition transform active:scale-95" title="Export CSV"><i class="fas fa-file-csv text-white"></i></button>
@@ -2937,8 +3027,11 @@
     }
 
     async function refreshMaterials(mode) {
+        captureInventoryFilters();
+        const savedScrollY = window.scrollY;
         cache.materials = null;
         await renderInventory(document.getElementById('contentArea'), mode, currentViewID);
+        window.scrollTo({ top: savedScrollY, behavior: 'instant' });
         showToast('อัปเดตข้อมูลสำเร็จ', 'success');
     }
 
@@ -5736,7 +5829,9 @@
             await api(id ? 'updateMaterial' : 'addMaterial', { ...payload, material_id: id });
             closeModal('materialModal');
             cache.materials = null; // Clear cache to force refresh
-            renderInventory(document.getElementById('contentArea'), 'view', currentViewID);
+            const savedScrollY = window.scrollY;
+            await renderInventory(document.getElementById('contentArea'), currentTransMode || 'view', currentViewID);
+            window.scrollTo({ top: savedScrollY, behavior: 'instant' });
             showToast('บันทึกข้อมูลวัสดุสำเร็จ', 'success');
         } catch(e) {}
     };
@@ -5973,7 +6068,9 @@
         if(!confirm('คุณแน่ใจหรือไม่ที่จะลบรายการนี้อย่างถาวร?')) return; 
         await api('deleteMaterial', { material_id: id }); 
         cache.materials = null; 
-        renderInventory(document.getElementById('contentArea'), 'view', currentViewID); 
+        const savedScrollY = window.scrollY;
+        await renderInventory(document.getElementById('contentArea'), currentTransMode || 'view', currentViewID); 
+        window.scrollTo({ top: savedScrollY, behavior: 'instant' });
         showToast('ลบรายการสำเร็จ');
     }
     
@@ -5987,6 +6084,108 @@
         const dt = new Date(d);
         if (isNaN(dt)) return '-';
         return dt.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' }) + ' เวลา ' + dt.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.';
+    }
+
+    // --- ADMIN: CLEAR SYSTEM CACHE & LIVE GOOGLE SHEETS SYNC (v33) ---
+    async function confirmClearSystemCache() {
+        if ((state.user?.role || '').toLowerCase() !== 'admin') {
+            return showToast('เฉพาะผู้ดูแลระบบ (Admin) เท่านั้นที่สามารถล้างแคชได้', 'error');
+        }
+
+        const result = await Swal.fire({
+            title: 'ยืนยันล้างแคชระบบ?',
+            html: `<div class="text-left text-xs text-gray-600 space-y-2">
+                <p>ระบบจะทำการ:</p>
+                <ul class="list-disc pl-5 space-y-1">
+                    <li><b>ล้างแคชบนเซิร์ฟเวอร์</b> (Apps Script CacheService) ทั้งหมด</li>
+                    <li><b>ล้างแคชในเครื่องเบราว์เซอร์</b> (localStorage)</li>
+                    <li><b>ดึงข้อมูลสดใหม่ทั้งหมด</b> จาก Google Sheets เข้าสู่ระบบทันที</li>
+                </ul>
+                <p class="text-amber-600 font-bold mt-2"><i class="fas fa-info-circle"></i> เหมาะสำหรับใช้เมื่อคุณเข้าไปแก้ไขหรือลบข้อมูลใน Google Sheets โดยตรง</p>
+            </div>`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#e11d48',
+            cancelButtonColor: '#64748b',
+            confirmButtonText: '<i class="fas fa-broom mr-1"></i> ล้างแคชและซิงค์ทันที',
+            cancelButtonText: 'ยกเลิก',
+            customClass: {
+                popup: 'rounded-2xl shadow-2xl border border-custom'
+            }
+        });
+
+        if (!result.isConfirmed) return;
+
+        Swal.fire({
+            title: 'กำลังล้างแคชและซิงค์ฐานข้อมูล...',
+            html: '<p class="text-xs text-gray-500">กรุณารอสักครู่ ระบบกำลังดึงข้อมูลล่าสุดจาก Google Sheets</p>',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        try {
+            // 1. สั่ง Backend Apps Script ล้าง CacheService ทั้งหมด และอุ่น users_auth ล่วงหน้า
+            await api('clearSystemCache');
+
+            // 2. ล้าง Client Cache ใน localStorage ทั้งหมด
+            const keysToRemove = [
+                'kstore_cache_materials',
+                'kstore_cache_bom',
+                'kstore_cache_users',
+                'kstore_cache_logs',
+                'kstore_cache_reports',
+                'kstore_reports_last_sync'
+            ];
+            keysToRemove.forEach(k => localStorage.removeItem(k));
+            cache.materials = null;
+            cache.bom = null;
+            cache.users = null;
+            cache.logs = null;
+            cache.reports = null;
+
+            // 3. ดึงข้อมูลสดใหม่ทั้งหมดเข้าสู่เครื่องพร้อมกันใน Parallel
+            const [freshDashboard, freshReports, freshUsers] = await Promise.all([
+                fetchDashboardData(),
+                fetchReportsData(true),
+                fetchUsersData(true)
+            ]);
+
+            if (freshDashboard && freshDashboard.materials) {
+                state.materials = freshDashboard.materials;
+                state.bom = freshDashboard.bom || [];
+            }
+            if (freshReports) state.reports = freshReports;
+
+            // 4. รีเรนเดอร์หน้าปัจจุบันทันที
+            if (state.currentPage === 'inventory') {
+                renderMaterialList('view');
+            } else if (state.currentPage === 'dashboard') {
+                renderDashboard(document.getElementById('contentArea'), currentViewID);
+            } else if (state.currentPage === 'users') {
+                renderUsers(document.getElementById('contentArea'), currentViewID, true);
+            } else if (state.currentPage === 'reports') {
+                renderReports(document.getElementById('contentArea'), currentViewID);
+            }
+
+            Swal.fire({
+                icon: 'success',
+                title: 'ล้างแคชและซิงค์ข้อมูลสำเร็จ!',
+                text: 'ระบบได้ดึงข้อมูลสดใหม่ล่าสุดจาก Google Sheets เรียบร้อยแล้ว',
+                timer: 2000,
+                showConfirmButton: false,
+                customClass: { popup: 'rounded-2xl' }
+            });
+
+        } catch (err) {
+            Swal.fire({
+                icon: 'error',
+                title: 'เกิดข้อผิดพลาดในการล้างแคช',
+                text: err.message,
+                customClass: { popup: 'rounded-2xl' }
+            });
+        }
     }
 
     async function openMaterialTimeline(matId) {
