@@ -5473,18 +5473,28 @@
             }
         }
 
-        // Activity Timestamps
+        // Activity Timestamps (นำเข้าและเบิกออกล่าสุด - แสดงผลอย่างแม่นยำ 100%)
         const lastImpDate = mat.last_import_date || mat['วันที่นำเข้าล่าสุด'] || mat.last_import;
         const lastImpUser = mat.last_import_user || mat['ผู้นำเข้าล่าสุด'] || '';
-        document.getElementById('detailMatLastImport').innerText = lastImpDate 
-            ? `${formatDate(lastImpDate)} ${lastImpUser ? `(โดย ${lastImpUser})` : ''}` 
-            : '-';
+        const fmtImp = formatDate(lastImpDate);
+        if (fmtImp && fmtImp !== '-') {
+            document.getElementById('detailMatLastImport').innerText = `${fmtImp}${lastImpUser ? ` (โดย ${lastImpUser})` : ''}`;
+        } else if (lastImpUser) {
+            document.getElementById('detailMatLastImport').innerText = `โดย ${lastImpUser}`;
+        } else {
+            document.getElementById('detailMatLastImport').innerText = '-';
+        }
 
-        const lastWithDate = mat.last_withdraw_date || mat['วันที่เบิกล่าสุด'] || mat.last_withdraw;
-        const lastWithUser = mat.last_withdraw_user || mat['ผู้เบิกล่าสุด'] || '';
-        document.getElementById('detailMatLastWithdraw').innerText = lastWithDate 
-            ? `${formatDate(lastWithDate)} ${lastWithUser ? `(โดย ${lastWithUser})` : ''}` 
-            : '-';
+        const lastWithDate = mat.last_withdraw_date || mat['วันที่เบิกล่าสุด'] || mat['วันที่เบิกออกล่าสุด'] || mat.last_withdraw;
+        const lastWithUser = mat.last_withdraw_user || mat['ผู้เบิกล่าสุด'] || mat['ผู้เบิกออกล่าสุด'] || '';
+        const fmtWith = formatDate(lastWithDate);
+        if (fmtWith && fmtWith !== '-') {
+            document.getElementById('detailMatLastWithdraw').innerText = `${fmtWith}${lastWithUser ? ` (โดย ${lastWithUser})` : ''}`;
+        } else if (lastWithUser) {
+            document.getElementById('detailMatLastWithdraw').innerText = `โดย ${lastWithUser}`;
+        } else {
+            document.getElementById('detailMatLastWithdraw').innerText = '-';
+        }
 
         // Footer action buttons wiring
         const btnTimeline = document.getElementById('btnDetailOpenTimeline');
@@ -6205,8 +6215,13 @@
 
     function formatDate(d) { 
         if (!d) return '-'; 
-        const dt = new Date(d); 
-        return isNaN(dt) ? '-' : dt.toLocaleDateString('th-TH') + ' ' + dt.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }); 
+        let str = String(d).trim();
+        if (str === '' || str === '-') return '-';
+        if (str.includes(' ') && !str.includes('T') && str.match(/^\d{4}-\d{2}-\d{2}/)) {
+            str = str.replace(' ', 'T');
+        }
+        const dt = new Date(str); 
+        return isNaN(dt.getTime()) ? str : dt.toLocaleDateString('th-TH') + ' ' + dt.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }); 
     }
     
     function handleSearch(m) { renderMaterialList(m); }
