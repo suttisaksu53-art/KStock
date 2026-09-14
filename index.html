@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>ระบบจัดการสต๊อกวัสดุ Test Kit - กลุ่มวิจัยเคมีดิน สำนักวิทยาศาสตร์เพื่อการพัฒนาที่ดิน (v40 Realtime Progress & Countdown)</title>
+  <title>ระบบจัดการสต๊อกวัสดุ Test Kit - กลุ่มวิจัยเคมีดิน สำนักวิทยาศาสตร์เพื่อการพัฒนาที่ดิน (v42 Patient 45s Timeout & Zero Duplicate Login)</title>
   
   <!-- Preconnect to Google Apps Script & 302 Redirect Echo Domain for Instant Network Handshake -->
   <link rel="preconnect" href="https://script.google.com">
@@ -1630,7 +1630,7 @@
                         .apiHandler({ action, payload });
                 });
             } else {
-                // AbortController with 28s timeout (GAS takes ~10-12s on cold start)
+                // AbortController with 45s timeout (ให้อดทนรอได้เต็มที่ในกรณี Cold Start ไม่ตัดจบล่วงหน้า ป้องกันผู้ใช้ต้องล็อกอินใหม่)
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), 45000);
 
@@ -1655,6 +1655,10 @@
                 } catch (parseErr) {
                     console.warn(`[api] Action "${action}" non-JSON response:`, rawText ? rawText.slice(0, 150) : '(empty)');
                     if (action === 'getGlobalTheme') return null;
+                    // BUGFIX: login/register ห้าม retry เมื่อได้ non-JSON — ป้องกัน Log ซ้ำ
+                    if (['login', 'register'].includes(action)) {
+                        throw new Error('เซิร์ฟเวอร์ตอบสนองไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง');
+                    }
                     if (retries > 0) {
                         await new Promise(r => setTimeout(r, 1200));
                         return await api(action, payload, retries - 1);
@@ -1690,7 +1694,7 @@
                                    String(err.message).includes('NetworkError');
 
             // CRITICAL: ป้องกันการส่งซ้ำอัตโนมัติสำหรับคำสั่งที่เขียนลงฐานข้อมูล (ป้องกันสต๊อกซ้ำซ้อน 100%)
-            const isMutating = ['importMaterial', 'withdrawMaterial', 'batchTransaction', 'produceKit', 'undoProduceKit', 'addMaterial', 'updateMaterial', 'deleteMaterial', 'saveBOM', 'changePassword'].includes(action);
+            const isMutating = ['login', 'register', 'importMaterial', 'withdrawMaterial', 'batchTransaction', 'produceKit', 'undoProduceKit', 'addMaterial', 'updateMaterial', 'deleteMaterial', 'saveBOM', 'changePassword'].includes(action);
 
             if (retries > 0 && isNetworkError && (!isMutating || err.name !== 'AbortError')) {
                 const backoff = (3 - retries) * 1500; // Progressive backoff: 1.5s, 3s
@@ -1964,30 +1968,45 @@
         bar.className = 'h-full bg-gradient-to-r from-primary-500 to-indigo-600 rounded-full transition-all duration-300 ease-out shadow-sm';
 
         const startTime = Date.now();
+        let lastPct = 0;
         const updateUI = (pct, text, timeStr) => {
+            if (pct <= lastPct) return; // ป้องกันถอยหลัง
+            lastPct = pct;
             if (percentText) percentText.innerText = `${pct}%`;
             if (stepText) stepText.innerText = text;
             if (bar) bar.style.width = `${pct}%`;
-            if (countdown) countdown.innerHTML = `<i class="far fa-clock mr-1 text-primary-500"></i>โดยประมาณ ~${timeStr}`;
-            if (submitBtn) submitBtn.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i> กำลังเข้าสู่ระบบ (~${timeStr})`;
+            if (countdown) countdown.innerHTML = `<i class="far fa-clock mr-1 text-primary-500"></i>${timeStr}`;
+            if (submitBtn) submitBtn.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i> กำลังเข้าสู่ระบบ...`;
         };
 
         if (submitBtn) submitBtn.disabled = true;
-        updateUI(15, 'กำลังตรวจสอบชื่อผู้ใช้งานและรหัสผ่าน...', '2.0 วิ');
+        updateUI(10, 'กำลังตรวจสอบชื่อผู้ใช้งานและรหัสผ่าน...', 'กำลังเชื่อมต่อ...');
 
         clearInterval(loginProgressTimer);
         loginProgressTimer = setInterval(() => {
             const elapsed = Date.now() - startTime;
-            if (elapsed >= 1800) {
-                updateUI(92, 'กำลังจัดเตรียมหน้าต่างภาพรวมระบบ...', '0.5 วิ');
+            if (elapsed >= 25000) {
+                // > 25 วิ: กำลังรอ Google Cloud เต็มที่ ค่อยๆ ขยับ 96-98%
+                const slowPct = Math.min(98, 96 + Math.floor((elapsed - 25000) / 7000));
+                updateUI(slowPct, 'กำลังประมวลผลขั้นสุดท้าย กรุณารอสักครู่...', 'กำลังโหลด...');
+            } else if (elapsed >= 15000) {
+                // 15-25 วิ: แจ้งผู้ใช้ว่ากำลังรอข้อมูลจาก Google Cloud (Cold start)
+                const slowPct = Math.min(96, 92 + Math.floor((elapsed - 15000) / 3000));
+                updateUI(slowPct, 'ระบบกำลังเชื่อมต่อข้อมูล กรุณารอสักครู่...', 'โปรดรอสักครู่...');
+            } else if (elapsed >= 8000) {
+                // 8-15 วิ: ขยับ 88-92%
+                const slowPct = Math.min(92, 88 + Math.floor((elapsed - 8000) / 2000));
+                updateUI(slowPct, 'กำลังยืนยันความถูกต้องของข้อมูล...', 'กำลังตรวจสอบ...');
+            } else if (elapsed >= 5000) {
+                updateUI(85, 'กำลังจัดเตรียมหน้าต่างภาพรวมระบบ...', 'อีกสักครู่...');
+            } else if (elapsed >= 2500) {
+                updateUI(65, 'กำลังบันทึกประวัติการเข้าสู่ระบบ (Log)...', 'กำลังบันทึก...');
             } else if (elapsed >= 1200) {
-                updateUI(80, 'กำลังบันทึกประวัติการเข้าสู่ระบบ (Log)...', '0.8 วิ');
-            } else if (elapsed >= 600) {
-                updateUI(55, 'กำลังเชื่อมต่อฐานข้อมูลความเร็วสูง...', '1.4 วิ');
-            } else if (elapsed >= 250) {
-                updateUI(35, 'กำลังตรวจสอบสิทธิ์และนโยบายความปลอดภัย...', '1.8 วิ');
+                updateUI(45, 'กำลังเชื่อมต่อฐานข้อมูลความเร็วสูง...', 'กำลังเชื่อมต่อ...');
+            } else if (elapsed >= 400) {
+                updateUI(25, 'กำลังตรวจสอบสิทธิ์และนโยบายความปลอดภัย...', 'กำลังตรวจสอบ...');
             }
-        }, 100);
+        }, 150);
     }
 
     function completeLoginProgress() {
