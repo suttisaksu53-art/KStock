@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>ระบบจัดการสต๊อกวัสดุ Test Kit - กลุ่มวิจัยเคมีดิน สำนักวิทยาศาสตร์เพื่อการพัฒนาที่ดิน (v43 Seamless Silent Auto-Retry & Resilient Login)</title>
+  <title>ระบบจัดการสต๊อกวัสดุ Test Kit - กลุ่มวิจัยเคมีดิน สำนักวิทยาศาสตร์เพื่อการพัฒนาที่ดิน (v47 3 High-Contrast OSD & LDD Soil Lab Glass Themes)</title>
   
   <!-- Preconnect to Google Apps Script & 302 Redirect Echo Domain for Instant Network Handshake -->
   <link rel="preconnect" href="https://script.google.com">
@@ -196,6 +196,88 @@
       background-color: #B30655 !important;
     }
 
+    /* --- LDD & OSD OFFICIAL LIGHT GLASS THEMES --- */
+    html[data-theme="ldd_glass_official"] header {
+      border-top: 3px solid #15803d !important;
+    }
+    html[data-theme="ldd_glass_official"] .nav-item.active {
+      background: linear-gradient(135deg, #15803d 0%, #166534 100%) !important;
+      color: #ffffff !important;
+      box-shadow: 0 4px 14px rgba(21, 128, 61, 0.35) !important;
+    }
+    html[data-theme="ldd_glass_official"] .btn-primary {
+      background: linear-gradient(135deg, #15803d 0%, #166534 100%) !important;
+      box-shadow: 0 4px 12px rgba(21, 128, 61, 0.3) !important;
+    }
+    html[data-theme="ldd_glass_official"] .btn-primary:hover {
+      background: linear-gradient(135deg, #16a34a 0%, #15803d 100%) !important;
+    }
+
+    html[data-theme="osd_glass_science"] header {
+      border-top: 3px solid #B30655 !important;
+    }
+    html[data-theme="osd_glass_science"] .nav-item.active {
+      background: linear-gradient(135deg, #B30655 0%, #8c0543 100%) !important;
+      color: #ffffff !important;
+      box-shadow: 0 4px 14px rgba(179, 6, 85, 0.35) !important;
+    }
+    html[data-theme="osd_glass_science"] .btn-primary {
+      background: linear-gradient(135deg, #B30655 0%, #8c0543 100%) !important;
+      box-shadow: 0 4px 12px rgba(179, 6, 85, 0.3) !important;
+    }
+    html[data-theme="osd_glass_science"] .btn-primary:hover {
+      background: linear-gradient(135deg, #cc0862 0%, #B30655 100%) !important;
+    }
+
+    /* --- 3 NEW OSD & LDD HIGH-CONTRAST LAB GLASS THEMES --- */
+    html[data-theme="osd_soil_chemistry_lab"] header {
+      border-top: 3px solid #B30655 !important;
+    }
+    html[data-theme="osd_soil_chemistry_lab"] .nav-item.active {
+      background: linear-gradient(135deg, #B30655 0%, #8c0543 100%) !important;
+      color: #ffffff !important;
+      box-shadow: 0 4px 14px rgba(179, 6, 85, 0.35) !important;
+    }
+    html[data-theme="osd_soil_chemistry_lab"] .btn-primary {
+      background: linear-gradient(135deg, #B30655 0%, #8c0543 100%) !important;
+      box-shadow: 0 4px 12px rgba(179, 6, 85, 0.3) !important;
+    }
+    html[data-theme="osd_soil_chemistry_lab"] .btn-primary:hover {
+      background: linear-gradient(135deg, #cc0862 0%, #B30655 100%) !important;
+    }
+
+    html[data-theme="ldd_central_analytical_lab"] header {
+      border-top: 3px solid #15803d !important;
+    }
+    html[data-theme="ldd_central_analytical_lab"] .nav-item.active {
+      background: linear-gradient(135deg, #15803d 0%, #166534 100%) !important;
+      color: #ffffff !important;
+      box-shadow: 0 4px 14px rgba(21, 128, 61, 0.35) !important;
+    }
+    html[data-theme="ldd_central_analytical_lab"] .btn-primary {
+      background: linear-gradient(135deg, #15803d 0%, #166534 100%) !important;
+      box-shadow: 0 4px 12px rgba(21, 128, 61, 0.3) !important;
+    }
+    html[data-theme="ldd_central_analytical_lab"] .btn-primary:hover {
+      background: linear-gradient(135deg, #16a34a 0%, #15803d 100%) !important;
+    }
+
+    html[data-theme="soil_solution_precision"] header {
+      border-top: 3px solid #0284c7 !important;
+    }
+    html[data-theme="soil_solution_precision"] .nav-item.active {
+      background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%) !important;
+      color: #ffffff !important;
+      box-shadow: 0 4px 14px rgba(2, 132, 199, 0.35) !important;
+    }
+    html[data-theme="soil_solution_precision"] .btn-primary {
+      background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%) !important;
+      box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3) !important;
+    }
+    html[data-theme="soil_solution_precision"] .btn-primary:hover {
+      background: linear-gradient(135deg, #0369a1 0%, #0284c7 100%) !important;
+    }
+
     /* Clean Compact Table Styling */
     .compact-table tbody tr {
       transition: background-color 0.15s ease;
@@ -234,7 +316,7 @@
 <body class="flex flex-col">
 
   <!-- ================= TOAST NOTIFICATION ================= -->
-  <div id="toast" class="fixed top-5 right-5 z-[100] hidden px-6 py-4 rounded-xl shadow-2xl text-white transform transition-all duration-300 translate-y-0 font-medium flex items-center gap-3"></div>
+  <div id="toast" class="fixed top-6 right-6 z-[120] hidden px-6 py-4 rounded-2xl shadow-2xl bg-white/95 backdrop-blur-md border border-slate-200/90 text-slate-900 transform transition-all duration-500 font-bold flex items-center gap-3.5"></div>
   
   <!-- ================= LOADING OVERLAY ================= -->
   <div id="loadingOverlay" class="fixed inset-0 bg-black/60 z-[100] hidden flex flex-col items-center justify-center text-white backdrop-blur-sm transition-opacity">
@@ -1011,8 +1093,293 @@
     // --- 1. CONFIGURATION & THEMES ---
     var WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxdK7zgf3YLbUPUEEgBhfe2jP2g6J4jvgGLhNUJnTd4WGlL9OJUVL5wJFBI6iMV9d4o/exec";
     
-    // รวมมิตร 16 ธีมระดับพรีเมียม!
+    // รวมมิตร 40 ธีมระดับพรีเมียม! (เพิ่ม 12 ธีมกระจกแก้วแนวสว่าง + กรมพัฒนาที่ดิน & สำนักวิทยาศาสตร์ฯ)
     var THEMES = {
+        // --- ธีมทางการ กรมพัฒนาที่ดิน & สำนักวิทยาศาสตร์เพื่อการพัฒนาที่ดิน (กระจกแก้วแนวสว่าง) ---
+        'ldd_glass_official': {
+            name: 'LDD Royal Soil Glass',
+            type: 'glass',
+            bgImg: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=80&w=2564',
+            card: 'rgba(255,255,255,0.92)',
+            text: '#14532d',
+            border: 'rgba(34,197,94,0.35)',
+            p500: '#15803d',
+            icon: 'fas fa-mountain-sun',
+            desc: 'กระจก กรมพัฒนาที่ดิน ผืนดินอุดมสมบูรณ์ เกษตรยั่งยืน'
+        },
+        'osd_glass_science': {
+            name: 'OSD Soil Science Glass',
+            type: 'glass',
+            bgImg: 'https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?q=80&w=2564',
+            card: 'rgba(255,255,255,0.92)',
+            text: '#831843',
+            border: 'rgba(179,6,85,0.35)',
+            p500: '#B30655',
+            icon: 'fas fa-flask-vial',
+            desc: 'กระจก สำนักวิทยาศาสตร์เพื่อการพัฒนาที่ดิน วิจัยเคมีดินทันสมัย'
+        },
+
+        // --- 3 ธีมพิเศษ: ห้องแล็บวิทยาศาสตร์เคมีดิน กรมพัฒนาที่ดิน & สวพ. (Ultra-High Contrast Lab Glass) ---
+        'osd_soil_chemistry_lab': {
+            name: 'OSD Soil Chemistry Lab',
+            type: 'glass',
+            bgImg: 'https://images.unsplash.com/photo-1579154204601-01588f351e67?q=80&w=2564',
+            card: 'rgba(255,255,255,0.96)',
+            text: '#831843',
+            border: 'rgba(179,6,85,0.35)',
+            p500: '#B30655',
+            icon: 'fas fa-microscope',
+            desc: 'กระจกสว่าง สำนักวิทยาศาสตร์ฯ แล็บวิจัยเคมีดิน อ่านง่ายคมชัดสูงสุด'
+        },
+        'ldd_central_analytical_lab': {
+            name: 'LDD Soil Analytical Lab',
+            type: 'glass',
+            bgImg: 'https://images.unsplash.com/photo-1518152006812-edab29b069ac?q=80&w=2564',
+            card: 'rgba(255,255,255,0.96)',
+            text: '#14532d',
+            border: 'rgba(21,128,61,0.35)',
+            p500: '#15803d',
+            icon: 'fas fa-flask-vial',
+            desc: 'กระจกสว่าง กรมพัฒนาที่ดิน ห้องวิเคราะห์ดินมาตรฐานสากล สบายตา'
+        },
+        'soil_solution_precision': {
+            name: 'Soil Solution Precision',
+            type: 'glass',
+            bgImg: 'https://images.unsplash.com/photo-1581093588401-fbb62a02f120?q=80&w=2564',
+            card: 'rgba(255,255,255,0.95)',
+            text: '#0c4a6e',
+            border: 'rgba(2,132,199,0.35)',
+            p500: '#0284c7',
+            icon: 'fas fa-vial-circle-check',
+            desc: 'กระจกสว่าง สารละลายดินเคมีวิเคราะห์ แม่นยำ คมชัดทุกมิติ'
+        },
+
+        // --- 5 ธีมห้องแล็ป นักวิทยาศาสตร์ กรมพัฒนาที่ดิน กระจกแก้วแนวสว่าง (LDD Soil Science Lab Glass Collection) ---
+        'ldd_soil_lab_bright': {
+            name: 'LDD Central Lab Glass',
+            type: 'glass',
+            bgImg: 'https://images.unsplash.com/photo-1581093458791-9f3c3900df4b?q=80&w=2564',
+            card: 'rgba(255,255,255,0.93)',
+            text: '#14532d',
+            border: 'rgba(21,128,61,0.35)',
+            p500: '#15803d',
+            icon: 'fas fa-flask',
+            desc: 'กระจกสว่าง ห้องปฏิบัติการวิเคราะห์ดินกลาง กรมพัฒนาที่ดิน มาตรฐานสากล'
+        },
+        'ldd_soil_chemist': {
+            name: 'Soil Chemist Precision Glass',
+            type: 'glass',
+            bgImg: 'https://images.unsplash.com/photo-1532094349884-543bc11b234d?q=80&w=2564',
+            card: 'rgba(255,255,255,0.93)',
+            text: '#0c4a6e',
+            border: 'rgba(2,132,199,0.35)',
+            p500: '#0284c7',
+            icon: 'fas fa-vial',
+            desc: 'กระจกสว่าง นักเคมีดิน ตรวจวิเคราะห์ธาตุอาหารพืชและกรดด่างดิน'
+        },
+        'ldd_biotech_lab': {
+            name: 'LDD Bio-Organic Lab Glass',
+            type: 'glass',
+            bgImg: 'https://images.unsplash.com/photo-1576086213369-97a306d36557?q=80&w=2564',
+            card: 'rgba(255,255,255,0.92)',
+            text: '#064e3b',
+            border: 'rgba(16,185,129,0.35)',
+            p500: '#059669',
+            icon: 'fas fa-bacterium',
+            desc: 'กระจกสว่าง แล็บเทคโนโลยีชีวภาพ สารเร่ง พด. ฟื้นฟูดินยั่งยืน'
+        },
+        'ldd_spectro_science': {
+            name: 'Spectro Soil Science Glass',
+            type: 'glass',
+            bgImg: 'https://images.unsplash.com/photo-1507668077129-56e32842fceb?q=80&w=2564',
+            card: 'rgba(255,255,255,0.93)',
+            text: '#1e1b4b',
+            border: 'rgba(99,102,241,0.35)',
+            p500: '#6366f1',
+            icon: 'fas fa-atom',
+            desc: 'กระจกสว่าง เครื่องมือวิทยาศาสตร์ขั้นสูง ตรวจวิเคราะห์แร่ธาตุดิน'
+        },
+        'ldd_smart_agrilab': {
+            name: 'LDD Smart Agri-Science Glass',
+            type: 'glass',
+            bgImg: 'https://images.unsplash.com/photo-1530836369250-ef72a3f5cda8?q=80&w=2564',
+            card: 'rgba(255,255,255,0.92)',
+            text: '#78350f',
+            border: 'rgba(217,119,6,0.35)',
+            p500: '#d97706',
+            icon: 'fas fa-wheat-awn',
+            desc: 'กระจกสว่าง วิทยาศาสตร์เกษตรอัจฉริยะ ตรวจสอบคุณภาพดินแม่นยำ'
+        },
+
+        // --- 5 ธีมวิทยาศาสตร์เคมีดิน & ปฐพีวิทยา กระจกแก้วแนวสว่าง (Soil Science & Pedology Light Glass) ---
+        'soil_science_lab': {
+            name: 'Soil Science Lab Glass',
+            type: 'glass',
+            bgImg: 'https://images.unsplash.com/photo-1579154204601-01588f351e67?q=80&w=2564',
+            card: 'rgba(255,255,255,0.93)',
+            text: '#134e4a',
+            border: 'rgba(13,148,136,0.35)',
+            p500: '#0d9488',
+            icon: 'fas fa-flask-vial',
+            desc: 'กระจกสว่าง แล็บวิจัยเคมีดิน ตรวจสอบแร่ธาตุแม่นยำ'
+        },
+        'fertile_soil_field': {
+            name: 'Agronomy Soil Glass',
+            type: 'glass',
+            bgImg: 'https://images.unsplash.com/photo-1464226184884-fa280b87c399?q=80&w=2564',
+            card: 'rgba(255,255,255,0.92)',
+            text: '#78350f',
+            border: 'rgba(217,119,6,0.35)',
+            p500: '#b45309',
+            icon: 'fas fa-seedling',
+            desc: 'กระจกสว่าง ปฐพีวิทยา ผืนดินอุดมสมบูรณ์ แร่ธาตุครบครัน'
+        },
+        'geo_chemist_research': {
+            name: 'Geo-Chemist Research Glass',
+            type: 'glass',
+            bgImg: 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?q=80&w=2564',
+            card: 'rgba(255,255,255,0.93)',
+            text: '#0f172a',
+            border: 'rgba(2,132,199,0.35)',
+            p500: '#0284c7',
+            icon: 'fas fa-microscope',
+            desc: 'กระจกสว่าง วิจัยธรณีเคมี ดินและแร่ธาตุธรรมชาติ'
+        },
+        'soil_microbiology': {
+            name: 'Soil Microbiome Glass',
+            type: 'glass',
+            bgImg: 'https://images.unsplash.com/photo-1592417817098-8f3d69102353?q=80&w=2564',
+            card: 'rgba(255,255,255,0.92)',
+            text: '#14532d',
+            border: 'rgba(34,197,94,0.35)',
+            p500: '#15803d',
+            icon: 'fas fa-dna',
+            desc: 'กระจกสว่าง จุลชีววิทยาในดิน ฟื้นฟูดินยั่งยืน'
+        },
+        'pedology_science': {
+            name: 'Pedology Science Glass',
+            type: 'glass',
+            bgImg: 'https://images.unsplash.com/photo-1500651230702-0e2d8a49d4ad?q=80&w=2564',
+            card: 'rgba(255,255,255,0.93)',
+            text: '#831843',
+            border: 'rgba(179,6,85,0.35)',
+            p500: '#B30655',
+            icon: 'fas fa-compass-drafting',
+            desc: 'กระจกสว่าง ปฐพีศาสตร์ การสำรวจและพัฒนาผืนดิน'
+        },
+
+        // --- 10 ธีมภาพพื้นหลังกระจกแก้วแนวสว่างใหม่ล่าสุด (New Light Glassmorphism Collection) ---
+        'glass_cloud_sky': {
+            name: 'Sky Cloud Glass',
+            type: 'glass',
+            bgImg: 'https://images.unsplash.com/photo-1534088568595-a066f410bcda?q=80&w=2564',
+            card: 'rgba(255,255,255,0.92)',
+            text: '#0369a1',
+            border: 'rgba(56,189,248,0.35)',
+            p500: '#0284c7',
+            icon: 'fas fa-cloud-sun',
+            desc: 'กระจก ท้องฟ้าเมฆขาว สดใส ปลอดโปร่งตา'
+        },
+        'glass_white_marble': {
+            name: 'Carrara Marble Glass',
+            type: 'glass',
+            bgImg: 'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?q=80&w=2564',
+            card: 'rgba(255,255,255,0.93)',
+            text: '#0f172a',
+            border: 'rgba(148,163,184,0.35)',
+            p500: '#475569',
+            icon: 'fas fa-gem',
+            desc: 'กระจก หินอ่อนขาวสว่าง เรียบหรู สะอาดตา'
+        },
+        'glass_morning_dew': {
+            name: 'Morning Dew Glass',
+            type: 'glass',
+            bgImg: 'https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?q=80&w=2564',
+            card: 'rgba(255,255,255,0.92)',
+            text: '#14532d',
+            border: 'rgba(74,222,128,0.35)',
+            p500: '#16a34a',
+            icon: 'fas fa-droplet',
+            desc: 'กระจก น้ำค้างยอดหญ้าเช้า สดชื่น เปี่ยมพลัง'
+        },
+        'glass_crystal_water': {
+            name: 'Crystal Lagoon Glass',
+            type: 'glass',
+            bgImg: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=2564',
+            card: 'rgba(255,255,255,0.92)',
+            text: '#155e75',
+            border: 'rgba(45,212,191,0.35)',
+            p500: '#0891b2',
+            icon: 'fas fa-water',
+            desc: 'กระจก น้ำทะเลคริสตัลระยิบระยับ สบายใจ'
+        },
+        'glass_golden_sunrise': {
+            name: 'Golden Dawn Glass',
+            type: 'glass',
+            bgImg: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?q=80&w=2564',
+            card: 'rgba(255,255,255,0.92)',
+            text: '#78350f',
+            border: 'rgba(251,191,36,0.4)',
+            p500: '#d97706',
+            icon: 'fas fa-sun',
+            desc: 'กระจก รุ่งอรุณสีทอง อบอุ่น สว่างไสว'
+        },
+        'glass_clean_lab': {
+            name: 'Pure Science Glass',
+            type: 'glass',
+            bgImg: 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?q=80&w=2564',
+            card: 'rgba(255,255,255,0.93)',
+            text: '#0369a1',
+            border: 'rgba(14,165,233,0.35)',
+            p500: '#0284c7',
+            icon: 'fas fa-microscope',
+            desc: 'กระจก แล็บเคมีโมเดิร์น ไฮเทค สะอาดบริสุทธิ์'
+        },
+        'glass_spring_blossom': {
+            name: 'Spring Blossom Glass',
+            type: 'glass',
+            bgImg: 'https://images.unsplash.com/photo-1490750967868-88aa4486c946?q=80&w=2564',
+            card: 'rgba(255,255,255,0.92)',
+            text: '#831843',
+            border: 'rgba(244,114,182,0.4)',
+            p500: '#db2777',
+            icon: 'fas fa-spa',
+            desc: 'กระจก ดอกไม้แรกแย้ม อ่อนหวาน ละมุนตา'
+        },
+        'glass_botanic_green': {
+            name: 'Botanic Garden Glass',
+            type: 'glass',
+            bgImg: 'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?q=80&w=2564',
+            card: 'rgba(255,255,255,0.92)',
+            text: '#064e3b',
+            border: 'rgba(52,211,153,0.35)',
+            p500: '#059669',
+            icon: 'fas fa-seedling',
+            desc: 'กระจก เรือนกระจกพฤกษศาสตร์ ร่มรื่น โปร่งแสง'
+        },
+        'glass_pastel_dream': {
+            name: 'Pastel Dream Glass',
+            type: 'glass',
+            bgImg: 'https://images.unsplash.com/photo-1517685352821-92cf88aee5a5?q=80&w=2564',
+            card: 'rgba(255,255,255,0.92)',
+            text: '#4c1d95',
+            border: 'rgba(192,132,252,0.4)',
+            p500: '#8b5cf6',
+            icon: 'fas fa-wand-magic-sparkles',
+            desc: 'กระจก ท้องฟ้าพาสเทล อ่อนโยน ชวนฝัน'
+        },
+        'glass_coastal_breeze': {
+            name: 'Coastal Breeze Glass',
+            type: 'glass',
+            bgImg: 'https://images.unsplash.com/photo-1519046904884-53103b34b206?q=80&w=2564',
+            card: 'rgba(255,255,255,0.92)',
+            text: '#075985',
+            border: 'rgba(56,189,248,0.35)',
+            p500: '#0284c7',
+            icon: 'fas fa-wind',
+            desc: 'กระจก หาดทรายขาว ลมทะเลพัดเย็นสดชื่น'
+        },
+
         // --- ธีมแรงบันดาลใจจากระบบตรวจสอบดิน กรมพัฒนาที่ดิน (OSD101 LDD) ---
         'ldd_soil': { 
             name: 'LDD Smart Soil', 
@@ -1502,7 +1869,7 @@
                         ${t.name}
                         ${isGlass ? '<span class="text-[9px] px-1 py-0.2 rounded bg-pink-500/20 text-pink-700 font-bold">Glass</span>' : ''}
                     </p>
-                    <p class="text-[10px] mt-0.5 leading-tight opacity-80 text-gray-500">${t.desc}</p>
+                    <p class="text-[10px] mt-0.5 leading-tight font-medium text-gray-600">${t.desc}</p>
                 </div>
             </button>
         `}).join('');
@@ -6635,10 +7002,23 @@
     
     function showToast(msg, type = 'success') { 
         const t = document.getElementById('toast'); 
-        t.innerHTML = `<i class="fas fa-${type==='success'?'check-circle text-emerald-400':'exclamation-triangle text-rose-400'} text-2xl"></i> <span>${msg}</span>`; 
-        t.className = `fixed top-6 right-6 z-[120] px-6 py-4 rounded-2xl shadow-2xl text-white transform transition-all duration-500 font-bold flex items-center gap-4 ${type === 'success' ? 'bg-slate-800 border-b-4 border-emerald-500' : 'bg-slate-800 border-b-4 border-rose-500'}`; 
+        if (!t) return;
+        const isSuccess = type === 'success';
+        const isInfo = type === 'info';
+        const iconClass = isSuccess ? 'check-circle text-emerald-600' : (isInfo ? 'info-circle text-blue-600' : 'exclamation-triangle text-rose-600');
+        const borderColor = isSuccess ? 'border-emerald-500' : (isInfo ? 'border-blue-500' : 'border-rose-500');
+        
+        // การ์ดสถานะมุมขวาบน: ขาวกระจกแก้วสว่าง สะอาดตา คอนทราสต์สูง ตัวหนังสือเข้มคมชัด ไม่มืด
+        t.innerHTML = `<i class="fas fa-${iconClass} text-2xl shrink-0"></i> <span class="text-slate-900 font-bold text-sm tracking-wide">${msg}</span>`; 
+        t.className = `fixed top-6 right-6 z-[120] px-6 py-4 rounded-2xl shadow-2xl bg-white/95 backdrop-blur-md border border-slate-200/90 border-b-4 ${borderColor} text-slate-900 transform transition-all duration-500 flex items-center gap-3.5`; 
         t.classList.remove('hidden'); 
-        setTimeout(() => { t.classList.add('translate-x-full', 'opacity-0'); setTimeout(()=> { t.classList.add('hidden'); t.classList.remove('translate-x-full', 'opacity-0'); }, 500); }, 3500); 
+        setTimeout(() => { 
+            t.classList.add('translate-x-full', 'opacity-0'); 
+            setTimeout(() => { 
+                t.classList.add('hidden'); 
+                t.classList.remove('translate-x-full', 'opacity-0'); 
+            }, 500); 
+        }, 3500); 
     }
 
     function formatDate(d) { 
