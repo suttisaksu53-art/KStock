@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>ระบบจัดการสต๊อกวัสดุ Test Kit - กลุ่มวิจัยเคมีดิน สำนักวิทยาศาสตร์เพื่อการพัฒนาที่ดิน (v42 Patient 45s Timeout & Zero Duplicate Login)</title>
+  <title>ระบบจัดการสต๊อกวัสดุ Test Kit - กลุ่มวิจัยเคมีดิน สำนักวิทยาศาสตร์เพื่อการพัฒนาที่ดิน (v43 Seamless Silent Auto-Retry & Resilient Login)</title>
   
   <!-- Preconnect to Google Apps Script & 302 Redirect Echo Domain for Instant Network Handshake -->
   <link rel="preconnect" href="https://script.google.com">
@@ -1630,9 +1630,9 @@
                         .apiHandler({ action, payload });
                 });
             } else {
-                // AbortController with 45s timeout (ให้อดทนรอได้เต็มที่ในกรณี Cold Start ไม่ตัดจบล่วงหน้า ป้องกันผู้ใช้ต้องล็อกอินใหม่)
+                // AbortController with 35s timeout ต่อรอบ (หากรอบแรกติดขัด ระบบจะ Auto-Retry รอบใหม่ทันทีโดยไม่ให้ผู้ใช้ต้องรอนาน)
                 const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 45000);
+                const timeoutId = setTimeout(() => controller.abort(), 35000);
 
                 let res;
                 try {
@@ -1714,8 +1714,8 @@
                 userMsg = 'เซิร์ฟเวอร์กำลังประมวลผล กรุณาลองใหม่อีกครั้ง';
             }
 
-            // Only show toast if it's NOT a silent background update or if action is login/mutation
-            if (!isBackground || action === 'login') {
+            // Only show toast if it's NOT a silent background update (login มี Seamless Auto-Retry ดูแลตัวเองใน form onsubmit)
+            if (!isBackground) {
                 showToast(userMsg, 'error');
             }
             throw err;
@@ -2043,10 +2043,41 @@
         e.preventDefault();
         startLoginProgress();
         try {
-            const user = await api('login', {
-                username: document.getElementById('loginUser').value.trim(),
-                password: document.getElementById('loginPass').value.trim()
-            });
+            const username = document.getElementById('loginUser').value.trim();
+            const password = document.getElementById('loginPass').value.trim();
+            
+            // SEAMLESS AUTO-RETRY: หากเซิร์ฟเวอร์กำลัง Cold Start หรือเน็ตหลุดชั่วคราว ให้รอเชื่อมต่อใหม่อัตโนมัติในหน้านี้เลย ไม่เด้ง Error ให้ผู้ใช้ตกใจ
+            let user = null;
+            let lastErr = null;
+            const maxAttempts = 3;
+
+            for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+                try {
+                    if (attempt > 1) {
+                        const stepText = document.getElementById('loginProgressStepText');
+                        if (stepText) stepText.innerHTML = `<i class="fas fa-sync-alt fa-spin text-amber-500 mr-1.5"></i> กำลังเชื่อมต่อเซิร์ฟเวอร์ใหม่อัตโนมัติ (รอบที่ ${attempt})...`;
+                    }
+                    user = await api('login', { username, password });
+                    if (user) break;
+                } catch (err) {
+                    lastErr = err;
+                    const msg = err.message || '';
+                    // หากเป็นความผิดพลาดด้านรหัสผ่าน หรือยังไม่อนุมัติ ให้หยุดทันที ไม่ต้อง Retry
+                    if (msg.includes('รหัสผ่านไม่ถูกต้อง') || msg.includes('ไม่ได้รับการอนุมัติ') || msg.includes('ไม่พบตาราง') || msg.includes('Username')) {
+                        throw err;
+                    }
+                    // กรณีเน็ตสะดุด / เซิร์ฟเวอร์ตอบสนองช้า: หน่วง 1.5 วินาทีแล้วลองรอบถัดไปแบบเงียบๆ
+                    console.warn(`[Login] Attempt ${attempt} encountered glitch, retrying silently:`, msg);
+                    if (attempt < maxAttempts) {
+                        await new Promise(r => setTimeout(r, 1500));
+                    }
+                }
+            }
+
+            if (!user) {
+                throw lastErr || new Error('ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้ในขณะนี้ กรุณาลองใหม่อีกครั้ง');
+            }
+
             completeLoginProgress();
             
             // รอแอนิเมชัน 100% ชั่วขณะเล็กน้อย (120 ms) เพื่อความนุ่มนวลก่อนสลับหน้าจอ
@@ -2054,7 +2085,7 @@
 
             state.user = user;
             sessionStorage.setItem('user_session', JSON.stringify(state.user));
-            sessionStorage.setItem('auth_pass_hash', btoa(encodeURIComponent(document.getElementById('loginPass').value.trim())));
+            sessionStorage.setItem('auth_pass_hash', btoa(encodeURIComponent(password)));
 
             // ปรับธีมทันทีหาก Backend ส่ง global_theme แนบมากับการล็อกอิน
             if (user && user.global_theme && THEMES[user.global_theme]) {
