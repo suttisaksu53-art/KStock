@@ -1936,7 +1936,7 @@
         const originalBtnHtml = submitBtn ? submitBtn.innerHTML : '';
         if (submitBtn) {
             submitBtn.disabled = true;
-            submitBtn.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i> กำลังโหลดข้อมูลอาจใช้เวลาไม่เกิน 1 นาที`;
+            submitBtn.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i> กำลังโหลดข้อมูลอาจใช้เวลานานไม่เกิน 1 นาที`;
         }
         try {
             const user = await api('login', {
