@@ -3,7 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>ระบบจัดการสต๊อกวัสดุ Test Kit - กลุ่มวิจัยเคมีดิน สำนักวิทยาศาสตร์เพื่อการพัฒนาที่ดิน (v38 Zero-Queue Instant Login & Unified Hydration)</title>
+  <title>ระบบจัดการสต๊อกวัสดุ Test Kit - กลุ่มวิจัยเคมีดิน สำนักวิทยาศาสตร์เพื่อการพัฒนาที่ดิน (v39 Progressive BOM Hydration & Fast Login)</title>
+  
+  <!-- Preconnect to Google Apps Script & 302 Redirect Echo Domain for Instant Network Handshake -->
+  <link rel="preconnect" href="https://script.google.com">
+  <link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
+  <link rel="dns-prefetch" href="https://script.googleusercontent.com">
   
   <!-- ================= LIBRARIES ================= -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -234,7 +239,7 @@
   <!-- ================= LOADING OVERLAY ================= -->
   <div id="loadingOverlay" class="fixed inset-0 bg-black/60 z-[100] hidden flex flex-col items-center justify-center text-white backdrop-blur-sm transition-opacity">
     <div class="loader mb-3"></div>
-    <p class="font-medium animate-pulse text-lg mt-4" id="loadingText">โหลดข้อมูลอาจใช้เวลานานสักนิด(ไม่เกิน 1 นาที)...</p>
+    <p class="font-medium animate-pulse text-lg mt-4" id="loadingText">กำลังประมวลผลข้อมูลโปรดรอ...</p>
   </div>
 
   <!-- ================= CAMERA MODAL ================= -->
@@ -1589,7 +1594,7 @@
 
     // --- 3. API HANDLER & SHARED PROMISE ---
     async function api(action, payload = {}, retries = 2) {
-        const isBackground = ['ping', 'warmup', 'getMaterials', 'getBOM', 'getReports', 'getUsers', 'getLogs', 'getGlobalTheme', 'getInitialData'].includes(action);
+        const isBackground = ['login', 'ping', 'warmup', 'getMaterials', 'getBOM', 'getReports', 'getUsers', 'getLogs', 'getGlobalTheme', 'getInitialData'].includes(action);
         const showOverlay = !isBackground;
         if (showOverlay) {
             const el = document.getElementById('loadingOverlay');
@@ -2462,7 +2467,7 @@
              `;
          }
 
-         // 2. BOM ESTIMATION SECTION
+         // 2. BOM ESTIMATION SECTION (Asynchronous Progressive Hydration)
          const typeYields = {};
          let allTypes = [];
          state.materials.forEach(m => {
@@ -2470,30 +2475,33 @@
          });
          const typesList = [...new Set(allTypes)].filter(t => t && t !== 'ไม่ได้ระบุประเภท');
          
-         typesList.forEach(t => {
-             const bomItems = state.bom ? state.bom.filter(b => b.type === t) : [];
-             if (bomItems.length > 0) {
-                 let minKits = Infinity;
-                 let hasValidReq = false;
-                 
-                 bomItems.forEach(bItem => {
-                     const req = parseFloat(bItem.req_per_kit || 0);
-                     if (req > 0) {
-                         hasValidReq = true;
-                         const mat = state.materials.find(m => m.material_id === bItem.material_id);
-                         const q = mat ? parseInt(mat.qty || 0) : 0;
-                         const kits = Math.floor(q / req);
-                         if (kits < minKits) minKits = kits;
+         const hasBomLoaded = Array.isArray(state.bom) && state.bom.length > 0;
+         if (hasBomLoaded) {
+             typesList.forEach(t => {
+                 const bomItems = state.bom.filter(b => b.type === t);
+                 if (bomItems.length > 0) {
+                     let minKits = Infinity;
+                     let hasValidReq = false;
+                     
+                     bomItems.forEach(bItem => {
+                         const req = parseFloat(bItem.req_per_kit || 0);
+                         if (req > 0) {
+                             hasValidReq = true;
+                             const mat = state.materials.find(m => m.material_id === bItem.material_id);
+                             const q = mat ? parseInt(mat.qty || 0) : 0;
+                             const kits = Math.floor(q / req);
+                             if (kits < minKits) minKits = kits;
+                         }
+                     });
+                     if(hasValidReq) {
+                         typeYields[t] = minKits === Infinity ? 0 : minKits;
                      }
-                 });
-                 if(hasValidReq) {
-                     typeYields[t] = minKits === Infinity ? 0 : minKits;
                  }
-             }
-         });
+             });
+         }
 
          let bomHtml = '';
-         if (Object.keys(typeYields).length > 0 && (typeVal === 'all' || typeYields[typeVal] !== undefined)) {
+         if (hasBomLoaded && Object.keys(typeYields).length > 0 && (typeVal === 'all' || typeYields[typeVal] !== undefined)) {
              let cards = '';
              for (const [t, yieldQty] of Object.entries(typeYields)) {
                  if (typeVal !== 'all' && t !== typeVal) continue;
@@ -2519,7 +2527,7 @@
                  </div>`;
              }
              bomHtml = `
-             <div class="mb-8 fade-in">
+             <div id="bomDashboardContainer" class="mb-8 fade-in">
                  <div class="flex items-center justify-between mb-3.5">
                      <div class="flex items-center gap-2">
                          <div class="w-7 h-7 rounded-lg bg-primary-50 text-primary-600 border border-primary-200 flex items-center justify-center shadow-sm">
@@ -2531,6 +2539,24 @@
                  </div>
                  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                      ${cards}
+                 </div>
+             </div>`;
+         } else if (!hasBomLoaded) {
+             // Progressive Loading Placeholder: ไม่บล็อกหน้าจอหลัก ให้ผู้ใช้เช็คสต๊อกด้านล่างได้ทันทีใน 0 วินาที
+             bomHtml = `
+             <div id="bomDashboardContainer" class="mb-8 fade-in">
+                 <div class="flex items-center justify-between mb-3.5">
+                     <div class="flex items-center gap-2">
+                         <div class="w-7 h-7 rounded-lg bg-primary-50 text-primary-600 border border-primary-200 flex items-center justify-center shadow-sm">
+                             <i class="fas fa-cogs text-xs"></i>
+                         </div>
+                         <h3 class="font-bold text-base sm:text-lg text-gray-800">คาดการณ์กำลังการผลิต (Test Kit)</h3>
+                     </div>
+                     <span class="text-xs font-medium text-gray-400 bg-gray-50 border border-gray-200 px-2.5 py-0.5 rounded-full flex items-center gap-1.5"><i class="fas fa-spinner fa-spin text-primary-500"></i> กำลังอัปเดตสูตร...</span>
+                 </div>
+                 <div class="p-4 rounded-2xl border border-dashed border-gray-200 bg-slate-50/50 flex items-center justify-center gap-2.5 text-gray-400 text-xs py-5">
+                     <i class="fas fa-spinner fa-spin text-primary-500 text-sm"></i>
+                     <span>กำลังโหลดสูตรการผลิต (BOM) ในเบื้องหลัง... ท่านสามารถเช็คสต๊อกพัสดุด้านล่างได้ทันที</span>
                  </div>
              </div>`;
          }
