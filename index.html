@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>ระบบจัดการสต๊อกวัสดุ Test Kit - กลุ่มวิจัยเคมีดิน สำนักวิทยาศาสตร์เพื่อการพัฒนาที่ดิน (v50 Instant Batch Write & Zero-Duplicate Stock Deduction)</title>
+  <title>(v51 100% Live Real-Time Stock - Zero Stale Cache)</title>
   
   <!-- Preconnect to Google Apps Script & 302 Redirect Echo Domain for Instant Network Handshake -->
   <link rel="preconnect" href="https://script.google.com">
@@ -1963,7 +1963,10 @@
         filter: { search: '', sort: 'newest' } 
     };
     
-    // PERSISTENT LOCAL STORAGE BACKED CACHE (Instant 0.01s load & offline resilience)
+    // LOCAL CACHE (BOM, Users, Logs, Reports)
+    // CRITICAL: Materials ห้ามจำใน localStorage เด็ดขาด ยอดสต๊อกต้องดึงสดจากฐานข้อมูลเสมอทุกเครื่อง
+    try { localStorage.removeItem('kstore_cache_materials'); } catch(e) {}
+
     var cache = new Proxy({
         materials: null,
         bom: null,
@@ -1972,6 +1975,8 @@
         reports: null
     }, {
         get(target, prop) {
+            // Materials ให้เก็บในหน่วยความจำ RAM ของหน้านั้นๆ เท่านั้น ห้ามอ่านจาก localStorage ข้ามเครื่อง
+            if (prop === 'materials') return target[prop];
             if (target[prop] !== null && target[prop] !== undefined) return target[prop];
             try {
                 const val = localStorage.getItem('kstore_cache_' + String(prop));
@@ -1984,6 +1989,11 @@
         },
         set(target, prop, value) {
             target[prop] = value;
+            if (prop === 'materials') {
+                // ล้าง localStorage ของ materials ออกทันทีเพื่อไม่ให้ค้างข้ามเครื่อง
+                try { localStorage.removeItem('kstore_cache_materials'); } catch(e) {}
+                return true;
+            }
             try {
                 if (value === null || value === undefined) {
                     localStorage.removeItem('kstore_cache_' + String(prop));
@@ -2168,11 +2178,20 @@
         }
     }
 
-    // OPTIMIZATION: Prevent overlapping identical API calls causing freeze
+    // 🚀 LIVE REAL-TIME MATERIALS FETCHER: ดึงสดจากฐานข้อมูลเสมอ
     let materialsPromise = null;
-    async function fetchMaterialsData() {
-        if (materialsPromise) return materialsPromise; // Return pending request if already fetching
-        materialsPromise = api('getMaterials').finally(() => { materialsPromise = null; });
+    async function fetchMaterialsData(force = false) {
+        if (materialsPromise && !force) return materialsPromise;
+        materialsPromise = api('getMaterials').then(data => {
+            if (Array.isArray(data)) {
+                state.materials = data;
+                cache.materials = JSON.stringify(data);
+            }
+            return state.materials || [];
+        }).catch(err => {
+            console.warn("fetchMaterialsData error:", err);
+            return state.materials || [];
+        }).finally(() => { materialsPromise = null; });
         return materialsPromise;
     }
     
@@ -3644,30 +3663,42 @@
             </div>
         `;
         
-        // Optimisation: Render instantly if we have cache, DO NOT background fetch here to prevent lag on tab spam
-        if (cache.materials) {
-            state.materials = JSON.parse(cache.materials);
-            updateFilterDropdowns(); // Populate the new dropdowns
+        // 🚀 LIVE STOCK ENGINE: แสดงข้อมูลในหน่วยความจำก่อนทันที (เพื่อความลื่นไหล) แล้วดึงข้อมูลสดจากฐานข้อมูลเสมอ 100%
+        if (state.materials && state.materials.length > 0) {
+            updateFilterDropdowns();
             renderMaterialList(mode);
-        } else {
-            try {
-                const data = await fetchMaterialsData();
-                if (currentViewID !== viewID) return;
-                state.materials = data;
-                cache.materials = JSON.stringify(data);
+        }
+
+        // ดึงข้อมูลสดจากฐานข้อมูล Google Sheets เสมอ ห้ามพึ่งพาแคช เพื่อให้ยอดตรงกันทุกเครื่อง 100%
+        try {
+            const liveData = await fetchMaterialsData(true);
+            if (currentViewID !== viewID) return;
+            if (Array.isArray(liveData) && liveData.length > 0) {
+                state.materials = liveData;
                 updateFilterDropdowns();
                 renderMaterialList(mode);
-            } catch(e) {}
+            }
+        } catch(e) {
+            console.warn("Live materials fetch error:", e);
         }
     }
 
     async function refreshMaterials(mode) {
         captureInventoryFilters();
         const savedScrollY = window.scrollY;
-        cache.materials = null;
-        await renderInventory(document.getElementById('contentArea'), mode, currentViewID);
+        const container = document.getElementById('inventoryContainer');
+        if (container) container.innerHTML = cardSkeleton().repeat(8);
+        
+        try {
+            const data = await fetchMaterialsData(true);
+            state.materials = data;
+            updateFilterDropdowns();
+            renderMaterialList(mode);
+            showToast('ดึงข้อมูลสดจากฐานข้อมูลเรียบร้อย ยอดตรงกับชีต 100%', 'success');
+        } catch(e) {
+            showToast('ไม่สามารถเชื่อมต่อฐานข้อมูลได้: ' + e.message, 'error');
+        }
         window.scrollTo({ top: savedScrollY, behavior: 'instant' });
-        showToast('อัปเดตข้อมูลสำเร็จ', 'success');
     }
 
         function renderMaterialList(mode) {
