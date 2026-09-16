@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>ระบบจัดการสต๊อกวัสดุ Test Kit - กลุ่มวิจัยเคมีดิน สำนักวิทยาศาสตร์เพื่อการพัฒนาที่ดิน (v47 3 High-Contrast OSD & LDD Soil Lab Glass Themes)</title>
+  <title>ระบบจัดการสต๊อกวัสดุ Test Kit - กลุ่มวิจัยเคมีดิน สำนักวิทยาศาสตร์เพื่อการพัฒนาที่ดิน (v50 Instant Batch Write & Zero-Duplicate Stock Deduction)</title>
   
   <!-- Preconnect to Google Apps Script & 302 Redirect Echo Domain for Instant Network Handshake -->
   <link rel="preconnect" href="https://script.google.com">
@@ -276,6 +276,42 @@
     }
     html[data-theme="soil_solution_precision"] .btn-primary:hover {
       background: linear-gradient(135deg, #0369a1 0%, #0284c7 100%) !important;
+    }
+
+    /* --- 🌟 MASTERPIECE THEME: LDD SOIL pH TEST KIT (ชุดตรวจสอบความเป็นกรด-ด่างของดิน กรมพัฒนาที่ดิน) --- */
+    html[data-theme="ldd_ph_testkit"] header {
+      border-top: 4px solid transparent !important;
+      border-image: linear-gradient(to right, #dc2626 0%, #ea580c 20%, #ca8a04 40%, #059669 60%, #0284c7 80%, #7c3aed 100%) 1 !important;
+    }
+    html[data-theme="ldd_ph_testkit"] .nav-item.active {
+      background: linear-gradient(135deg, #059669 0%, #047857 100%) !important;
+      color: #ffffff !important;
+      box-shadow: 0 4px 14px rgba(5, 150, 105, 0.35) !important;
+    }
+    html[data-theme="ldd_ph_testkit"] .btn-primary {
+      background: linear-gradient(135deg, #059669 0%, #047857 100%) !important;
+      box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3) !important;
+    }
+    html[data-theme="ldd_ph_testkit"] .btn-primary:hover {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+    }
+
+    /* --- 🌟 MASTERPIECE THEME 2: LDD HI-TECH pH LAB (ห้องแล็บไฮเทค สวด.) --- */
+    html[data-theme="ldd_ph_hitech_lab"] header {
+      border-top: 4px solid transparent !important;
+      border-image: linear-gradient(to right, #dc2626 0%, #ea580c 20%, #eab308 40%, #10b981 60%, #06b6d4 80%, #8b5cf6 100%) 1 !important;
+    }
+    html[data-theme="ldd_ph_hitech_lab"] .nav-item.active {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+      color: #ffffff !important;
+      box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35) !important;
+    }
+    html[data-theme="ldd_ph_hitech_lab"] .btn-primary {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3) !important;
+    }
+    html[data-theme="ldd_ph_hitech_lab"] .btn-primary:hover {
+      background: linear-gradient(135deg, #34d399 0%, #10b981 100%) !important;
     }
 
     /* Clean Compact Table Styling */
@@ -1095,6 +1131,34 @@
     
     // รวมมิตร 40 ธีมระดับพรีเมียม! (เพิ่ม 12 ธีมกระจกแก้วแนวสว่าง + กรมพัฒนาที่ดิน & สำนักวิทยาศาสตร์ฯ)
     var THEMES = {
+        // 🌟 MASTERPIECE THEME 2: ห้องแล็บวิทยาศาสตร์ สวด. ไฮเทคสมจริง (LDD Hi-Tech pH Lab)
+        'ldd_ph_hitech_lab': {
+            name: 'LDD Hi-Tech pH Lab',
+            type: 'glass',
+            bgImg: 'https://images.unsplash.com/photo-1576086213369-97a306d36557?q=80&w=2564',
+            card: 'rgba(255, 255, 255, 0.95)',
+            text: '#0f172a',
+            border: 'rgba(16, 185, 129, 0.4)',
+            p500: '#10b981',
+            p600: '#059669',
+            icon: 'fas fa-microscope',
+            desc: 'มาสเตอร์พีซ แล็ปไฮเทค สวด. ภาพสมจริง สว่างคมชัด พร้อมสเปกตรัม pH สวด.05'
+        },
+
+        // 🌟 MASTERPIECE THEME: ชุดตรวจสอบความเป็นกรด-ด่างของดิน กรมพัฒนาที่ดิน (LDD Soil pH Test Kit Masterpiece)
+        'ldd_ph_testkit': {
+            name: 'LDD Soil pH TestKit',
+            type: 'glass',
+            bgImg: 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?q=80&w=2564',
+            card: 'rgba(255, 255, 255, 0.96)',
+            text: '#14532d',
+            border: 'rgba(16, 185, 129, 0.4)',
+            p500: '#059669',
+            p600: '#047857',
+            icon: 'fas fa-vial-circle-check',
+            desc: 'มาสเตอร์พีซ แผ่นเทียบสี สวด.05 ดินสมบูรณ์ pH 6.5-7.0 คมชัดสมบูรณ์แบบ'
+        },
+
         // --- ธีมทางการ กรมพัฒนาที่ดิน & สำนักวิทยาศาสตร์เพื่อการพัฒนาที่ดิน (กระจกแก้วแนวสว่าง) ---
         'ldd_glass_official': {
             name: 'LDD Royal Soil Glass',
@@ -1986,6 +2050,15 @@
             const el = document.getElementById('loadingOverlay');
             if (el) el.classList.remove('hidden');
         }
+
+        // CRITICAL BUGFIX: คำสั่งที่บันทึก/แก้ไขฐานข้อมูล ต้องห้าม Retry เด็ดขาด และต้องแนบ requestId ป้องกันสต๊อกซ้ำซ้อน 100%
+        const isMutating = ['login', 'register', 'importMaterial', 'withdrawMaterial', 'batchTransaction', 'produceKit', 'undoProduceKit', 'addMaterial', 'updateMaterial', 'deleteMaterial', 'saveBOM', 'changePassword', 'updateUserStatus', 'updateGlobalTheme', 'clearSystemCache'].includes(action);
+        if (isMutating) {
+            retries = 0; // ล็อค retries = 0 เสมอ ไม่ให้ยิงซ้ำเด็ดขาด
+            if (payload && typeof payload === 'object' && !payload.requestId && !payload.client_tx_id) {
+                payload.requestId = 'REQ-' + Date.now() + '-' + Math.random().toString(36).substr(2, 8);
+            }
+        }
         
         try {
             let result;
@@ -2022,9 +2095,9 @@
                 } catch (parseErr) {
                     console.warn(`[api] Action "${action}" non-JSON response:`, rawText ? rawText.slice(0, 150) : '(empty)');
                     if (action === 'getGlobalTheme') return null;
-                    // BUGFIX: login/register ห้าม retry เมื่อได้ non-JSON — ป้องกัน Log ซ้ำ
-                    if (['login', 'register'].includes(action)) {
-                        throw new Error('เซิร์ฟเวอร์ตอบสนองไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง');
+                    // CRITICAL: คำสั่ง Mutating ทุกชนิด ห้าม retry เมื่อได้ non-JSON เด็ดขาด ป้องกันการตัดยอดซ้ำ
+                    if (isMutating) {
+                        throw new Error('เซิร์ฟเวอร์ใช้เวลาประมวลผลนาน ระบบจะไม่ส่งคำขอซ้ำเพื่อป้องกันสต๊อกซ้ำซ้อน กรุณารีเฟรชเพื่อตรวจสอบยอด');
                     }
                     if (retries > 0) {
                         await new Promise(r => setTimeout(r, 1200));
@@ -2053,24 +2126,31 @@
             // Never show toast for silent background theme sync or ping/warmup
             if (action === 'getGlobalTheme' || action === 'ping' || action === 'warmup') return null;
 
-            // Auto-retry on mobile network drops (AbortError, TypeError, Load failed, Failed to fetch)
+            if (isMutating) {
+                // คำสั่ง Mutating ห้าม Retry ทุกกรณี เพื่อป้องกันสต๊อกซ้ำซ้อน 100%
+                let userMsg = err.message || 'เกิดข้อผิดพลาดในการเชื่อมต่อ';
+                if (err.name === 'AbortError') {
+                    userMsg = 'การเชื่อมต่อใช้เวลานานเกินกำหนด ระบบจะไม่ส่งซ้ำเพื่อป้องกันสต๊อกซ้ำซ้อน กรุณารีเฟรชเพื่อตรวจสอบยอดสต๊อก';
+                } else if (userMsg.includes('Load failed') || userMsg.includes('Failed to fetch') || err.name === 'TypeError') {
+                    userMsg = 'การเชื่อมต่อเครือข่ายขัดข้อง ระบบจะไม่ส่งคำขอซ้ำ กรุณาตรวจสอบยอดสต๊อกหรือลองใหม่อีกครั้ง';
+                }
+                if (!isBackground) {
+                    showToast(userMsg, 'error');
+                }
+                throw err;
+            }
+
+            // Auto-retry on mobile network drops สำหรับคำสั่งอ่านข้อมูลเท่านั้น (ReadOnly Queries)
             const isNetworkError = err.name === 'AbortError' || 
                                    err.name === 'TypeError' || 
                                    String(err.message).includes('Load failed') || 
                                    String(err.message).includes('Failed to fetch') ||
                                    String(err.message).includes('NetworkError');
 
-            // CRITICAL: ป้องกันการส่งซ้ำอัตโนมัติสำหรับคำสั่งที่เขียนลงฐานข้อมูล (ป้องกันสต๊อกซ้ำซ้อน 100%)
-            const isMutating = ['login', 'register', 'importMaterial', 'withdrawMaterial', 'batchTransaction', 'produceKit', 'undoProduceKit', 'addMaterial', 'updateMaterial', 'deleteMaterial', 'saveBOM', 'changePassword'].includes(action);
-
-            if (retries > 0 && isNetworkError && (!isMutating || err.name !== 'AbortError')) {
+            if (retries > 0 && isNetworkError) {
                 const backoff = (3 - retries) * 1500; // Progressive backoff: 1.5s, 3s
                 await new Promise(r => setTimeout(r, backoff));
                 return await api(action, payload, retries - 1);
-            }
-
-            if (isMutating && err.name === 'AbortError') {
-                throw new Error('การเชื่อมต่อใช้เวลานานเกินกำหนด ระบบจะไม่ส่งซ้ำเพื่อป้องกันสต๊อกซ้ำซ้อน กรุณารีเฟรชเพื่อตรวจสอบยอดสต๊อก');
             }
 
             // User-friendly message instead of raw iOS WebKit technical jargon
@@ -2081,7 +2161,6 @@
                 userMsg = 'เซิร์ฟเวอร์กำลังประมวลผล กรุณาลองใหม่อีกครั้ง';
             }
 
-            // Only show toast if it's NOT a silent background update (login มี Seamless Auto-Retry ดูแลตัวเองใน form onsubmit)
             if (!isBackground) {
                 showToast(userMsg, 'error');
             }
@@ -4731,7 +4810,9 @@
         }
     };
 
+    let isSubmittingProd = false;
     window.promptProduction = function() {
+        if (isSubmittingProd) return;
         const pass = prompt('กรุณาใส่รหัสผ่านของคุณเพื่อยืนยันการสั่งผลิตตัดสต๊อก\n(ห้ามยกเลิกหากไม่จำเป็น)');
         if (pass) {
             executeProduction(pass);
@@ -4739,16 +4820,21 @@
     };
 
     async function executeProduction(password) {
+        if (isSubmittingProd) return;
+        isSubmittingProd = true;
+        const prodReqId = 'PROD-REQ-' + Date.now() + '-' + Math.random().toString(36).substr(2, 7);
+
         document.getElementById('loadingOverlay').classList.remove('hidden');
         document.getElementById('loadingText').innerText = 'กำลังบันทึกการผลิตและตัดสต๊อก...';
         
         try {
             const res = await api('produceKit', { 
+                requestId: prodReqId,
                 password: password, 
                 username: state.user.username,
                 fullname: state.user.fullname || state.user.username,
                 productionPlan: window.currentProductionPlan 
-            });
+            }, 0);
             
             showToast(`สั่งผลิตสำเร็จ! Ref: ${res.ref_doc}`, 'success');
             
@@ -4769,10 +4855,11 @@
             
         } catch (e) {
             showToast(e.message || 'รหัสผ่านไม่ถูกต้อง หรือสต๊อกไม่พอ', 'error');
+        } finally {
+            isSubmittingProd = false;
+            document.getElementById('loadingOverlay').classList.add('hidden');
+            document.getElementById('loadingText').innerText = 'กำลังประมวลผลข้อมูลโปรดรอ...';
         }
-        
-        document.getElementById('loadingOverlay').classList.add('hidden');
-        document.getElementById('loadingText').innerText = 'กำลังประมวลผลข้อมูลโปรดรอ...';
     }
 
     window.exportPurchaseCSV = function(isProd = null) {
@@ -5253,14 +5340,18 @@
         if (isSubmittingCart) return;
         isSubmittingCart = true;
 
+        // สร้าง Transaction Request ID ประจำคำขอนี้
+        const clientTxId = 'TX-' + Date.now() + '-' + Math.random().toString(36).substr(2, 7);
+
         const elOverlay = document.getElementById('loadingOverlay');
         const elText = document.getElementById('loadingText');
         if (elOverlay) elOverlay.classList.remove('hidden');
         if (elText) elText.innerText = `กำลังบันทึก ${transCart.length} รายการโปรดรอ...`;
 
         try {
-            // 1. ลองใช้ batchTransaction ก่อน (รวดเร็วในคำขอเดียว 1-2 วินาที ปลอดภัย ไม่ซ้ำซ้อน)
+            // 1. ลองใช้ batchTransaction ก่อน (รวดเร็วในคำขอเดียว 0.5-1 วินาที ปลอดภัย ไม่ซ้ำซ้อน)
             await api('batchTransaction', {
+                requestId: clientTxId,
                 mode: currentTransMode,
                 items: transCart.map(item => ({
                     material_id: item.material_id,
@@ -5273,7 +5364,7 @@
                 custom_timestamp: customTimestamp,
                 password: password,
                 username: state.user.username
-            });
+            }, 0);
 
             const count = transCart.length;
             const completedItems = [...transCart];
