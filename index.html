@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>(v51 100% Live Real-Time Stock - Zero Stale Cache)</title>
+  <title>(v52 Instant Fast Dashboard & Manual Refresh)</title>
   
   <!-- Preconnect to Google Apps Script & 302 Redirect Echo Domain for Instant Network Handshake -->
   <link rel="preconnect" href="https://script.google.com">
@@ -2923,60 +2923,56 @@
 
     // --- 6. VIEW: DASHBOARD ---
     async function renderDashboard(c, viewID) {
-        let renderedFromCache = false;
-        const hasMatCache = (cache.materials && cache.materials !== 'null') || (state.materials && state.materials.length > 0);
+        if (currentViewID !== viewID) return;
 
-        // 1. เรนเดอร์ทันทีจากแคชในเครื่อง (0.01 วินาที ไม่ต้องค้างหน้ากำลังโหลด)
-        if (hasMatCache) {
-            try {
-                if (cache.materials && cache.materials !== 'null') {
-                    state.materials = typeof cache.materials === 'string' ? JSON.parse(cache.materials) : cache.materials;
-                }
-                if (cache.bom && cache.bom !== 'null') {
-                    state.bom = typeof cache.bom === 'string' ? JSON.parse(cache.bom) : cache.bom;
-                }
-                updateDashboardUI(c, viewID);
-                renderedFromCache = true;
-            } catch(e) {
-                console.warn("Error rendering dashboard from cache:", e);
-            }
+        // 🚀 INSTANT 0ms DASHBOARD:
+        // หากมีข้อมูล materials อยู่แล้วใน state (จากการล็อกอิน หรือการทำรายการล่าสุด) ให้เรนเดอร์ทันที 0 ms!
+        // ไม่ต้องยิง fetchDashboardData() หรือ doPost ซ้ำซ้อนไปกวนเซิร์ฟเวอร์
+        if (state.materials && state.materials.length > 0) {
+            updateDashboardUI(c, viewID);
+            return;
         }
 
-        // 2. แสดงหน้าโหลดเฉพาะเมื่อไม่มีข้อมูลในเครื่องเลย (เช่น เปิดใช้งานครั้งแรกสุด)
-        if (!renderedFromCache) {
-            c.innerHTML = `
-                <div class="flex flex-col items-center justify-center min-h-[45vh] text-center p-6 fade-in">
-                    <div class="w-12 h-12 rounded-full border-4 border-primary-500 border-t-transparent animate-spin mb-4 shadow-sm"></div>
-                    <h3 class="font-bold text-base sm:text-lg text-gray-800 mb-1">กำลังโหลดข้อมูลภาพรวมระบบ...</h3>
-                    <p class="text-xs text-gray-400">กรุณารอสักครู่ ระบบกำลังซิงค์ข้อมูลสต๊อกและรายงานล่าสุด</p>
-                </div>`;
-        }
-        
+        // กรณีเปิดเว็บมาครั้งแรกสุด หรือเพิ่งรีเฟรชทั้งหน้าเว็บแล้วยังไม่มี materials ใน RAM
+        c.innerHTML = `
+            <div class="flex flex-col items-center justify-center min-h-[45vh] text-center p-6 fade-in">
+                <div class="w-12 h-12 rounded-full border-4 border-primary-500 border-t-transparent animate-spin mb-4 shadow-sm"></div>
+                <h3 class="font-bold text-base sm:text-lg text-gray-800 mb-1">กำลังโหลดข้อมูลภาพรวมระบบ...</h3>
+                <p class="text-xs text-gray-400">กรุณารอสักครู่ กำลังดึงข้อมูลสถิติจากฐานข้อมูลครั้งแรก</p>
+            </div>`;
+
         try {
-            // อัปเดตข้อมูลเบื้องหลังแบบเงียบๆ (Silent background update)
             const initialData = await fetchDashboardData();
             if (currentViewID !== viewID) return; 
-
-            const matData = initialData.materials || [];
-            const bomData = initialData.bom || [];
-
-            const oldMatStr = typeof cache.materials === 'string' ? cache.materials : JSON.stringify(cache.materials || '');
-            const oldBomStr = typeof cache.bom === 'string' ? cache.bom : JSON.stringify(cache.bom || '');
-            const newMatStr = JSON.stringify(matData);
-            const newBomStr = JSON.stringify(bomData);
-            const dataChanged = oldMatStr !== newMatStr || oldBomStr !== newBomStr;
-
-            state.materials = matData;
-            state.bom = bomData;
-            cache.materials = newMatStr;
-            cache.bom = newBomStr;
-
-            // ปรับปรุง UI เฉพาะเมื่อข้อมูลมีการเปลี่ยนแปลงจริง หรือยังไม่เคยเรนเดอร์มาก่อน
-            if (!renderedFromCache || dataChanged) {
-                updateDashboardUI(c, viewID);
-            }
+            state.materials = initialData.materials || [];
+            state.bom = initialData.bom || [];
+            updateDashboardUI(c, viewID);
         } catch(e) {
-            console.warn("Background dashboard fetch completed with warning:", e);
+            console.warn("Dashboard initial fetch warning:", e);
+        }
+    }
+
+    // 🔄 DASHBOARD MANUAL REFRESH: ดึงข้อมูลสดจากฐานข้อมูลเมื่อผู้ใช้กดปุ่มรีเฟรชเท่านั้น
+    async function refreshDashboard() {
+        const icon = document.getElementById('iconRefreshDashboard');
+        const btn = document.getElementById('btnRefreshDashboard');
+        if (icon) icon.classList.add('fa-spin');
+        if (btn) btn.disabled = true;
+
+        try {
+            const [matData, bomData] = await Promise.all([
+                fetchMaterialsData(true),
+                api('getBOM')
+            ]);
+            if (Array.isArray(matData)) state.materials = matData;
+            if (Array.isArray(bomData)) state.bom = bomData;
+            updateDashboardUI(document.getElementById('contentArea'), currentViewID);
+            showToast('อัปเดตข้อมูลภาพรวมจากฐานข้อมูลสำเร็จ', 'success');
+        } catch(e) {
+            showToast('ไม่สามารถดึงข้อมูลจากฐานข้อมูลได้: ' + (e.message || 'เกิดข้อผิดพลาด'), 'error');
+        } finally {
+            if (icon) icon.classList.remove('fa-spin');
+            if (btn) btn.disabled = false;
         }
     }
 
@@ -3185,6 +3181,10 @@
                         <option value="all" ${typeVal === 'all' ? 'selected' : ''}>ทุกประเภท (All Types)</option>
                         ${typeOptions}
                     </select>
+                    <button onclick="refreshDashboard()" id="btnRefreshDashboard" class="px-3 py-2 rounded-xl shadow-sm transition transform active:scale-95 border border-custom flex items-center gap-1.5 text-xs sm:text-sm font-medium hover:bg-black/5" style="background: var(--card-bg); color: var(--text-main);" title="รีเฟรชข้อมูลจากฐานข้อมูล">
+                        <i class="fas fa-sync-alt text-primary-500" id="iconRefreshDashboard"></i>
+                        <span class="hidden sm:inline">รีเฟรช</span>
+                    </button>
                 </div>
             </div>
 
@@ -3231,7 +3231,7 @@
                                 <p class="text-[10px] text-gray-400">Lowest Stock Alerts</p>
                             </div>
                         </div>
-                        <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-100 text-rose-700 border border-rose-200">ไกล้หมด</span>
+                        <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-100 text-rose-700 border border-rose-200">เฝ้าระวัง</span>
                     </div>
                     <div class="relative flex-1 min-h-[260px] w-full"><canvas id="bottomStockChart"></canvas></div>
                 </div>
@@ -3694,7 +3694,7 @@
             state.materials = data;
             updateFilterDropdowns();
             renderMaterialList(mode);
-            showToast('ดึงข้อมูลสดจากฐานข้อมูลเรียบร้อย', 'success');
+            showToast('ดึงข้อมูลสดจากฐานข้อมูลเรียบร้อย ', 'success');
         } catch(e) {
             showToast('ไม่สามารถเชื่อมต่อฐานข้อมูลได้: ' + e.message, 'error');
         }
