@@ -31,6 +31,15 @@
   <!-- ================= ANTI-DEVTOOLS & SECURITY PROTECTION ================= -->
   <script>
     (function() {
+      // 📱 ข้ามการทำงานทั้งหมดบนสมาร์ทโฟนและแท็บเล็ต เพื่อให้คีย์บอร์ดและพิมพ์ข้อความได้สะดวก 100%
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) 
+        || (navigator.maxTouchPoints && navigator.maxTouchPoints > 1) 
+        || ('ontouchstart' in window);
+
+      if (isMobile) {
+        return; // ไม่ต้องป้องกันใดๆ บนสมาร์ทโฟน
+      }
+
       // Secret key to allow DevTools for Admin: Ctrl + Alt + Shift + D
       let devtoolsAllowed = sessionStorage.getItem('kstore_allow_devtools') === 'true';
 
