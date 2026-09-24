@@ -2258,7 +2258,11 @@
             ]);
             result = {
               materials: matSnap.docs.map(d => ({ material_id: d.id, ...d.data() })),
-              bom: bomSnap.docs.map(d => d.data())
+              bom: bomSnap.docs.map(d => {
+                const data = d.data();
+                const req = parseFloat(data.req_per_kit ?? data.req_qty ?? data['Req/Kit'] ?? 0);
+                return { ...data, req_per_kit: req, req_qty: req };
+              })
             };
             break;
           }
@@ -2271,7 +2275,11 @@
 
           case 'getBOM': {
             const snap = await db.collection('bom').get();
-            result = snap.docs.map(d => d.data());
+            result = snap.docs.map(d => {
+              const data = d.data();
+              const req = parseFloat(data.req_per_kit ?? data.req_qty ?? data['Req/Kit'] ?? 0);
+              return { ...data, req_per_kit: req, req_qty: req };
+            });
             break;
           }
 
@@ -2348,7 +2356,11 @@
             userData.user_id = userDoc.id;
             userData.initialData = {
               materials: mSnap.docs.map(d => ({ material_id: d.id, ...d.data() })),
-              bom: bSnap.docs.map(d => d.data())
+              bom: bSnap.docs.map(d => {
+                const data = d.data();
+                const req = parseFloat(data.req_per_kit ?? data.req_qty ?? data['Req/Kit'] ?? 0);
+                return { ...data, req_per_kit: req, req_qty: req };
+              })
             };
             result = userData;
             break;
@@ -2648,20 +2660,33 @@
           }
 
           case 'saveBOM': {
-            const bSnap = await db.collection('bom').get();
-            const bBatch = db.batch();
-            bSnap.docs.forEach(d => bBatch.delete(d.ref));
-            await bBatch.commit();
+            const targetType = payload.type ? String(payload.type).trim() : null;
+            const newItems = Array.isArray(payload.items) ? payload.items : (Array.isArray(payload.bom) ? payload.bom : []);
 
-            const newItems = payload.bom || [];
+            if (targetType) {
+              const snap = await db.collection('bom').where('type', '==', targetType).get();
+              const bBatch = db.batch();
+              snap.docs.forEach(d => bBatch.delete(d.ref));
+              await bBatch.commit();
+            } else {
+              const snap = await db.collection('bom').get();
+              const bBatch = db.batch();
+              snap.docs.forEach(d => bBatch.delete(d.ref));
+              await bBatch.commit();
+            }
+
             const addBatch = db.batch();
             newItems.forEach(item => {
-              const dRef = db.collection('bom').doc();
-              addBatch.set(dRef, {
-                type: String(item.type || item.Type || '').trim(),
-                material_id: String(item.material_id || item['Material ID'] || '').trim(),
-                req_qty: parseFloat(item.req_qty || item['Req/Kit'] || 0)
-              });
+              const req = parseFloat(item.req_qty ?? item.req_per_kit ?? item['Req/Kit'] ?? 0);
+              if (req > 0) {
+                const dRef = db.collection('bom').doc();
+                addBatch.set(dRef, {
+                  type: String(item.type || item.Type || targetType || '').trim(),
+                  material_id: String(item.material_id || item['Material ID'] || '').trim(),
+                  req_qty: req,
+                  req_per_kit: req
+                });
+              }
             });
             await addBatch.commit();
             result = { message: 'บันทึกสูตรการผลิตสำเร็จ' };
@@ -4736,7 +4761,7 @@
         const map = getUniqueTypesAndCategories();
         const types = Object.keys(map).sort();
         const typeOptions = types.map((t, idx) => {
-            const count = state.bom ? state.bom.filter(b => b.type === t && parseFloat(b.req_per_kit || 0) > 0).length : 0;
+            const count = state.bom ? state.bom.filter(b => b.type === t && parseFloat(b.req_per_kit ?? b.req_qty ?? 0) > 0).length : 0;
             return `
             <div class="relative bg-white border-2 border-custom rounded-2xl p-4 cursor-pointer hover:border-primary-400 transition-all shadow-sm group" onclick="toggleTestKitSelection(this, 'purchasing', ${idx})">
                 <div class="absolute top-3 right-3 text-gray-300 group-hover:text-primary-300 transition-colors check-icon">
@@ -4987,7 +5012,7 @@
         const map = getUniqueTypesAndCategories();
         const types = Object.keys(map).sort();
         const typeOptions = types.map((t, idx) => {
-            const count = state.bom ? state.bom.filter(b => b.type === t && parseFloat(b.req_per_kit || 0) > 0).length : 0;
+            const count = state.bom ? state.bom.filter(b => b.type === t && parseFloat(b.req_per_kit ?? b.req_qty ?? 0) > 0).length : 0;
             return `
             <div class="relative bg-white border-2 border-custom rounded-2xl p-4 cursor-pointer hover:border-emerald-400 transition-all shadow-sm group" onclick="toggleTestKitSelection(this, '${mode}', ${idx})">
                 <div class="absolute top-3 right-3 text-gray-300 group-hover:text-emerald-300 transition-colors check-icon">
@@ -5156,7 +5181,7 @@
         mats.forEach(m => {
             // Read req amount directly from the central state instead of relying on the DOM
             const bItem = state.bom.find(b => b.material_id === m.material_id && b.type === t);
-            const req = bItem ? parseFloat(bItem.req_per_kit || 0) : 0;
+            const req = bItem ? parseFloat(bItem.req_per_kit ?? bItem.req_qty ?? 0) : 0;
             const dispCat = m.category || m.Category || m['หมวดหมู่'] || '';
             
             html += `
@@ -5168,7 +5193,7 @@
                 </div>
                 <div class="w-24 shrink-0 text-right">
                     <label class="text-[10px] font-bold text-gray-500 mb-1 block">ใช้/ชุด</label>
-                    <input type="number" min="0" step="0.1" value="${req}" class="bom-input w-full px-2 py-1.5 rounded-lg border border-custom text-center text-sm font-bold focus:ring-2 focus:ring-primary-500 outline-none" style="background: var(--input-bg); color: var(--text-main);" oninput="updateBOMItem('${t}', '${m.material_id}', this.value)">
+                    <input type="number" min="0" step="0.001" value="${req}" class="bom-input w-full px-2 py-1.5 rounded-lg border border-custom text-center text-sm font-bold focus:ring-2 focus:ring-primary-500 outline-none" style="background: var(--input-bg); color: var(--text-main);" oninput="updateBOMItem('${t}', '${m.material_id}', this.value)">
                 </div>
             </div>`;
         });
@@ -5183,8 +5208,9 @@
         let existing = state.bom.find(b => b.material_id === matId && b.type === type);
         if (existing) {
             existing.req_per_kit = req;
+            existing.req_qty = req;
         } else {
-            state.bom.push({ type: type, material_id: matId, req_per_kit: req });
+            state.bom.push({ type: type, material_id: matId, req_per_kit: req, req_qty: req });
         }
         
         // Recalculate global production summary
@@ -5198,7 +5224,7 @@
         const bomItemsForType = state.bom.filter(b => b.type === type);
         
         bomItemsForType.forEach(bItem => {
-            const req = parseFloat(bItem.req_per_kit || 0);
+            const req = parseFloat(bItem.req_per_kit ?? bItem.req_qty ?? 0);
             if (req > 0) {
                 hasReq = true;
                 const mat = state.materials.find(m => m.material_id === bItem.material_id);
@@ -5226,9 +5252,11 @@
         document.getElementById('loadingText').innerText = 'กำลังบันทึกสูตรการผลิต...';
 
         // Extract items ONLY for the currently selected type that have a requirement > 0 from state
-        const itemsToSave = state.bom.filter(b => b.type === type && parseFloat(b.req_per_kit || 0) > 0).map(b => ({
+        const itemsToSave = state.bom.filter(b => b.type === type && parseFloat(b.req_per_kit ?? b.req_qty ?? 0) > 0).map(b => ({
+            type: type,
             material_id: b.material_id,
-            req_per_kit: b.req_per_kit
+            req_qty: parseFloat(b.req_per_kit ?? b.req_qty ?? 0),
+            req_per_kit: parseFloat(b.req_per_kit ?? b.req_qty ?? 0)
         }));
 
         try {
@@ -5236,7 +5264,7 @@
             showToast(`บันทึกสูตรการผลิต ${type} เรียบร้อยแล้ว`, 'success');
             
             // Clean state and cache just to be safe
-            state.bom = state.bom.filter(b => !(b.type === type && parseFloat(b.req_per_kit || 0) === 0));
+            state.bom = state.bom.filter(b => !(b.type === type && parseFloat(b.req_per_kit ?? b.req_qty ?? 0) === 0));
             cache.bom = JSON.stringify(state.bom);
         } catch(e) {
             showToast(`บันทึกไม่สำเร็จ: ${e.message}`, 'error');
@@ -5270,11 +5298,11 @@
         let planTypesFound = 0;
 
         selectedPlans.forEach(plan => {
-            const bomItems = state.bom.filter(b => b.type === plan.type && parseFloat(b.req_per_kit) > 0);
+            const bomItems = state.bom.filter(b => b.type === plan.type && parseFloat(b.req_per_kit ?? b.req_qty ?? 0) > 0);
             if (bomItems.length > 0) planTypesFound++;
             
             bomItems.forEach(b => {
-                const reqPerKit = parseFloat(b.req_per_kit);
+                const reqPerKit = parseFloat(b.req_per_kit ?? b.req_qty ?? 0);
                 const totalReqForThisPlan = reqPerKit * plan.targetQty;
                 
                 if (!materialRequirements[b.material_id]) {
