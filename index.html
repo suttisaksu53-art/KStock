@@ -1,9 +1,16 @@
+
 <!DOCTYPE html>
 <html lang="th">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>(v52 Instant Fast Dashboard & Manual Refresh)</title>
+  <!-- Firebase SDK (Compat Version for Standalone Vanilla HTML) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
+
+  <title>ระบบจัดการสต๊อกวัสดุ Test Kit - กลุ่มวิจัยเคมีดิน</title>
   
   <!-- Preconnect to Google Apps Script & 302 Redirect Echo Domain for Instant Network Handshake -->
   <link rel="preconnect" href="https://script.google.com">
@@ -21,6 +28,124 @@
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
   
+  <!-- ================= ANTI-DEVTOOLS & SECURITY PROTECTION ================= -->
+  <script>
+    (function() {
+      // Secret key to allow DevTools for Admin: Ctrl + Alt + Shift + D
+      let devtoolsAllowed = sessionStorage.getItem('kstore_allow_devtools') === 'true';
+
+      window.enableDevTools = function() {
+        devtoolsAllowed = true;
+        sessionStorage.setItem('kstore_allow_devtools', 'true');
+        console.log('%c[Security] DevTools Protection temporarily unlocked for this session.', 'color:green; font-weight:bold;');
+        const lock = document.getElementById('devtoolsLockOverlay');
+        if (lock) lock.classList.add('hidden');
+      };
+
+      // 1. Disable Right-Click Context Menu
+      document.addEventListener('contextmenu', function(e) {
+        if (devtoolsAllowed) return;
+        e.preventDefault();
+        return false;
+      }, { capture: true });
+
+      // 2. Disable Keyboard Shortcuts (F12, Ctrl+Shift+I/J/C, Ctrl+U, Ctrl+S)
+      document.addEventListener('keydown', function(e) {
+        // Admin unlock combo: Ctrl + Alt + Shift + D
+        if (e.ctrlKey && e.altKey && e.shiftKey && (e.key === 'D' || e.key === 'd')) {
+          e.preventDefault();
+          window.enableDevTools();
+          alert('🔓 ปลดล็อกโหมดผู้พัฒนา (DevTools Unlocked) สำหรับเซสชันนี้เรียบร้อยแล้ว');
+          return;
+        }
+
+        if (devtoolsAllowed) return;
+
+        // F12
+        if (e.key === 'F12' || e.keyCode === 123) {
+          e.preventDefault();
+          e.stopPropagation();
+          return false;
+        }
+
+        // Ctrl + Shift + I / J / C (Inspect / Console)
+        if ((e.ctrlKey || e.metaKey) && e.shiftKey && ['I', 'i', 'J', 'j', 'C', 'c'].includes(e.key)) {
+          e.preventDefault();
+          e.stopPropagation();
+          return false;
+        }
+
+        // Ctrl + U (View Source)
+        if ((e.ctrlKey || e.metaKey) && (e.key === 'U' || e.key === 'u' || e.keyCode === 85)) {
+          e.preventDefault();
+          e.stopPropagation();
+          return false;
+        }
+
+        // Ctrl + S (Save Page)
+        if ((e.ctrlKey || e.metaKey) && (e.key === 'S' || e.key === 's' || e.keyCode === 83)) {
+          e.preventDefault();
+          e.stopPropagation();
+          return false;
+        }
+      }, { capture: true });
+
+      // 3. DevTools Open Detection & Security Lock Screen
+      function showDevToolsLock() {
+        if (devtoolsAllowed) return;
+        let overlay = document.getElementById('devtoolsLockOverlay');
+        if (!overlay) {
+          overlay = document.createElement('div');
+          overlay.id = 'devtoolsLockOverlay';
+          overlay.style.cssText = 'position:fixed;inset:0;background:#0f172a;color:#ffffff;z-index:999999;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:sans-serif;text-align:center;padding:20px;';
+          overlay.innerHTML = `
+            <div style="background:#1e293b;padding:30px;border-radius:20px;border:1px solid #334155;max-width:460px;box-shadow:0 25px 50px -12px rgba(0,0,0,0.5);">
+              <div style="font-size:48px;margin-bottom:12px;">🛡️</div>
+              <h2 style="font-size:20px;font-weight:bold;margin-bottom:8px;color:#f43f5e;">ระบบความปลอดภัย (Security Alert)</h2>
+              <p style="font-size:13px;color:#94a3b8;line-height:1.6;margin-bottom:16px;">
+                ตรวจพบการเปิดเครื่องมือผู้พัฒนา (DevTools)<br>
+                ระบบจำกัดการเข้าถึงโครงสร้างและซอร์สโค้ดเพื่อความปลอดภัยของข้อมูล
+              </p>
+              <p style="font-size:12px;color:#64748b;">
+                กรุณาปิดหน้าต่าง DevTools / Inspect Element แล้วรีเฟรชหน้าเว็บใหม่อีกครั้ง
+              </p>
+            </div>
+          `;
+          document.body.appendChild(overlay);
+        } else {
+          overlay.classList.remove('hidden');
+        }
+      }
+
+      function hideDevToolsLock() {
+        const overlay = document.getElementById('devtoolsLockOverlay');
+        if (overlay) overlay.classList.add('hidden');
+      }
+
+      // Check DevTools via Window outer/inner dimensions
+      setInterval(function() {
+        if (devtoolsAllowed) return;
+        const threshold = 160;
+        const widthDiff = window.outerWidth - window.innerWidth;
+        const heightDiff = window.outerHeight - window.innerHeight;
+        if (widthDiff > threshold || heightDiff > threshold) {
+          showDevToolsLock();
+        } else {
+          const overlay = document.getElementById('devtoolsLockOverlay');
+          if (overlay && !overlay.classList.contains('hidden')) {
+            hideDevToolsLock();
+          }
+        }
+      }, 800);
+
+      // Console Warning
+      try {
+        console.log('%c⚠️ คำเตือนด้านความปลอดภัย (SECURITY WARNING)', 'color:#ef4444; font-size:22px; font-weight:bold;');
+        console.log('%cระบบสต๊อก Kstore ได้รับการคุ้มครองความปลอดภัย การแทรกแซงโค้ดอาจส่งผลต่อความถูกต้องของฐานข้อมูล', 'font-size:12px; color:#64748b;');
+      } catch(e) {}
+    })();
+  </script>
+
   <!-- ================= THEME CONFIGURATION ================= -->
   <script>
     tailwind.config = {
@@ -2052,130 +2177,581 @@
     }
     setInterval(updateClock, 1000);
 
-    // --- 3. API HANDLER & SHARED PROMISE ---
-    async function api(action, payload = {}, retries = 2) {
-        const isBackground = ['login', 'ping', 'warmup', 'getMaterials', 'getBOM', 'getReports', 'getUsers', 'getLogs', 'getGlobalTheme', 'getInitialData'].includes(action);
-        const showOverlay = !isBackground;
-        if (showOverlay) {
-            const el = document.getElementById('loadingOverlay');
-            if (el) el.classList.remove('hidden');
-        }
+    // ==========================================
+    // 🔥 FIREBASE REAL-TIME CLOUD FIRESTORE ENGINE
+    // ==========================================
+    const firebaseConfig = {
+      apiKey: "AIzaSyCGoXviRd3Jbxpyd_JEU4kD2acHAIMlMV8",
+      authDomain: "kstore-e7f22.firebaseapp.com",
+      projectId: "kstore-e7f22",
+      storageBucket: "kstore-e7f22.firebasestorage.app",
+      messagingSenderId: "9565632832",
+      appId: "1:9565632832:web:6a5f010201a0d1c67362a5",
+      measurementId: "G-WCVJRJLHWV"
+    };
 
-        // CRITICAL BUGFIX: คำสั่งที่บันทึก/แก้ไขฐานข้อมูล ต้องห้าม Retry เด็ดขาด และต้องแนบ requestId ป้องกันสต๊อกซ้ำซ้อน 100%
-        const isMutating = ['login', 'register', 'importMaterial', 'withdrawMaterial', 'batchTransaction', 'produceKit', 'undoProduceKit', 'addMaterial', 'updateMaterial', 'deleteMaterial', 'saveBOM', 'changePassword', 'updateUserStatus', 'updateGlobalTheme', 'clearSystemCache'].includes(action);
-        if (isMutating) {
-            retries = 0; // ล็อค retries = 0 เสมอ ไม่ให้ยิงซ้ำเด็ดขาด
-            if (payload && typeof payload === 'object' && !payload.requestId && !payload.client_tx_id) {
-                payload.requestId = 'REQ-' + Date.now() + '-' + Math.random().toString(36).substr(2, 8);
+    if (!firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
+    }
+    const db = firebase.firestore();
+    const storage = firebase.storage();
+    
+    // Enable offline persistence
+    try {
+      db.enablePersistence({ synchronizeTabs: true }).catch(() => {});
+    } catch(e) {}
+
+    // Password MD5 Hash Helper (Matching GAS algorithm)
+    function hashPassword(pass) {
+      if (!pass) return '';
+      if (typeof CryptoJS !== 'undefined') {
+        const raw = CryptoJS.MD5(String(pass).trim()).toString(CryptoJS.enc.Hex);
+        return "MD5_" + raw;
+      }
+      return String(pass).trim();
+    }
+
+    // --- FIREBASE API ADAPTER (Instant Response) ---
+    async function api(action, payload = {}, retries = 0) {
+      const isBackground = ['login', 'ping', 'warmup', 'getMaterials', 'getBOM', 'getReports', 'getUsers', 'getLogs', 'getGlobalTheme', 'getInitialData'].includes(action);
+      const showOverlay = !isBackground;
+      if (showOverlay) {
+        const el = document.getElementById('loadingOverlay');
+        if (el) el.classList.remove('hidden');
+      }
+
+      const startTime = performance.now();
+      try {
+        let result = null;
+
+        switch (action) {
+          case 'ping':
+          case 'warmup':
+            result = { status: 'ok', engine: 'firebase', timestamp: new Date().toISOString() };
+            break;
+
+          case 'getGlobalTheme': {
+            const snap = await db.collection('settings').doc('general').get();
+            result = (snap.exists && snap.data().theme) ? snap.data().theme : 'default';
+            break;
+          }
+
+          case 'updateGlobalTheme': {
+            await db.collection('settings').doc('general').set({ theme: payload.theme }, { merge: true });
+            result = { message: 'เปลี่ยนธีมสำเร็จ' };
+            break;
+          }
+
+          case 'getInitialData': {
+            const [matSnap, bomSnap] = await Promise.all([
+              db.collection('materials').get(),
+              db.collection('bom').get()
+            ]);
+            result = {
+              materials: matSnap.docs.map(d => ({ material_id: d.id, ...d.data() })),
+              bom: bomSnap.docs.map(d => d.data())
+            };
+            break;
+          }
+
+          case 'getMaterials': {
+            const snap = await db.collection('materials').get();
+            result = snap.docs.map(d => ({ material_id: d.id, ...d.data() }));
+            break;
+          }
+
+          case 'getBOM': {
+            const snap = await db.collection('bom').get();
+            result = snap.docs.map(d => d.data());
+            break;
+          }
+
+          case 'getReports': {
+            const [wSnap, iSnap] = await Promise.all([
+              db.collection('withdraw_history').get(),
+              db.collection('import_history').get()
+            ]);
+            const allW = wSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+            const allI = iSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+            
+            allW.sort((a,b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
+            allI.sort((a,b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
+
+            result = {
+              withdraw: allW,
+              import: allI
+            };
+            break;
+          }
+
+          case 'getUsers': {
+            const snap = await db.collection('users').get();
+            result = snap.docs.map(d => {
+              const u = d.data();
+              delete u.password;
+              return { user_id: d.id, ...u };
+            });
+            break;
+          }
+
+          case 'getLogs': {
+            const snap = await db.collection('log').get();
+            const logs = snap.docs.map(d => d.data());
+            logs.sort((a,b) => new Date(b.timestamp || b.Timestamp || 0) - new Date(a.timestamp || a.Timestamp || 0));
+            result = logs.slice(0, 500);
+            break;
+          }
+
+          case 'login': {
+            const uStr = String(payload.username || '').trim().toLowerCase();
+            const passStr = String(payload.password || '').trim();
+            const passHash = hashPassword(passStr);
+            const rawHash = (typeof CryptoJS !== 'undefined') ? CryptoJS.MD5(passStr).toString(CryptoJS.enc.Hex) : passStr;
+
+            const snap = await db.collection('users').get();
+            const userDoc = snap.docs.find(d => {
+              const u = d.data();
+              const dbU = String(u.username || '').trim().toLowerCase();
+              const dbP = String(u.password || '');
+              return dbU === uStr && (dbP === passHash || dbP === rawHash || dbP === passStr);
+            });
+
+            if (!userDoc) throw new Error('ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง');
+            const userData = userDoc.data();
+            if (userData.status !== 'approved') throw new Error('บัญชีของคุณยังไม่ได้รับการอนุมัติจากผู้ดูแลระบบ');
+
+            // Record login log
+            db.collection('log').add({
+              timestamp: new Date().toISOString(),
+              user_id: userDoc.id,
+              username: userData.username,
+              fullname: userData.fullname,
+              role: userData.role
+            }).catch(() => {});
+
+            // Fetch initial data
+            const [mSnap, bSnap] = await Promise.all([
+              db.collection('materials').get(),
+              db.collection('bom').get()
+            ]);
+
+            delete userData.password;
+            userData.user_id = userDoc.id;
+            userData.initialData = {
+              materials: mSnap.docs.map(d => ({ material_id: d.id, ...d.data() })),
+              bom: bSnap.docs.map(d => d.data())
+            };
+            result = userData;
+            break;
+          }
+
+          case 'register': {
+            const uStr = String(payload.username || '').trim();
+            const snap = await db.collection('users').get();
+            const exists = snap.docs.some(d => String(d.data().username || '').trim().toLowerCase() === uStr.toLowerCase());
+            if (exists) throw new Error('Username นี้มีผู้ใช้งานในระบบแล้ว');
+
+            const userId = 'U' + Date.now();
+            const passHash = hashPassword(payload.password);
+            await db.collection('users').doc(userId).set({
+              user_id: userId,
+              username: uStr,
+              password: passHash,
+              fullname: String(payload.fullname || '').trim(),
+              group: String(payload.group || '').trim(),
+              role: 'user',
+              status: 'pending',
+              permissions: ['view_stock'],
+              created_at: new Date().toISOString()
+            });
+            result = { message: 'สมัครสมาชิกสำเร็จ รอการอนุมัติ' };
+            break;
+          }
+
+          case 'updateUserStatus': {
+            const ref = db.collection('users').doc(payload.user_id);
+            const updateObj = {};
+            if (payload.status) updateObj.status = payload.status;
+            if (payload.permissions) updateObj.permissions = payload.permissions;
+            await ref.set(updateObj, { merge: true });
+            result = { message: 'บันทึกข้อมูลสำเร็จ' };
+            break;
+          }
+
+          case 'deleteUser': {
+            await db.collection('users').doc(payload.user_id).delete();
+            result = { message: 'ลบผู้ใช้งานสำเร็จ' };
+            break;
+          }
+
+          case 'changePassword': {
+            const uStr = String(payload.username || '').trim().toLowerCase();
+            const oldPass = String(payload.oldPassword || '').trim();
+            const newPass = String(payload.newPassword || '').trim();
+            const oldHash = hashPassword(oldPass);
+            const oldRaw = (typeof CryptoJS !== 'undefined') ? CryptoJS.MD5(oldPass).toString(CryptoJS.enc.Hex) : oldPass;
+
+            const snap = await db.collection('users').get();
+            const userDoc = snap.docs.find(d => {
+              const u = d.data();
+              return String(u.username || '').trim().toLowerCase() === uStr && 
+                     (u.password === oldHash || u.password === oldRaw || u.password === oldPass);
+            });
+
+            if (!userDoc) throw new Error('รหัสผ่านเดิมไม่ถูกต้อง');
+            await userDoc.ref.set({ password: hashPassword(newPass) }, { merge: true });
+            result = { message: 'เปลี่ยนรหัสผ่านสำเร็จ' };
+            break;
+          }
+
+          case 'importMaterial': {
+            const matRef = db.collection('materials').doc(payload.material_id);
+            const ts = payload.timestamp || (payload.custom_date ? new Date(payload.custom_date + 'T12:00:00').toISOString() : new Date().toISOString());
+            const qtyAdd = parseFloat(payload.qty || 0);
+
+            await db.runTransaction(async (t) => {
+              const doc = await t.get(matRef);
+              if (!doc.exists) throw new Error('ไม่พบรหัสวัสดุ: ' + payload.material_id);
+              const currentQty = parseFloat(doc.data().qty || 0);
+              t.update(matRef, {
+                qty: currentQty + qtyAdd,
+                last_import_date: ts,
+                last_import_by: payload.user_name || 'admin',
+                last_import_ref: payload.ref_doc || '',
+                updated_at: firebase.firestore.FieldValue.serverTimestamp()
+              });
+            });
+
+            // Add history record
+            await db.collection('import_history').add({
+              timestamp: ts,
+              material_id: payload.material_id,
+              material_name: payload.material_name,
+              qty: qtyAdd,
+              user_name: payload.user_name,
+              ref_doc: payload.ref_doc || '',
+              type: payload.type || '',
+              action_type: 'import'
+            });
+
+            result = { message: 'นำเข้าสต๊อกสำเร็จ' };
+            break;
+          }
+
+          case 'withdrawMaterial': {
+            const matRef = db.collection('materials').doc(payload.material_id);
+            const ts = payload.timestamp || (payload.custom_date ? new Date(payload.custom_date + 'T12:00:00').toISOString() : new Date().toISOString());
+            const qtySub = parseFloat(payload.qty || 0);
+
+            await db.runTransaction(async (t) => {
+              const doc = await t.get(matRef);
+              if (!doc.exists) throw new Error('ไม่พบรหัสวัสดุ: ' + payload.material_id);
+              const currentQty = parseFloat(doc.data().qty || 0);
+              if (currentQty < qtySub) {
+                throw new Error(`สต๊อกไม่พอ (คงเหลือ ${currentQty}, ต้องการเบิก ${qtySub})`);
+              }
+              t.update(matRef, {
+                qty: currentQty - qtySub,
+                last_withdraw_date: ts,
+                last_withdraw_by: payload.user_name || 'admin',
+                updated_at: firebase.firestore.FieldValue.serverTimestamp()
+              });
+            });
+
+            // Add history record
+            await db.collection('withdraw_history').add({
+              timestamp: ts,
+              material_id: payload.material_id,
+              material_name: payload.material_name,
+              qty: qtySub,
+              user_name: payload.user_name,
+              ref_doc: payload.ref_doc || '',
+              type: payload.type || '',
+              action_type: 'withdraw'
+            });
+
+            result = { message: 'เบิกวัสดุสำเร็จ' };
+            break;
+          }
+
+          case 'batchTransaction': {
+            const mode = payload.mode; // 'withdraw' or 'import'
+            const items = Array.isArray(payload.items) ? payload.items : [];
+            if (!items.length) {
+              result = { success: true, count: 0, message: 'ไม่มีรายการให้ทำรายการ' };
+              break;
             }
-        }
-        
-        try {
-            let result;
-            if (typeof google !== 'undefined' && google.script) {
-                result = await new Promise((resolve, reject) => {
-                    google.script.run
-                        .withSuccessHandler(res => res.success ? resolve(res.data) : reject(new Error(res.error)))
-                        .withFailureHandler(err => reject(err))
-                        .apiHandler({ action, payload });
+            const ts = payload.custom_timestamp || payload.timestamp || (payload.custom_date ? new Date(payload.custom_date + 'T12:00:00').toISOString() : new Date().toISOString());
+            const uName = payload.user_name || (state.user ? state.user.fullname : 'admin');
+            const refDoc = payload.ref_doc || '';
+
+            // Run atomic transaction to update stock in Firestore
+            await db.runTransaction(async (t) => {
+              const reads = [];
+              for (const it of items) {
+                const mRef = db.collection('materials').doc(String(it.material_id));
+                reads.push(t.get(mRef));
+              }
+              const docs = await Promise.all(reads);
+
+              for (let i = 0; i < items.length; i++) {
+                const it = items[i];
+                const doc = docs[i];
+                const mRef = doc.ref;
+                if (!doc.exists) {
+                  throw new Error(`ไม่พบรหัสวัสดุ: ${it.material_id}`);
+                }
+                const curQty = parseFloat(doc.data().qty || 0);
+                const reqQty = parseFloat(it.qty || 0);
+
+                if (mode === 'withdraw') {
+                  if (curQty < reqQty) {
+                    throw new Error(`สต๊อก "${it.material_name || it.material_id}" ไม่พอ (คงเหลือ ${curQty}, ต้องการเบิก ${reqQty})`);
+                  }
+                  t.update(mRef, {
+                    qty: curQty - reqQty,
+                    last_withdraw_date: ts,
+                    last_withdraw_by: uName,
+                    updated_at: firebase.firestore.FieldValue.serverTimestamp()
+                  });
+                } else {
+                  // import
+                  t.update(mRef, {
+                    qty: curQty + reqQty,
+                    last_import_date: ts,
+                    last_import_by: uName,
+                    last_import_ref: refDoc,
+                    updated_at: firebase.firestore.FieldValue.serverTimestamp()
+                  });
+                }
+              }
+            });
+
+            // Add history records in batch
+            const histColl = (mode === 'import') ? 'import_history' : 'withdraw_history';
+            const histBatch = db.batch();
+            items.forEach(it => {
+              const hRef = db.collection(histColl).doc();
+              histBatch.set(hRef, {
+                timestamp: ts,
+                material_id: String(it.material_id),
+                material_name: String(it.material_name || ''),
+                qty: parseFloat(it.qty || 0),
+                user_name: uName,
+                ref_doc: refDoc,
+                type: it.type || '',
+                action_type: mode
+              });
+            });
+            await histBatch.commit();
+
+            result = {
+              success: true,
+              count: items.length,
+              message: `ทำรายการ${mode === 'import' ? 'นำเข้า' : 'เบิก'}สำเร็จ ${items.length} รายการ`
+            };
+            break;
+          }
+
+          case 'clearSystemCache': {
+            result = { success: true, message: 'ล้างแคชระบบสำเร็จ' };
+            break;
+          }
+
+          case 'addMaterial': {
+            const matId = payload.material_id || ('M' + Date.now());
+            let imgUrl = payload.image_url || '';
+            
+            if (payload.image_data && payload.image_data.startsWith('data:')) {
+              try {
+                const sRef = storage.ref(`materials/${matId}_${Date.now()}.jpg`);
+                await sRef.putString(payload.image_data, 'data_url');
+                imgUrl = await sRef.getDownloadURL();
+              } catch(sErr) {
+                console.warn('Storage upload error, using fallback:', sErr);
+              }
+            }
+
+            const docData = {
+              material_id: matId,
+              name: String(payload.name || '').trim(),
+              image_url: imgUrl,
+              qty: parseFloat(payload.qty || 0),
+              units: String(payload.units || 'ชิ้น').trim(),
+              price: parseFloat(payload.price || 0),
+              category: String(payload.category || '').trim(),
+              location: String(payload.location || '-').trim(),
+              type: Array.isArray(payload.type) ? payload.type : (payload.type ? [payload.type] : []),
+              pinned: Boolean(payload.pinned),
+              last_import_date: new Date().toISOString(),
+              last_withdraw_date: '',
+              last_import_by: payload.user_name || 'admin',
+              last_withdraw_by: '',
+              last_import_ref: payload.ref_doc || 'เพิ่มวัสดุใหม่',
+              created_at: new Date().toISOString()
+            };
+
+            await db.collection('materials').doc(matId).set(docData);
+            result = { message: 'เพิ่มวัสดุสำเร็จ', material_id: matId };
+            break;
+          }
+
+          case 'updateMaterial': {
+            const matId = payload.material_id;
+            const docRef = db.collection('materials').doc(matId);
+            let imgUrl = payload.image_url;
+
+            if (payload.image_data && payload.image_data.startsWith('data:')) {
+              try {
+                const sRef = storage.ref(`materials/${matId}_UPDATED_${Date.now()}.jpg`);
+                await sRef.putString(payload.image_data, 'data_url');
+                imgUrl = await sRef.getDownloadURL();
+              } catch(sErr) {
+                console.warn('Storage upload error:', sErr);
+              }
+            }
+
+            const updateData = {
+              name: String(payload.name || '').trim(),
+              units: String(payload.units || '').trim(),
+              location: String(payload.location || '-').trim(),
+              category: String(payload.category || '').trim(),
+              price: parseFloat(payload.price || 0),
+              updated_at: firebase.firestore.FieldValue.serverTimestamp()
+            };
+            if (imgUrl) updateData.image_url = imgUrl;
+            if (payload.type !== undefined) {
+              updateData.type = Array.isArray(payload.type) ? payload.type : (payload.type ? [payload.type] : []);
+            }
+            if (payload.hasOwnProperty('pinned')) {
+              updateData.pinned = Boolean(payload.pinned);
+            }
+
+            await docRef.set(updateData, { merge: true });
+            result = { message: 'แก้ไขวัสดุสำเร็จ' };
+            break;
+          }
+
+          case 'deleteMaterial': {
+            await db.collection('materials').doc(payload.material_id).delete();
+            result = { message: 'ลบวัสดุสำเร็จ' };
+            break;
+          }
+
+          case 'saveBOM': {
+            const bSnap = await db.collection('bom').get();
+            const bBatch = db.batch();
+            bSnap.docs.forEach(d => bBatch.delete(d.ref));
+            await bBatch.commit();
+
+            const newItems = payload.bom || [];
+            const addBatch = db.batch();
+            newItems.forEach(item => {
+              const dRef = db.collection('bom').doc();
+              addBatch.set(dRef, {
+                type: String(item.type || item.Type || '').trim(),
+                material_id: String(item.material_id || item['Material ID'] || '').trim(),
+                req_qty: parseFloat(item.req_qty || item['Req/Kit'] || 0)
+              });
+            });
+            await addBatch.commit();
+            result = { message: 'บันทึกสูตรการผลิตสำเร็จ' };
+            break;
+          }
+
+          case 'produceKit': {
+            const plan = payload.productionPlan || [];
+            const ts = payload.timestamp || (payload.custom_date ? new Date(payload.custom_date + 'T12:00:00').toISOString() : new Date().toISOString());
+            const txId = 'PROD-' + Date.now().toString(36).toUpperCase();
+
+            await db.runTransaction(async (t) => {
+              const reads = await Promise.all(plan.map(p => t.get(db.collection('materials').doc(p.material_id))));
+              reads.forEach((doc, idx) => {
+                if (!doc.exists) throw new Error('ไม่พบวัสดุ: ' + plan[idx].matName);
+                const cur = parseFloat(doc.data().qty || 0);
+                const req = parseFloat(plan[idx].totalReq || 0);
+                if (cur < req) {
+                  throw new Error(`สต๊อกไม่พอสำหรับ ${plan[idx].matName} (ต้องการ ${req}, มี ${cur})`);
+                }
+              });
+
+              reads.forEach((doc, idx) => {
+                const cur = parseFloat(doc.data().qty || 0);
+                const req = parseFloat(plan[idx].totalReq || 0);
+                t.update(doc.ref, {
+                  qty: cur - req,
+                  last_withdraw_date: ts,
+                  last_withdraw_by: payload.fullname || 'admin',
+                  updated_at: firebase.firestore.FieldValue.serverTimestamp()
                 });
-            } else {
-                // AbortController with 35s timeout ต่อรอบ (หากรอบแรกติดขัด ระบบจะ Auto-Retry รอบใหม่ทันทีโดยไม่ให้ผู้ใช้ต้องรอนาน)
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 35000);
+              });
+            });
 
-                let res;
-                try {
-                    res = await fetch(WEB_APP_URL, {
-                        method: 'POST',
-                        redirect: 'follow',
-                        headers: { "Content-Type": "text/plain;charset=utf-8" },
-                        body: JSON.stringify({ action: action, payload: payload }),
-                        signal: controller.signal
-                    });
-                } finally {
-                    clearTimeout(timeoutId);
+            const histBatch = db.batch();
+            plan.forEach(p => {
+              const hRef = db.collection('withdraw_history').doc();
+              histBatch.set(hRef, {
+                timestamp: ts,
+                material_id: p.material_id,
+                material_name: p.matName,
+                qty: parseFloat(p.totalReq || 0),
+                user_name: payload.fullname || 'admin',
+                ref_doc: txId,
+                type: payload.kitType || '',
+                action_type: 'withdraw'
+              });
+            });
+            await histBatch.commit();
+
+            result = { message: 'บันทึกการสั่งผลิตและตัดสต๊อกสำเร็จ', ref_doc: txId };
+            break;
+          }
+
+          case 'undoProduceKit': {
+            const wSnap = await db.collection('withdraw_history').where('ref_doc', '==', payload.ref_doc).get();
+            if (wSnap.empty) throw new Error('ไม่พบประวัติการผลิตรหัส: ' + payload.ref_doc);
+
+            const items = wSnap.docs.map(d => ({ ref: d.ref, ...d.data() }));
+
+            await db.runTransaction(async (t) => {
+              for (let it of items) {
+                const mRef = db.collection('materials').doc(it.material_id);
+                const mDoc = await t.get(mRef);
+                if (mDoc.exists) {
+                  const cur = parseFloat(mDoc.data().qty || 0);
+                  t.update(mRef, { qty: cur + parseFloat(it.qty || 0) });
                 }
-                
-                // WebKit Safe response reading
-                const rawText = await res.text();
-                let json;
-                try {
-                    json = JSON.parse(rawText);
-                } catch (parseErr) {
-                    console.warn(`[api] Action "${action}" non-JSON response:`, rawText ? rawText.slice(0, 150) : '(empty)');
-                    if (action === 'getGlobalTheme') return null;
-                    // CRITICAL: คำสั่ง Mutating ทุกชนิด ห้าม retry เมื่อได้ non-JSON เด็ดขาด ป้องกันการตัดยอดซ้ำ
-                    if (isMutating) {
-                        throw new Error('เซิร์ฟเวอร์ใช้เวลาประมวลผลนาน ระบบจะไม่ส่งคำขอซ้ำเพื่อป้องกันสต๊อกซ้ำซ้อน กรุณารีเฟรชเพื่อตรวจสอบยอด');
-                    }
-                    if (retries > 0) {
-                        await new Promise(r => setTimeout(r, 1200));
-                        return await api(action, payload, retries - 1);
-                    }
-                    throw new Error("เซิร์ฟเวอร์ตอบสนองไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง");
-                }
-                
-                if (!json.success) throw new Error(json.error);
-                result = json.data;
-            }
-            
-            if (showOverlay) {
-                const el = document.getElementById('loadingOverlay');
-                if (el) el.classList.add('hidden');
-            }
-            return result;
-            
-        } catch (err) {
-            if (showOverlay) {
-                const el = document.getElementById('loadingOverlay');
-                if (el) el.classList.add('hidden');
-            }
-            console.error(`API Error [${action}]:`, err);
+                t.delete(it.ref);
+              }
+            });
 
-            // Never show toast for silent background theme sync or ping/warmup
-            if (action === 'getGlobalTheme' || action === 'ping' || action === 'warmup') return null;
+            result = { message: 'ยกเลิกรายการผลิตและคืนค่าสต๊อกสำเร็จ' };
+            break;
+          }
 
-            if (isMutating) {
-                // คำสั่ง Mutating ห้าม Retry ทุกกรณี เพื่อป้องกันสต๊อกซ้ำซ้อน 100%
-                let userMsg = err.message || 'เกิดข้อผิดพลาดในการเชื่อมต่อ';
-                if (err.name === 'AbortError') {
-                    userMsg = 'การเชื่อมต่อใช้เวลานานเกินกำหนด ระบบจะไม่ส่งซ้ำเพื่อป้องกันสต๊อกซ้ำซ้อน กรุณารีเฟรชเพื่อตรวจสอบยอดสต๊อก';
-                } else if (userMsg.includes('Load failed') || userMsg.includes('Failed to fetch') || err.name === 'TypeError') {
-                    userMsg = 'การเชื่อมต่อเครือข่ายขัดข้อง ระบบจะไม่ส่งคำขอซ้ำ กรุณาตรวจสอบยอดสต๊อกหรือลองใหม่อีกครั้ง';
-                }
-                if (!isBackground) {
-                    showToast(userMsg, 'error');
-                }
-                throw err;
-            }
-
-            // Auto-retry on mobile network drops สำหรับคำสั่งอ่านข้อมูลเท่านั้น (ReadOnly Queries)
-            const isNetworkError = err.name === 'AbortError' || 
-                                   err.name === 'TypeError' || 
-                                   String(err.message).includes('Load failed') || 
-                                   String(err.message).includes('Failed to fetch') ||
-                                   String(err.message).includes('NetworkError');
-
-            if (retries > 0 && isNetworkError) {
-                const backoff = (3 - retries) * 1500; // Progressive backoff: 1.5s, 3s
-                await new Promise(r => setTimeout(r, backoff));
-                return await api(action, payload, retries - 1);
-            }
-
-            // User-friendly message instead of raw iOS WebKit technical jargon
-            let userMsg = err.message || 'เกิดข้อผิดพลาดในการเชื่อมต่อ';
-            if (userMsg.includes('Load failed') || userMsg.includes('Failed to fetch') || err.name === 'AbortError') {
-                userMsg = 'การเชื่อมต่ออินเทอร์เน็ตขัดข้อง กรุณาลองใหม่อีกครั้ง';
-            } else if (userMsg.includes('did not match the expected pattern')) {
-                userMsg = 'เซิร์ฟเวอร์กำลังประมวลผล กรุณาลองใหม่อีกครั้ง';
-            }
-
-            if (!isBackground) {
-                showToast(userMsg, 'error');
-            }
-            throw err;
+          default:
+            console.warn('Unknown Firebase API action:', action, payload);
+            result = { success: true };
         }
+
+        const elapsed = (performance.now() - startTime).toFixed(1);
+        console.log(`⚡ [Firebase Firestore] "${action}" completed in ${elapsed}ms`);
+
+        if (showOverlay) {
+          const el = document.getElementById('loadingOverlay');
+          if (el) el.classList.add('hidden');
+        }
+        return result;
+
+      } catch (err) {
+        if (showOverlay) {
+          const el = document.getElementById('loadingOverlay');
+          if (el) el.classList.add('hidden');
+        }
+        console.error(`❌ [Firebase API Error] [${action}]:`, err);
+        showToast(err.message || 'เกิดข้อผิดพลาดในการประมวลผล', 'error');
+        throw err;
+      }
     }
 
     // 🚀 LIVE REAL-TIME MATERIALS FETCHER: ดึงสดจากฐานข้อมูลเสมอ
@@ -5459,7 +6035,7 @@
             setTimeout(async () => {
                 try {
                     const [freshMats, freshReports] = await Promise.all([
-                        fetchMaterialsData(),
+                        fetchMaterialsData(true),
                         fetchReportsData(true)
                     ]);
                     if (freshMats && freshMats.length) {
@@ -5568,7 +6144,7 @@
         setTimeout(async () => {
             try {
                 const [freshMats, freshReports] = await Promise.all([
-                    fetchMaterialsData(),
+                    fetchMaterialsData(true),
                     fetchReportsData(true)
                 ]);
                 if (freshMats && freshMats.length) {
