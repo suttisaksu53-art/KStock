@@ -2284,12 +2284,24 @@
           }
 
           case 'getReports': {
-            const [wSnap, iSnap] = await Promise.all([
-              db.collection('withdraw_history').get(),
-              db.collection('import_history').get()
-            ]);
-            const allW = wSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-            const allI = iSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+            const limitCount = payload?.limit || 250;
+            let allW = [];
+            let allI = [];
+            try {
+              const [wSnap, iSnap] = await Promise.all([
+                db.collection('withdraw_history').orderBy('timestamp', 'desc').limit(limitCount).get(),
+                db.collection('import_history').orderBy('timestamp', 'desc').limit(limitCount).get()
+              ]);
+              allW = wSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+              allI = iSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+            } catch(qErr) {
+              const [wSnap, iSnap] = await Promise.all([
+                db.collection('withdraw_history').limit(limitCount).get(),
+                db.collection('import_history').limit(limitCount).get()
+              ]);
+              allW = wSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+              allI = iSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+            }
             
             allW.sort((a,b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
             allI.sort((a,b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
@@ -2320,12 +2332,19 @@
           }
 
           case 'login': {
-            const uStr = String(payload.username || '').trim().toLowerCase();
+            const rawUser = String(payload.username || '').trim();
+            const uStr = rawUser.toLowerCase();
             const passStr = String(payload.password || '').trim();
             const passHash = hashPassword(passStr);
             const rawHash = (typeof CryptoJS !== 'undefined') ? CryptoJS.MD5(passStr).toString(CryptoJS.enc.Hex) : passStr;
 
-            const snap = await db.collection('users').get();
+            let snap = await db.collection('users').where('username', '==', rawUser).get();
+            if (snap.empty) {
+              snap = await db.collection('users').where('username', '==', uStr).get();
+            }
+            if (snap.empty) {
+              snap = await db.collection('users').get();
+            }
             const userDoc = snap.docs.find(d => {
               const u = d.data();
               const dbU = String(u.username || '').trim().toLowerCase();
@@ -2788,14 +2807,37 @@
       }
     }
 
-    // 🚀 LIVE REAL-TIME MATERIALS FETCHER: ดึงสดจากฐานข้อมูลเสมอ
+    // 🚀 LIVE REAL-TIME MATERIALS FETCHER: ดึงสดเมื่อจำเป็น และใช้หน่วยความจำเพื่อความรวดเร็วและประหยัดโควตา
     let materialsPromise = null;
+    let lastMaterialsSyncTime = 0;
     async function fetchMaterialsData(force = false) {
+        const now = Date.now();
+        const lastSync = lastMaterialsSyncTime || parseInt(localStorage.getItem('kstore_mats_last_sync') || '0', 10);
+        const cooldown = (force === 'manual') ? 0 : 30000; // 30s cooldown for automatic/navigational fetches
+
+        if (state.materials && state.materials.length > 0) {
+            if (!force || (force !== 'manual' && now - lastSync < cooldown)) {
+                return state.materials;
+            }
+        } else if (cache.materials && cache.materials !== 'null' && force !== 'manual') {
+            try {
+                const parsed = JSON.parse(cache.materials);
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                    state.materials = parsed;
+                    if (now - lastSync < cooldown) {
+                        return parsed;
+                    }
+                }
+            } catch(e) {}
+        }
+
         if (materialsPromise && !force) return materialsPromise;
         materialsPromise = api('getMaterials').then(data => {
-            if (Array.isArray(data)) {
+            if (Array.isArray(data) && data.length > 0) {
                 state.materials = data;
                 cache.materials = JSON.stringify(data);
+                lastMaterialsSyncTime = Date.now();
+                localStorage.setItem('kstore_mats_last_sync', lastMaterialsSyncTime.toString());
             }
             return state.materials || [];
         }).catch(err => {
@@ -2831,18 +2873,26 @@
     let reportsPromise = null;
     let lastReportsSyncTime = 0;
     async function fetchReportsData(forceRefresh = false) {
-        // หากไม่ forceRefresh และมีข้อมูลในแคช ให้ใช้แคชก่อนทันทีเพื่อความเร็ว 0.01 วินาที
-        if (!forceRefresh && cache.reports && cache.reports !== 'null') {
+        const now = Date.now();
+        const lastSync = lastReportsSyncTime || parseInt(localStorage.getItem('kstore_reports_last_sync') || '0', 10);
+        const cooldown = (forceRefresh === 'manual') ? 0 : 60000; // 60s cooldown for background / auto triggers
+
+        if (state.reports && (state.reports.withdraw?.length > 0 || state.reports.import?.length > 0)) {
+            if (now - lastSync < cooldown && forceRefresh !== 'manual') {
+                return state.reports;
+            }
+        } else if (cache.reports && cache.reports !== 'null' && forceRefresh !== 'manual') {
             try {
                 const cached = typeof cache.reports === 'string' ? JSON.parse(cache.reports) : cache.reports;
                 if (cached && (cached.withdraw?.length > 0 || cached.import?.length > 0)) {
                     state.reports = cached;
-                    return cached;
+                    if (now - lastSync < cooldown) {
+                        return cached;
+                    }
                 }
             } catch(e) {}
         }
 
-        // ป้องกันการส่งคำขอซ้ำซ้อนพร้อมกัน
         if (reportsPromise) return reportsPromise;
 
         reportsPromise = api('getReports', { force: forceRefresh }).then(data => {
@@ -2972,13 +3022,6 @@
                     const lastView = sessionStorage.getItem('last_view') || 'dashboard';
                     route(lastView);
                     syncGlobalTheme(false); // Silent background check after session is validated
-                    
-                    // v17 Background Warmup for Reports (so Timeline is ready immediately on first click with fresh DB records)
-                    setTimeout(async () => {
-                        try {
-                            await fetchReportsData(true);
-                        } catch(e) {}
-                    }, 800);
                 } else {
                     throw new Error("Invalid session data");
                 }
@@ -3571,7 +3614,7 @@
 
         try {
             const [matData, bomData] = await Promise.all([
-                fetchMaterialsData(true),
+                fetchMaterialsData('manual'),
                 api('getBOM')
             ]);
             if (Array.isArray(matData)) state.materials = matData;
@@ -4279,9 +4322,9 @@
             renderMaterialList(mode);
         }
 
-        // ดึงข้อมูลสดจากฐานข้อมูล Google Sheets เสมอ ห้ามพึ่งพาแคช เพื่อให้ยอดตรงกันทุกเครื่อง 100%
+        // ดึงข้อมูลสต๊อกอย่างมีประสิทธิภาพ ใช้หน่วยความจำก่อน และดึงสดตามรอบเพื่อประหยัดโควตา
         try {
-            const liveData = await fetchMaterialsData(true);
+            const liveData = await fetchMaterialsData(false);
             if (currentViewID !== viewID) return;
             if (Array.isArray(liveData) && liveData.length > 0) {
                 state.materials = liveData;
@@ -4300,7 +4343,7 @@
         if (container) container.innerHTML = cardSkeleton().repeat(8);
         
         try {
-            const data = await fetchMaterialsData(true);
+            const data = await fetchMaterialsData('manual');
             state.materials = data;
             updateFilterDropdowns();
             renderMaterialList(mode);
@@ -5482,17 +5525,31 @@
             
             showToast(`สั่งผลิตสำเร็จ! Ref: ${res.ref_doc}`, 'success');
             
-            // force fetch new data to reflect stock reduction and production logs
-            cache.materials = null;
-            cache.reports = null;
-            const [matData, repData] = await Promise.all([
-                fetchMaterialsData(),
-                fetchReportsData(true)
-            ]);
-            state.materials = matData;
-            cache.materials = JSON.stringify(matData);
-            state.reports = repData;
-            cache.reports = JSON.stringify(repData);
+            // อัปเดตสต๊อกและประวัติในหน่วยความจำทันที ไม่ต้องดาวน์โหลดประวัติทั้งหมดซ้ำซ้อน
+            if (Array.isArray(state.materials) && window.currentProductionPlan) {
+                window.currentProductionPlan.forEach(p => {
+                    const mat = state.materials.find(m => String(m.material_id) === String(p.material_id));
+                    if (mat) {
+                        const cur = parseFloat(mat.qty || 0);
+                        mat.qty = Math.max(0, cur - parseFloat(p.totalReq || 0));
+                    }
+                });
+                cache.materials = JSON.stringify(state.materials);
+            }
+            if (state.reports) {
+                if (!state.reports.withdraw) state.reports.withdraw = [];
+                const newRows = (window.currentProductionPlan || []).map(p => ({
+                    timestamp: new Date().toISOString(),
+                    material_id: String(p.material_id),
+                    material_name: p.matName,
+                    qty: parseFloat(p.totalReq || 0),
+                    user_name: state.user.fullname || state.user.username,
+                    ref_doc: res.ref_doc || '',
+                    action_type: 'withdraw'
+                }));
+                state.reports.withdraw = [...newRows, ...state.reports.withdraw];
+                cache.reports = JSON.stringify(state.reports);
+            }
             
             // Re-render
             calculatePurchase(true);
@@ -6067,25 +6124,6 @@
             closeModal('cartModal');
             renderInventory(document.getElementById('contentArea'), currentTransMode, currentViewID);
             showToast(`ทำรายการเสร็จสมบูรณ์ทั้งหมด ${count} รายการ`, 'success');
-
-            // ซิงค์ข้อมูลสต๊อกและประวัติเบื้องหลังแบบเงียบๆ ไม่บล็อกหน้าจอ
-            setTimeout(async () => {
-                try {
-                    const [freshMats, freshReports] = await Promise.all([
-                        fetchMaterialsData(true),
-                        fetchReportsData(true)
-                    ]);
-                    if (freshMats && freshMats.length) {
-                        state.materials = freshMats;
-                        cache.materials = JSON.stringify(freshMats);
-                    }
-                    if (freshReports && (freshReports.withdraw || freshReports.import)) {
-                        state.reports = freshReports;
-                        cache.reports = JSON.stringify(freshReports);
-                    }
-                } catch(e) {}
-            }, 800);
-
         } catch (err) {
             // ถ้า Backend ยังไม่ได้ Deploy code4.gs (ไม่พบ batchTransaction) ให้ fallback ทำงานแบบทีละรายการโดยปิด Auto-retry
             if (err.message && (err.message.includes('Action not found: batchTransaction') || err.message.includes('Invalid action: batchTransaction'))) {
@@ -6176,24 +6214,6 @@
         } else {
             showToast(`ทำรายการเสร็จสมบูรณ์ทั้งหมด ${successCount} รายการ`, 'success');
         }
-
-        // ซิงค์ข้อมูลสต๊อกและประวัติเบื้องหลัง
-        setTimeout(async () => {
-            try {
-                const [freshMats, freshReports] = await Promise.all([
-                    fetchMaterialsData(true),
-                    fetchReportsData(true)
-                ]);
-                if (freshMats && freshMats.length) {
-                    state.materials = freshMats;
-                    cache.materials = JSON.stringify(freshMats);
-                }
-                if (freshReports && (freshReports.withdraw || freshReports.import)) {
-                    state.reports = freshReports;
-                    cache.reports = JSON.stringify(freshReports);
-                }
-            } catch(e) {}
-        }, 800);
     }
 
     function exportCartPDF() {
@@ -6431,7 +6451,7 @@
         showToast('กำลังดึงข้อมูลล่าสุดจากฐานข้อมูล...', 'info');
 
         try {
-            const freshData = await fetchReportsData(true);
+            const freshData = await fetchReportsData('manual');
             if (freshData && (freshData.withdraw || freshData.import)) {
                 state.reports = freshData;
                 cache.reports = JSON.stringify(freshData);
@@ -7498,12 +7518,14 @@
                 renderMaterialTimeline();
             } catch(e) {}
 
-            // Silent Background Revalidation for Timeline
-            fetchReportsData(true).then(freshData => {
+            // Silent Background Revalidation for Timeline (only if cooldown expired)
+            fetchReportsData(false).then(freshData => {
                 if (currentTimelineMatId === matId && !document.getElementById('materialTimelineModal').classList.contains('hidden')) {
-                    state.reports = freshData;
-                    cache.reports = JSON.stringify(freshData);
-                    renderMaterialTimeline();
+                    if (freshData) {
+                        state.reports = freshData;
+                        cache.reports = JSON.stringify(freshData);
+                        renderMaterialTimeline();
+                    }
                 }
             }).catch(() => {});
         } else {
@@ -7514,7 +7536,7 @@
                     <p class="text-sm font-bold text-gray-600">กำลังดึงข้อมูลประวัติไทม์ไลน์...</p>
                 </div>`;
             try {
-                await fetchReportsData(true);
+                await fetchReportsData(false);
                 renderMaterialTimeline();
             } catch(err) {
                 container.innerHTML = `
@@ -7533,7 +7555,7 @@
         if (icon) icon.classList.add('fa-spin');
         showToast('กำลังดึงประวัติล่าสุดจากฐานข้อมูล...', 'info');
         try {
-            const freshData = await fetchReportsData(true);
+            const freshData = await fetchReportsData('manual');
             if (freshData && (freshData.withdraw || freshData.import)) {
                 state.reports = freshData;
                 cache.reports = JSON.stringify(freshData);
@@ -8017,13 +8039,9 @@
     }
 
 
-    // Auto-sync theme เมื่อผู้ใช้สลับแท็บกลับมา หรือตรวจเช็กอัตโนมัติในพื้นหลังทุก 60 วินาที
+    // Auto-sync theme เมื่อผู้ใช้สลับแท็บกลับมา หรือตรวจเช็กอัตโนมัติในพื้นหลังทุก 5 นาที
     window.addEventListener('focus', () => {
         syncGlobalTheme(false);
-        // หากผู้ใช้กำลังเปิดดูหน้ารายงานประวัติอยู่ ให้ซิงค์ประวัติสดเบื้องหลัง
-        if (typeof currentViewID !== 'undefined' && currentViewID === 'reports') {
-            fetchReportsData(true).then(() => filterReports()).catch(() => {});
-        }
     });
     document.addEventListener('visibilitychange', () => {
         if (!document.hidden) {
@@ -8032,7 +8050,7 @@
     });
     setInterval(() => {
         syncGlobalTheme(false);
-    }, 60000);
+    }, 300000);
 
     // Instant DOM-ready boot on mobile: do not wait for background fonts/images before showing login
     if (document.readyState === 'loading') {
