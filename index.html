@@ -4,10 +4,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <!-- Firebase SDK (Compat Version for Standalone Vanilla HTML) -->
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
+  <!-- Supabase SDK (Compat Version for Standalone Vanilla HTML) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
 
   <title>ระบบจัดการสต๊อกวัสดุ Test Kit - กลุ่มวิจัยเคมีดิน</title>
@@ -2198,26 +2196,12 @@
     // ==========================================
     // 🔥 FIREBASE REAL-TIME CLOUD FIRESTORE ENGINE
     // ==========================================
-    const firebaseConfig = {
-      apiKey: "AIzaSyCGoXviRd3Jbxpyd_JEU4kD2acHAIMlMV8",
-      authDomain: "kstore-e7f22.firebaseapp.com",
-      projectId: "kstore-e7f22",
-      storageBucket: "kstore-e7f22.firebasestorage.app",
-      messagingSenderId: "9565632832",
-      appId: "1:9565632832:web:6a5f010201a0d1c67362a5",
-      measurementId: "G-WCVJRJLHWV"
-    };
-
-    if (!firebase.apps.length) {
-      firebase.initializeApp(firebaseConfig);
-    }
-    const db = firebase.firestore();
-    const storage = firebase.storage();
-    
-    // Enable offline persistence
-    try {
-      db.enablePersistence({ synchronizeTabs: true }).catch(() => {});
-    } catch(e) {}
+    // ==========================================
+    // ⚡ SUPABASE CLIENT INITIALIZATION (DIRECT BROWSER ACCESS)
+    // ==========================================
+    const SUPABASE_URL = 'https://fowqvzmsfaftiohxqock.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZvd3F2em1zZmFmdGlvaHhxb2NrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3NTQzNjcsImV4cCI6MjA5OTMzMDM2N30.WqX-f4ou8d7h6UWpQ9MxtZq633vWnHTWpewtF1iCdV8';
+    const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     // Password MD5 Hash Helper (Matching GAS algorithm)
     function hashPassword(pass) {
@@ -2229,7 +2213,15 @@
       return String(pass).trim();
     }
 
-    // --- FIREBASE API ADAPTER (Instant Response) ---
+    function verifyPassword(inputPass, storedPass) {
+      if (!storedPass) return false;
+      const passStr = String(inputPass).trim();
+      const rawHash = (typeof CryptoJS !== 'undefined') ? CryptoJS.MD5(passStr).toString(CryptoJS.enc.Hex) : passStr;
+      const md5Hash = "MD5_" + rawHash;
+      return storedPass === md5Hash || storedPass === rawHash || storedPass === passStr;
+    }
+
+    // --- SUPABASE API ADAPTER (Instant Response, Unlimited Reads) ---
     async function api(action, payload = {}, retries = 0) {
       const isBackground = ['login', 'ping', 'warmup', 'getMaterials', 'getBOM', 'getReports', 'getUsers', 'getLogs', 'getGlobalTheme', 'getInitialData'].includes(action);
       const showOverlay = !isBackground;
@@ -2245,154 +2237,120 @@
         switch (action) {
           case 'ping':
           case 'warmup':
-            result = { status: 'ok', engine: 'firebase', timestamp: new Date().toISOString() };
+            result = { status: 'ok', engine: 'supabase', timestamp: new Date().toISOString() };
             break;
 
           case 'getGlobalTheme': {
-            const snap = await db.collection('settings').doc('general').get();
-            result = (snap.exists && snap.data().theme) ? snap.data().theme : 'default';
+            const { data, error } = await sb.from('settings').select('theme').eq('id', 'general').maybeSingle();
+            result = (data && data.theme) ? data.theme : 'default';
             break;
           }
 
           case 'updateGlobalTheme': {
-            await db.collection('settings').doc('general').set({ theme: payload.theme }, { merge: true });
+            await sb.from('settings').upsert({ id: 'general', theme: payload.theme, updated_at: new Date().toISOString() });
             result = { message: 'เปลี่ยนธีมสำเร็จ' };
             break;
           }
 
           case 'getInitialData': {
-            const [matSnap, bomSnap] = await Promise.all([
-              db.collection('materials').get(),
-              db.collection('bom').get()
+            const [matRes, bomRes] = await Promise.all([
+              sb.from('materials').select('*'),
+              sb.from('bom').select('*')
             ]);
+            if (matRes.error) throw matRes.error;
+            if (bomRes.error) throw bomRes.error;
+
             result = {
-              materials: matSnap.docs.map(d => ({ material_id: d.id, ...d.data() })),
-              bom: bomSnap.docs.map(d => {
-                const data = d.data();
-                const req = parseFloat(data.req_per_kit ?? data.req_qty ?? data['Req/Kit'] ?? 0);
-                return { ...data, req_per_kit: req, req_qty: req };
+              materials: (matRes.data || []).map(d => ({ material_id: d.id, ...d })),
+              bom: (bomRes.data || []).map(d => {
+                const req = parseFloat(d.req_per_kit ?? d.req_qty ?? 0);
+                return { ...d, req_per_kit: req, req_qty: req };
               })
             };
             break;
           }
 
           case 'getMaterials': {
-            const snap = await db.collection('materials').get();
-            result = snap.docs.map(d => ({ material_id: d.id, ...d.data() }));
+            const { data, error } = await sb.from('materials').select('*');
+            if (error) throw error;
+            result = (data || []).map(d => ({ material_id: d.id, ...d }));
             break;
           }
 
           case 'getBOM': {
-            const snap = await db.collection('bom').get();
-            result = snap.docs.map(d => {
-              const data = d.data();
-              const req = parseFloat(data.req_per_kit ?? data.req_qty ?? data['Req/Kit'] ?? 0);
-              return { ...data, req_per_kit: req, req_qty: req };
+            const { data, error } = await sb.from('bom').select('*');
+            if (error) throw error;
+            result = (data || []).map(d => {
+              const req = parseFloat(d.req_per_kit ?? d.req_qty ?? 0);
+              return { ...d, req_per_kit: req, req_qty: req };
             });
             break;
           }
 
           case 'getReports': {
             const limitCount = payload?.limit || 250;
-            let allW = [];
-            let allI = [];
-            try {
-              const [wSnap, iSnap] = await Promise.all([
-                db.collection('withdraw_history').orderBy('timestamp', 'desc').limit(limitCount).get(),
-                db.collection('import_history').orderBy('timestamp', 'desc').limit(limitCount).get()
-              ]);
-              allW = wSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-              allI = iSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-            } catch(qErr) {
-              const [wSnap, iSnap] = await Promise.all([
-                db.collection('withdraw_history').limit(limitCount).get(),
-                db.collection('import_history').limit(limitCount).get()
-              ]);
-              allW = wSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-              allI = iSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-            }
-            
-            allW.sort((a,b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
-            allI.sort((a,b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
-
+            const [wRes, iRes] = await Promise.all([
+              sb.from('withdraw_history').select('*').order('timestamp', { ascending: false }).limit(limitCount),
+              sb.from('import_history').select('*').order('timestamp', { ascending: false }).limit(limitCount)
+            ]);
             result = {
-              withdraw: allW,
-              import: allI
+              withdraw: wRes.data || [],
+              import: iRes.data || []
             };
             break;
           }
 
           case 'getUsers': {
-            const snap = await db.collection('users').get();
-            result = snap.docs.map(d => {
-              const u = d.data();
-              delete u.password;
-              return { user_id: d.id, ...u };
+            const { data, error } = await sb.from('users').select('*');
+            if (error) throw error;
+            result = (data || []).map(u => {
+              const { password, ...safe } = u;
+              return { user_id: safe.id, ...safe };
             });
             break;
           }
 
           case 'getLogs': {
-            let snap;
-            try {
-              snap = await db.collection('log').orderBy('timestamp', 'desc').limit(250).get();
-            } catch(e) {
-              snap = await db.collection('log').limit(250).get();
-            }
-            const logs = snap.docs.map(d => d.data());
-            logs.sort((a,b) => new Date(b.timestamp || b.Timestamp || 0) - new Date(a.timestamp || a.Timestamp || 0));
-            result = logs;
+            const { data, error } = await sb.from('log').select('*').order('timestamp', { ascending: false }).limit(250);
+            if (error) throw error;
+            result = data || [];
             break;
           }
 
           case 'login': {
             const rawUser = String(payload.username || '').trim();
-            const uStr = rawUser.toLowerCase();
             const passStr = String(payload.password || '').trim();
-            const passHash = hashPassword(passStr);
-            const rawHash = (typeof CryptoJS !== 'undefined') ? CryptoJS.MD5(passStr).toString(CryptoJS.enc.Hex) : passStr;
 
-            let snap = await db.collection('users').where('username', '==', rawUser).get();
-            if (snap.empty) {
-              snap = await db.collection('users').where('username', '==', uStr).get();
-            }
-            if (snap.empty) {
-              snap = await db.collection('users').get();
-            }
-            const userDoc = snap.docs.find(d => {
-              const u = d.data();
-              const dbU = String(u.username || '').trim().toLowerCase();
-              const dbP = String(u.password || '');
-              return dbU === uStr && (dbP === passHash || dbP === rawHash || dbP === passStr);
-            });
+            const { data: users, error } = await sb.from('users').select('*').ilike('username', rawUser);
+            if (error) throw error;
 
-            if (!userDoc) throw new Error('ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง');
-            const userData = userDoc.data();
-            if (userData.status !== 'approved') throw new Error('บัญชีของคุณยังไม่ได้รับการอนุมัติจากผู้ดูแลระบบ');
+            const user = (users || []).find(u => verifyPassword(passStr, u.password));
+            if (!user) throw new Error('ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง');
+
+            if (user.status !== 'approved') throw new Error('บัญชีของคุณยังไม่ได้รับการอนุมัติจากผู้ดูแลระบบ');
 
             // Record login log
-            db.collection('log').add({
+            sb.from('log').insert([{
               timestamp: new Date().toISOString(),
-              user_id: userDoc.id,
-              username: userData.username,
-              fullname: userData.fullname,
-              role: userData.role
-            }).catch(() => {});
+              user_id: user.id,
+              username: user.username,
+              fullname: user.fullname,
+              role: user.role
+            }]).then(() => {});
 
             // Fetch initial data
-            const [mSnap, bSnap] = await Promise.all([
-              db.collection('materials').get(),
-              db.collection('bom').get()
+            const [mRes, bRes] = await Promise.all([
+              sb.from('materials').select('*'),
+              sb.from('bom').select('*')
             ]);
 
-            delete userData.password;
-            userData.user_id = userDoc.id;
+            const { password, ...userData } = user;
+            userData.user_id = user.id;
             userData.initialData = {
-              materials: mSnap.docs.map(d => ({ material_id: d.id, ...d.data() })),
-              bom: bSnap.docs.map(d => {
-                const data = d.data();
-                const req = parseFloat(data.req_per_kit ?? data.req_qty ?? data['Req/Kit'] ?? 0);
-                return { ...data, req_per_kit: req, req_qty: req };
+              materials: (mRes.data || []).map(d => ({ material_id: d.id, ...d })),
+              bom: (bRes.data || []).map(d => {
+                const req = parseFloat(d.req_per_kit ?? d.req_qty ?? 0);
+                return { ...d, req_per_kit: req, req_qty: req };
               })
             };
             result = userData;
@@ -2401,13 +2359,13 @@
 
           case 'register': {
             const uStr = String(payload.username || '').trim();
-            const snap = await db.collection('users').get();
-            const exists = snap.docs.some(d => String(d.data().username || '').trim().toLowerCase() === uStr.toLowerCase());
-            if (exists) throw new Error('Username นี้มีผู้ใช้งานในระบบแล้ว');
+            const { data: existing } = await sb.from('users').select('id').ilike('username', uStr);
+            if (existing && existing.length > 0) throw new Error('Username นี้มีผู้ใช้งานในระบบแล้ว');
 
             const userId = 'U' + Date.now();
             const passHash = hashPassword(payload.password);
-            await db.collection('users').doc(userId).set({
+            const { error } = await sb.from('users').insert([{
+              id: userId,
               user_id: userId,
               username: uStr,
               password: passHash,
@@ -2417,112 +2375,107 @@
               status: 'pending',
               permissions: ['view_stock'],
               created_at: new Date().toISOString()
-            });
+            }]);
+            if (error) throw error;
             result = { message: 'สมัครสมาชิกสำเร็จ รอการอนุมัติ' };
             break;
           }
 
           case 'updateUserStatus': {
-            const ref = db.collection('users').doc(payload.user_id);
             const updateObj = {};
             if (payload.status) updateObj.status = payload.status;
             if (payload.permissions) updateObj.permissions = payload.permissions;
-            await ref.set(updateObj, { merge: true });
+            const { error } = await sb.from('users').update(updateObj).eq('id', payload.user_id);
+            if (error) throw error;
             result = { message: 'บันทึกข้อมูลสำเร็จ' };
             break;
           }
 
           case 'deleteUser': {
-            await db.collection('users').doc(payload.user_id).delete();
+            const { error } = await sb.from('users').delete().eq('id', payload.user_id);
+            if (error) throw error;
             result = { message: 'ลบผู้ใช้งานสำเร็จ' };
             break;
           }
 
           case 'changePassword': {
-            const uStr = String(payload.username || '').trim().toLowerCase();
+            const rawUser = String(payload.username || '').trim();
             const oldPass = String(payload.oldPassword || '').trim();
             const newPass = String(payload.newPassword || '').trim();
-            const oldHash = hashPassword(oldPass);
-            const oldRaw = (typeof CryptoJS !== 'undefined') ? CryptoJS.MD5(oldPass).toString(CryptoJS.enc.Hex) : oldPass;
 
-            const snap = await db.collection('users').get();
-            const userDoc = snap.docs.find(d => {
-              const u = d.data();
-              return String(u.username || '').trim().toLowerCase() === uStr && 
-                     (u.password === oldHash || u.password === oldRaw || u.password === oldPass);
-            });
+            const { data: users, error } = await sb.from('users').select('*').ilike('username', rawUser);
+            if (error) throw error;
+            const user = (users || []).find(u => verifyPassword(oldPass, u.password));
+            if (!user) throw new Error('รหัสผ่านเดิมไม่ถูกต้อง');
 
-            if (!userDoc) throw new Error('รหัสผ่านเดิมไม่ถูกต้อง');
-            await userDoc.ref.set({ password: hashPassword(newPass) }, { merge: true });
+            const { error: upErr } = await sb.from('users').update({ password: hashPassword(newPass) }).eq('id', user.id);
+            if (upErr) throw upErr;
             result = { message: 'เปลี่ยนรหัสผ่านสำเร็จ' };
             break;
           }
 
           case 'importMaterial': {
-            const matRef = db.collection('materials').doc(payload.material_id);
+            const matId = payload.material_id;
             const ts = payload.timestamp || (payload.custom_date ? new Date(payload.custom_date + 'T12:00:00').toISOString() : new Date().toISOString());
             const qtyAdd = parseFloat(payload.qty || 0);
 
-            await db.runTransaction(async (t) => {
-              const doc = await t.get(matRef);
-              if (!doc.exists) throw new Error('ไม่พบรหัสวัสดุ: ' + payload.material_id);
-              const currentQty = parseFloat(doc.data().qty || 0);
-              t.update(matRef, {
-                qty: currentQty + qtyAdd,
-                last_import_date: ts,
-                last_import_by: payload.user_name || 'admin',
-                last_import_ref: payload.ref_doc || '',
-                updated_at: firebase.firestore.FieldValue.serverTimestamp()
-              });
-            });
+            const { data: mat, error: mErr } = await sb.from('materials').select('qty').eq('id', matId).single();
+            if (mErr || !mat) throw new Error('ไม่พบรหัสวัสดุ: ' + matId);
 
-            // Add history record
-            await db.collection('import_history').add({
+            const currentQty = parseFloat(mat.qty || 0);
+            await sb.from('materials').update({
+              qty: currentQty + qtyAdd,
+              last_import_date: ts,
+              last_import_by: payload.user_name || 'admin',
+              last_import_ref: payload.ref_doc || '',
+              updated_at: new Date().toISOString()
+            }).eq('id', matId);
+
+            await sb.from('import_history').insert([{
               timestamp: ts,
-              material_id: payload.material_id,
+              material_id: matId,
               material_name: payload.material_name,
               qty: qtyAdd,
               user_name: payload.user_name,
               ref_doc: payload.ref_doc || '',
               type: payload.type || '',
               action_type: 'import'
-            });
+            }]);
 
             result = { message: 'นำเข้าสต๊อกสำเร็จ' };
             break;
           }
 
           case 'withdrawMaterial': {
-            const matRef = db.collection('materials').doc(payload.material_id);
+            const matId = payload.material_id;
             const ts = payload.timestamp || (payload.custom_date ? new Date(payload.custom_date + 'T12:00:00').toISOString() : new Date().toISOString());
             const qtySub = parseFloat(payload.qty || 0);
 
-            await db.runTransaction(async (t) => {
-              const doc = await t.get(matRef);
-              if (!doc.exists) throw new Error('ไม่พบรหัสวัสดุ: ' + payload.material_id);
-              const currentQty = parseFloat(doc.data().qty || 0);
-              if (currentQty < qtySub) {
-                throw new Error(`สต๊อกไม่พอ (คงเหลือ ${currentQty}, ต้องการเบิก ${qtySub})`);
-              }
-              t.update(matRef, {
-                qty: currentQty - qtySub,
-                last_withdraw_date: ts,
-                last_withdraw_by: payload.user_name || 'admin',
-                updated_at: firebase.firestore.FieldValue.serverTimestamp()
-              });
-            });
+            const { data: mat, error: mErr } = await sb.from('materials').select('qty').eq('id', matId).single();
+            if (mErr || !mat) throw new Error('ไม่พบรหัสวัสดุ: ' + matId);
 
-            // Add history record
-            await db.collection('withdraw_history').add({
+            const currentQty = parseFloat(mat.qty || 0);
+            if (currentQty < qtySub) {
+              throw new Error(`สต๊อกไม่พอ (คงเหลือ ${currentQty}, ต้องการเบิก ${qtySub})`);
+            }
+
+            await sb.from('materials').update({
+              qty: currentQty - qtySub,
+              last_withdraw_date: ts,
+              last_withdraw_by: payload.user_name || 'admin',
+              updated_at: new Date().toISOString()
+            }).eq('id', matId);
+
+            await sb.from('withdraw_history').insert([{
               timestamp: ts,
-              material_id: payload.material_id,
+              material_id: matId,
               material_name: payload.material_name,
               qty: qtySub,
               user_name: payload.user_name,
               ref_doc: payload.ref_doc || '',
               type: payload.type || '',
               action_type: 'withdraw'
-            });
+            }]);
 
             result = { message: 'เบิกวัสดุสำเร็จ' };
             break;
@@ -2539,65 +2492,59 @@
             const uName = payload.user_name || (state.user ? state.user.fullname : 'admin');
             const refDoc = payload.ref_doc || '';
 
-            // Run atomic transaction to update stock in Firestore
-            await db.runTransaction(async (t) => {
-              const reads = [];
+            // Check stock for withdraw
+            if (mode === 'withdraw') {
               for (const it of items) {
-                const mRef = db.collection('materials').doc(String(it.material_id));
-                reads.push(t.get(mRef));
-              }
-              const docs = await Promise.all(reads);
-
-              for (let i = 0; i < items.length; i++) {
-                const it = items[i];
-                const doc = docs[i];
-                const mRef = doc.ref;
-                if (!doc.exists) {
-                  throw new Error(`ไม่พบรหัสวัสดุ: ${it.material_id}`);
-                }
-                const curQty = parseFloat(doc.data().qty || 0);
-                const reqQty = parseFloat(it.qty || 0);
-
-                if (mode === 'withdraw') {
-                  if (curQty < reqQty) {
-                    throw new Error(`สต๊อก "${it.material_name || it.material_id}" ไม่พอ (คงเหลือ ${curQty}, ต้องการเบิก ${reqQty})`);
-                  }
-                  t.update(mRef, {
-                    qty: curQty - reqQty,
-                    last_withdraw_date: ts,
-                    last_withdraw_by: uName,
-                    updated_at: firebase.firestore.FieldValue.serverTimestamp()
-                  });
-                } else {
-                  // import
-                  t.update(mRef, {
-                    qty: curQty + reqQty,
-                    last_import_date: ts,
-                    last_import_by: uName,
-                    last_import_ref: refDoc,
-                    updated_at: firebase.firestore.FieldValue.serverTimestamp()
-                  });
+                const { data: m } = await sb.from('materials').select('qty, name').eq('id', String(it.material_id)).single();
+                if (!m) throw new Error(`ไม่พบรหัสวัสดุ: ${it.material_id}`);
+                const cur = parseFloat(m.qty || 0);
+                const req = parseFloat(it.qty || 0);
+                if (cur < req) {
+                  throw new Error(`สต๊อก "${m.name || it.material_id}" ไม่พอ (คงเหลือ ${cur}, ต้องการเบิก ${req})`);
                 }
               }
-            });
+            }
 
-            // Add history records in batch
-            const histColl = (mode === 'import') ? 'import_history' : 'withdraw_history';
-            const histBatch = db.batch();
-            items.forEach(it => {
-              const hRef = db.collection(histColl).doc();
-              histBatch.set(hRef, {
+            // Apply updates
+            const histRecords = [];
+            for (const it of items) {
+              const delta = parseFloat(it.qty || 0);
+              const { data: m } = await sb.from('materials').select('qty').eq('id', String(it.material_id)).single();
+              const cur = parseFloat(m?.qty || 0);
+
+              if (mode === 'withdraw') {
+                await sb.from('materials').update({
+                  qty: cur - delta,
+                  last_withdraw_date: ts,
+                  last_withdraw_by: uName,
+                  updated_at: new Date().toISOString()
+                }).eq('id', String(it.material_id));
+              } else {
+                await sb.from('materials').update({
+                  qty: cur + delta,
+                  last_import_date: ts,
+                  last_import_by: uName,
+                  last_import_ref: refDoc,
+                  updated_at: new Date().toISOString()
+                }).eq('id', String(it.material_id));
+              }
+
+              histRecords.push({
                 timestamp: ts,
                 material_id: String(it.material_id),
                 material_name: String(it.material_name || ''),
-                qty: parseFloat(it.qty || 0),
+                qty: delta,
                 user_name: uName,
                 ref_doc: refDoc,
                 type: it.type || '',
                 action_type: mode
               });
-            });
-            await histBatch.commit();
+            }
+
+            const histTable = (mode === 'import') ? 'import_history' : 'withdraw_history';
+            if (histRecords.length) {
+              await sb.from(histTable).insert(histRecords);
+            }
 
             result = {
               success: true,
@@ -2614,22 +2561,11 @@
 
           case 'addMaterial': {
             const matId = payload.material_id || ('M' + Date.now());
-            let imgUrl = payload.image_url || '';
-            
-            if (payload.image_data && payload.image_data.startsWith('data:')) {
-              try {
-                const sRef = storage.ref(`materials/${matId}_${Date.now()}.jpg`);
-                await sRef.putString(payload.image_data, 'data_url');
-                imgUrl = await sRef.getDownloadURL();
-              } catch(sErr) {
-                console.warn('Storage upload error, using fallback:', sErr);
-              }
-            }
-
             const docData = {
+              id: matId,
               material_id: matId,
               name: String(payload.name || '').trim(),
-              image_url: imgUrl,
+              image_url: payload.image_data || payload.image_url || '',
               qty: parseFloat(payload.qty || 0),
               units: String(payload.units || 'ชิ้น').trim(),
               price: parseFloat(payload.price || 0),
@@ -2642,38 +2578,28 @@
               last_import_by: payload.user_name || 'admin',
               last_withdraw_by: '',
               last_import_ref: payload.ref_doc || 'เพิ่มวัสดุใหม่',
-              created_at: new Date().toISOString()
+              updated_at: new Date().toISOString()
             };
 
-            await db.collection('materials').doc(matId).set(docData);
+            const { error } = await sb.from('materials').insert([docData]);
+            if (error) throw error;
             result = { message: 'เพิ่มวัสดุสำเร็จ', material_id: matId };
             break;
           }
 
           case 'updateMaterial': {
             const matId = payload.material_id;
-            const docRef = db.collection('materials').doc(matId);
-            let imgUrl = payload.image_url;
-
-            if (payload.image_data && payload.image_data.startsWith('data:')) {
-              try {
-                const sRef = storage.ref(`materials/${matId}_UPDATED_${Date.now()}.jpg`);
-                await sRef.putString(payload.image_data, 'data_url');
-                imgUrl = await sRef.getDownloadURL();
-              } catch(sErr) {
-                console.warn('Storage upload error:', sErr);
-              }
-            }
-
             const updateData = {
               name: String(payload.name || '').trim(),
               units: String(payload.units || '').trim(),
               location: String(payload.location || '-').trim(),
               category: String(payload.category || '').trim(),
               price: parseFloat(payload.price || 0),
-              updated_at: firebase.firestore.FieldValue.serverTimestamp()
+              updated_at: new Date().toISOString()
             };
-            if (imgUrl) updateData.image_url = imgUrl;
+            if (payload.image_data || payload.image_url) {
+              updateData.image_url = payload.image_data || payload.image_url;
+            }
             if (payload.type !== undefined) {
               updateData.type = Array.isArray(payload.type) ? payload.type : (payload.type ? [payload.type] : []);
             }
@@ -2681,13 +2607,15 @@
               updateData.pinned = Boolean(payload.pinned);
             }
 
-            await docRef.set(updateData, { merge: true });
+            const { error } = await sb.from('materials').update(updateData).eq('id', matId);
+            if (error) throw error;
             result = { message: 'แก้ไขวัสดุสำเร็จ' };
             break;
           }
 
           case 'deleteMaterial': {
-            await db.collection('materials').doc(payload.material_id).delete();
+            const { error } = await sb.from('materials').delete().eq('id', payload.material_id);
+            if (error) throw error;
             result = { message: 'ลบวัสดุสำเร็จ' };
             break;
           }
@@ -2697,23 +2625,16 @@
             const newItems = Array.isArray(payload.items) ? payload.items : (Array.isArray(payload.bom) ? payload.bom : []);
 
             if (targetType) {
-              const snap = await db.collection('bom').where('type', '==', targetType).get();
-              const bBatch = db.batch();
-              snap.docs.forEach(d => bBatch.delete(d.ref));
-              await bBatch.commit();
+              await sb.from('bom').delete().eq('type', targetType);
             } else {
-              const snap = await db.collection('bom').get();
-              const bBatch = db.batch();
-              snap.docs.forEach(d => bBatch.delete(d.ref));
-              await bBatch.commit();
+              await sb.from('bom').delete().neq('id', 0);
             }
 
-            const addBatch = db.batch();
+            const toInsert = [];
             newItems.forEach(item => {
               const req = parseFloat(item.req_qty ?? item.req_per_kit ?? item['Req/Kit'] ?? 0);
               if (req > 0) {
-                const dRef = db.collection('bom').doc();
-                addBatch.set(dRef, {
+                toInsert.push({
                   type: String(item.type || item.Type || targetType || '').trim(),
                   material_id: String(item.material_id || item['Material ID'] || '').trim(),
                   req_qty: req,
@@ -2721,7 +2642,11 @@
                 });
               }
             });
-            await addBatch.commit();
+
+            if (toInsert.length) {
+              const { error } = await sb.from('bom').insert(toInsert);
+              if (error) throw error;
+            }
             result = { message: 'บันทึกสูตรการผลิตสำเร็จ' };
             break;
           }
@@ -2731,78 +2656,77 @@
             const ts = payload.timestamp || (payload.custom_date ? new Date(payload.custom_date + 'T12:00:00').toISOString() : new Date().toISOString());
             const txId = 'PROD-' + Date.now().toString(36).toUpperCase();
 
-            await db.runTransaction(async (t) => {
-              const reads = await Promise.all(plan.map(p => t.get(db.collection('materials').doc(p.material_id))));
-              reads.forEach((doc, idx) => {
-                if (!doc.exists) throw new Error('ไม่พบวัสดุ: ' + plan[idx].matName);
-                const cur = parseFloat(doc.data().qty || 0);
-                const req = parseFloat(plan[idx].totalReq || 0);
-                if (cur < req) {
-                  throw new Error(`สต๊อกไม่พอสำหรับ ${plan[idx].matName} (ต้องการ ${req}, มี ${cur})`);
-                }
-              });
+            // Verify stock
+            for (const p of plan) {
+              const { data: mat, error: mErr } = await sb.from('materials').select('qty').eq('id', p.material_id).single();
+              if (mErr || !mat) throw new Error('ไม่พบวัสดุ: ' + p.matName);
+              const cur = parseFloat(mat.qty || 0);
+              const req = parseFloat(p.totalReq || 0);
+              if (cur < req) {
+                throw new Error(`สต๊อกไม่พอสำหรับ ${p.matName} (ต้องการ ${req}, มี ${cur})`);
+              }
+            }
 
-              reads.forEach((doc, idx) => {
-                const cur = parseFloat(doc.data().qty || 0);
-                const req = parseFloat(plan[idx].totalReq || 0);
-                t.update(doc.ref, {
-                  qty: cur - req,
-                  last_withdraw_date: ts,
-                  last_withdraw_by: payload.fullname || 'admin',
-                  updated_at: firebase.firestore.FieldValue.serverTimestamp()
-                });
-              });
-            });
+            // Deduct stock and record history
+            const histRecords = [];
+            for (const p of plan) {
+              const { data: mat } = await sb.from('materials').select('qty').eq('id', p.material_id).single();
+              const cur = parseFloat(mat?.qty || 0);
+              const req = parseFloat(p.totalReq || 0);
 
-            const histBatch = db.batch();
-            plan.forEach(p => {
-              const hRef = db.collection('withdraw_history').doc();
-              histBatch.set(hRef, {
+              await sb.from('materials').update({
+                qty: cur - req,
+                last_withdraw_date: ts,
+                last_withdraw_by: payload.fullname || 'admin',
+                updated_at: new Date().toISOString()
+              }).eq('id', p.material_id);
+
+              histRecords.push({
                 timestamp: ts,
                 material_id: p.material_id,
                 material_name: p.matName,
-                qty: parseFloat(p.totalReq || 0),
+                qty: req,
                 user_name: payload.fullname || 'admin',
                 ref_doc: txId,
                 type: payload.kitType || '',
                 action_type: 'withdraw'
               });
-            });
-            await histBatch.commit();
+            }
+
+            if (histRecords.length) {
+              await sb.from('withdraw_history').insert(histRecords);
+            }
 
             result = { message: 'บันทึกการสั่งผลิตและตัดสต๊อกสำเร็จ', ref_doc: txId };
             break;
           }
 
           case 'undoProduceKit': {
-            const wSnap = await db.collection('withdraw_history').where('ref_doc', '==', payload.ref_doc).get();
-            if (wSnap.empty) throw new Error('ไม่พบประวัติการผลิตรหัส: ' + payload.ref_doc);
+            const { data: items, error } = await sb.from('withdraw_history').select('*').eq('ref_doc', payload.ref_doc);
+            if (error || !items || !items.length) throw new Error('ไม่พบประวัติการผลิตรหัส: ' + payload.ref_doc);
 
-            const items = wSnap.docs.map(d => ({ ref: d.ref, ...d.data() }));
-
-            await db.runTransaction(async (t) => {
-              for (let it of items) {
-                const mRef = db.collection('materials').doc(it.material_id);
-                const mDoc = await t.get(mRef);
-                if (mDoc.exists) {
-                  const cur = parseFloat(mDoc.data().qty || 0);
-                  t.update(mRef, { qty: cur + parseFloat(it.qty || 0) });
-                }
-                t.delete(it.ref);
+            for (const it of items) {
+              const { data: mat } = await sb.from('materials').select('qty').eq('id', it.material_id).single();
+              if (mat) {
+                const cur = parseFloat(mat.qty || 0);
+                await sb.from('materials').update({
+                  qty: cur + parseFloat(it.qty || 0)
+                }).eq('id', it.material_id);
               }
-            });
+            }
 
+            await sb.from('withdraw_history').delete().eq('ref_doc', payload.ref_doc);
             result = { message: 'ยกเลิกรายการผลิตและคืนค่าสต๊อกสำเร็จ' };
             break;
           }
 
           default:
-            console.warn('Unknown Firebase API action:', action, payload);
+            console.warn('Unknown Supabase API action:', action, payload);
             result = { success: true };
         }
 
         const elapsed = (performance.now() - startTime).toFixed(1);
-        console.log(`⚡ [Firebase Firestore] "${action}" completed in ${elapsed}ms`);
+        console.log(`⚡ [Supabase Database] "${action}" completed in ${elapsed}ms`);
 
         if (showOverlay) {
           const el = document.getElementById('loadingOverlay');
@@ -2815,12 +2739,11 @@
           const el = document.getElementById('loadingOverlay');
           if (el) el.classList.add('hidden');
         }
-        console.error(`❌ [Firebase API Error] [${action}]:`, err);
+        console.error(`❌ [Supabase API Error] [${action}]:`, err);
         showToast(err.message || 'เกิดข้อผิดพลาดในการประมวลผล', 'error');
         throw err;
       }
     }
-
     // 🚀 LIVE REAL-TIME MATERIALS FETCHER: ดึงสดเมื่อจำเป็น และใช้หน่วยความจำเพื่อความรวดเร็วและประหยัดโควตา
     let materialsPromise = null;
     let lastMaterialsSyncTime = 0;
