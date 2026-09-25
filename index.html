@@ -1981,7 +1981,7 @@
     async function syncGlobalTheme(force = false) {
         if (isSyncingTheme) return;
         const lastSync = parseInt(localStorage.getItem('kstore_theme_sync_time') || '0', 10);
-        const cooldown = force ? 0 : 30000; // 30s cooldown สำหรับ background polling
+        const cooldown = force ? 0 : 300000; // 5 นาที cooldown สำหรับ background polling
         if (!force && Date.now() - lastSync < cooldown) return;
 
         isSyncingTheme = true;
@@ -2333,10 +2333,15 @@
           }
 
           case 'getLogs': {
-            const snap = await db.collection('log').get();
+            let snap;
+            try {
+              snap = await db.collection('log').orderBy('timestamp', 'desc').limit(250).get();
+            } catch(e) {
+              snap = await db.collection('log').limit(250).get();
+            }
             const logs = snap.docs.map(d => d.data());
             logs.sort((a,b) => new Date(b.timestamp || b.Timestamp || 0) - new Date(a.timestamp || a.Timestamp || 0));
-            result = logs.slice(0, 500);
+            result = logs;
             break;
           }
 
@@ -2828,16 +2833,30 @@
             if (!force || (force !== 'manual' && now - lastSync < cooldown)) {
                 return state.materials;
             }
-        } else if (cache.materials && cache.materials !== 'null' && force !== 'manual') {
+        } else if (force !== 'manual') {
+            // Anti-F5 Spam Protection: หากผู้ใช้กด F5 รัวๆ ภายใน 15 วินาที ให้ใช้ข้อมูลเซสชันเดิม ไม่ดึง Firestore ซ้ำ
             try {
-                const parsed = JSON.parse(cache.materials);
-                if (Array.isArray(parsed) && parsed.length > 0) {
-                    state.materials = parsed;
-                    if (now - lastSync < cooldown) {
-                        return parsed;
+                const sessionRaw = sessionStorage.getItem('kstore_session_materials');
+                if (sessionRaw) {
+                    const parsed = JSON.parse(sessionRaw);
+                    if (parsed && parsed.time && (now - parsed.time < 15000) && Array.isArray(parsed.data) && parsed.data.length > 0) {
+                        state.materials = parsed.data;
+                        return parsed.data;
                     }
                 }
             } catch(e) {}
+
+            if (cache.materials && cache.materials !== 'null') {
+                try {
+                    const parsed = JSON.parse(cache.materials);
+                    if (Array.isArray(parsed) && parsed.length > 0) {
+                        state.materials = parsed;
+                        if (now - lastSync < cooldown) {
+                            return parsed;
+                        }
+                    }
+                } catch(e) {}
+            }
         }
 
         if (materialsPromise && !force) return materialsPromise;
@@ -2847,6 +2866,9 @@
                 cache.materials = JSON.stringify(data);
                 lastMaterialsSyncTime = Date.now();
                 localStorage.setItem('kstore_mats_last_sync', lastMaterialsSyncTime.toString());
+                try {
+                    sessionStorage.setItem('kstore_session_materials', JSON.stringify({ data: data, time: lastMaterialsSyncTime }));
+                } catch(e) {}
             }
             return state.materials || [];
         }).catch(err => {
@@ -3614,8 +3636,16 @@
         }
     }
 
-    // 🔄 DASHBOARD MANUAL REFRESH: ดึงข้อมูลสดจากฐานข้อมูลเมื่อผู้ใช้กดปุ่มรีเฟรชเท่านั้น
+    // 🔄 DASHBOARD MANUAL REFRESH: ดึงข้อมูลสดจากฐานข้อมูลเมื่อผู้ใช้กดปุ่มรีเฟรชเท่านั้น (พร้อมระบบป้องกันกดรัว)
+    let lastDashboardManualRefresh = 0;
     async function refreshDashboard() {
+        const now = Date.now();
+        if (now - lastDashboardManualRefresh < 5000) {
+            showToast('ข้อมูลภาพรวมเป็นปัจจุบันล่าสุดแล้ว (เพิ่งอัปเดตเมื่อสักครู่)', 'info');
+            return;
+        }
+        lastDashboardManualRefresh = now;
+
         const icon = document.getElementById('iconRefreshDashboard');
         const btn = document.getElementById('btnRefreshDashboard');
         if (icon) icon.classList.add('fa-spin');
@@ -4345,7 +4375,15 @@
         }
     }
 
+    let lastMaterialsManualRefresh = 0;
     async function refreshMaterials(mode) {
+        const now = Date.now();
+        if (now - lastMaterialsManualRefresh < 5000) {
+            showToast('ข้อมูลสต๊อกเป็นปัจจุบันล่าสุดแล้ว (เพิ่งอัปเดตเมื่อสักครู่)', 'info');
+            return;
+        }
+        lastMaterialsManualRefresh = now;
+
         captureInventoryFilters();
         const savedScrollY = window.scrollY;
         const container = document.getElementById('inventoryContainer');
@@ -6452,7 +6490,15 @@
         });
     }
 
+    let lastReportsManualRefresh = 0;
     async function manualRefreshReports() {
+        const now = Date.now();
+        if (now - lastReportsManualRefresh < 5000) {
+            showToast('ข้อมูลรายงานเป็นปัจจุบันล่าสุดแล้ว (เพิ่งอัปเดตเมื่อสักครู่)', 'info');
+            return;
+        }
+        lastReportsManualRefresh = now;
+
         const icon = document.getElementById('iconRefreshReports');
         const label = document.getElementById('labelRefreshReports');
         if (icon) icon.classList.add('fa-spin');
@@ -7559,7 +7605,15 @@
         }
     }
 
+    let lastTimelineManualRefresh = 0;
     async function manualRefreshTimeline() {
+        const now = Date.now();
+        if (now - lastTimelineManualRefresh < 5000) {
+            showToast('ประวัติ Timeline เป็นปัจจุบันล่าสุดแล้ว (เพิ่งอัปเดตเมื่อสักครู่)', 'info');
+            return;
+        }
+        lastTimelineManualRefresh = now;
+
         const icon = document.getElementById('iconRefreshTimeline');
         if (icon) icon.classList.add('fa-spin');
         showToast('กำลังดึงประวัติล่าสุดจากฐานข้อมูล...', 'info');
@@ -8048,7 +8102,7 @@
     }
 
 
-    // Auto-sync theme เมื่อผู้ใช้สลับแท็บกลับมา หรือตรวจเช็กอัตโนมัติในพื้นหลังทุก 5 นาที
+    // Auto-sync theme เมื่อผู้ใช้สลับแท็บกลับมา หรือตรวจเช็กอัตโนมัติในพื้นหลังทุก 15 นาที
     window.addEventListener('focus', () => {
         syncGlobalTheme(false);
     });
@@ -8059,7 +8113,7 @@
     });
     setInterval(() => {
         syncGlobalTheme(false);
-    }, 300000);
+    }, 900000);
 
     // Instant DOM-ready boot on mobile: do not wait for background fonts/images before showing login
     if (document.readyState === 'loading') {
