@@ -816,8 +816,11 @@
         </div>
 
         <div>
-          <label class="block text-sm font-bold mb-1 text-gray-700">ราคาประมาณการต่อหน่วย (บาท)</label>
-          <input type="number" step="0.01" min="0" id="matPrice" class="w-full px-4 py-2 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none transition border-custom" placeholder="0.00" required>
+          <label class="block text-sm font-bold mb-1 text-gray-700 flex items-center justify-between">
+            <span>ราคาประมาณการต่อหน่วย (บาท)</span>
+            <span class="text-xs font-normal text-gray-400 font-mono">(ไม่บังคับระบุ)</span>
+          </label>
+          <input type="number" step="0.01" min="0" id="matPrice" class="w-full px-4 py-2 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none transition border-custom" placeholder="0.00 (ไม่บังคับระบุ)">
         </div>
 
 
@@ -2568,9 +2571,11 @@
               image_url: payload.image_data || payload.image_url || '',
               qty: parseFloat(payload.qty || 0),
               units: String(payload.units || 'ชิ้น').trim(),
-              price: parseFloat(payload.price || 0),
+              price: (payload.price !== undefined && payload.price !== null && payload.price !== '') ? (parseFloat(payload.price) || 0) : 0,
               category: String(payload.category || '').trim(),
               location: String(payload.location || '-').trim(),
+              brand: String(payload.brand || '').trim(),
+              remark: String(payload.remark || '').trim(),
               type: Array.isArray(payload.type) ? payload.type : (payload.type ? [payload.type] : []),
               pinned: Boolean(payload.pinned),
               last_import_date: new Date().toISOString(),
@@ -2594,9 +2599,15 @@
               units: String(payload.units || '').trim(),
               location: String(payload.location || '-').trim(),
               category: String(payload.category || '').trim(),
-              price: parseFloat(payload.price || 0),
+              price: (payload.price !== undefined && payload.price !== null && payload.price !== '') ? (parseFloat(payload.price) || 0) : 0,
               updated_at: new Date().toISOString()
             };
+            if (payload.brand !== undefined) {
+              updateData.brand = String(payload.brand || '').trim();
+            }
+            if (payload.remark !== undefined) {
+              updateData.remark = String(payload.remark || '').trim();
+            }
             if (payload.image_data || payload.image_url) {
               updateData.image_url = payload.image_data || payload.image_url;
             }
@@ -2749,15 +2760,16 @@
     let lastMaterialsSyncTime = 0;
     async function fetchMaterialsData(force = false) {
         const now = Date.now();
-        const lastSync = lastMaterialsSyncTime || parseInt(localStorage.getItem('kstore_mats_last_sync') || '0', 10);
-        const cooldown = (force === 'manual') ? 0 : 30000; // 30s cooldown for automatic/navigational fetches
+        const isForce = (force === true || force === 'manual');
+        const lastSync = isForce ? 0 : (lastMaterialsSyncTime || parseInt(localStorage.getItem('kstore_mats_last_sync') || '0', 10));
+        const cooldown = isForce ? 0 : 30000; // 30s cooldown for automatic/navigational fetches
 
-        if (state.materials && state.materials.length > 0) {
-            if (!force || (force !== 'manual' && now - lastSync < cooldown)) {
+        if (!isForce && state.materials && state.materials.length > 0) {
+            if (now - lastSync < cooldown) {
                 return state.materials;
             }
-        } else if (force !== 'manual') {
-            // Anti-F5 Spam Protection: หากผู้ใช้กด F5 รัวๆ ภายใน 15 วินาที ให้ใช้ข้อมูลเซสชันเดิม ไม่ดึง Firestore ซ้ำ
+        } else if (!isForce) {
+            // Anti-F5 Spam Protection
             try {
                 const sessionRaw = sessionStorage.getItem('kstore_session_materials');
                 if (sessionRaw) {
@@ -2782,7 +2794,7 @@
             }
         }
 
-        if (materialsPromise && !force) return materialsPromise;
+        if (materialsPromise && !isForce) return materialsPromise;
         materialsPromise = api('getMaterials').then(data => {
             if (Array.isArray(data) && data.length > 0) {
                 state.materials = data;
@@ -6989,7 +7001,8 @@
             document.getElementById('matLocation').value = m.location || m.Location || m['ที่เก็บ'] || m['ชั้นวาง'] || '';
             if (document.getElementById('matBrand')) document.getElementById('matBrand').value = m.brand || m.Brand || m['ยี่ห้อ'] || '';
             if (document.getElementById('matRemark')) document.getElementById('matRemark').value = m.remark || m.Remark || m['หมายเหตุ'] || '';
-            document.getElementById('matPrice').value = m.price || m.Price || m['ราคา'] || m[Object.keys(m)[13]] || 0;
+            const rawPrice = m.price ?? m.Price ?? m['ราคา'] ?? m[Object.keys(m)[13]];
+            document.getElementById('matPrice').value = (rawPrice !== undefined && rawPrice !== null && rawPrice !== '' && parseFloat(rawPrice) > 0) ? rawPrice : '';
             document.getElementById('matUnits').value = m.units || m.Units || '';
             
             const mType = m.type || m.Type || m['ประเภท'] || '';
@@ -7001,6 +7014,7 @@
             document.getElementById('matId').value = '';
             if (document.getElementById('matBrand')) document.getElementById('matBrand').value = '';
             if (document.getElementById('matRemark')) document.getElementById('matRemark').value = '';
+            document.getElementById('matPrice').value = '';
             updateModalDropdowns([], '');
         }
         document.getElementById('materialModal').classList.remove('hidden');
@@ -7098,12 +7112,15 @@
             ? (catInput ? catInput.value.trim() : '')
             : (catSelect ? catSelect.value : '');
 
+        const rawPriceInput = document.getElementById('matPrice') ? document.getElementById('matPrice').value.trim() : '';
+        const finalPrice = rawPriceInput !== '' ? (parseFloat(rawPriceInput) || 0) : 0;
+
         let payload = { 
-            name: document.getElementById('matName').value, 
-            location: document.getElementById('matLocation').value,
+            name: document.getElementById('matName').value.trim(), 
+            location: document.getElementById('matLocation').value.trim(),
             brand: document.getElementById('matBrand') ? document.getElementById('matBrand').value.trim() : '',
             remark: document.getElementById('matRemark') ? document.getElementById('matRemark').value.trim() : '',
-            price: parseFloat(document.getElementById('matPrice').value) || 0,
+            price: finalPrice,
             units: document.getElementById('matUnits').value.trim(),
             type: currentSelectedTypes, // send as array
             category: finalCat, // New field mapped to M column
@@ -7117,12 +7134,57 @@
         try {
             await api(id ? 'updateMaterial' : 'addMaterial', { ...payload, material_id: id });
             closeModal('materialModal');
-            cache.materials = null; // Clear cache to force refresh
+
+            // 🚀 INSTANT IN-MEMORY SYNC: อัปเดตข้อมูลในหน่วยความจำทันที ไม่ต้องรอนาน
+            if (id && state.materials) {
+                const idx = state.materials.findIndex(m => String(m.id || m.material_id) === String(id));
+                if (idx !== -1) {
+                    state.materials[idx] = {
+                        ...state.materials[idx],
+                        ...payload,
+                        id: id,
+                        material_id: id,
+                        updated_at: new Date().toISOString()
+                    };
+                }
+            } else if (state.materials) {
+                const newId = id || ('M' + Date.now());
+                state.materials.unshift({
+                    id: newId,
+                    material_id: newId,
+                    ...payload,
+                    qty: 0,
+                    pinned: false,
+                    updated_at: new Date().toISOString()
+                });
+            }
+
+            // Invalidate cache and sync timestamp
+            lastMaterialsSyncTime = 0;
+            cache.materials = null;
+            try {
+                localStorage.removeItem('kstore_mats_last_sync');
+                sessionStorage.removeItem('kstore_session_materials');
+            } catch(_) {}
+
+            // Re-render UI instantly
             const savedScrollY = window.scrollY;
-            await renderInventory(document.getElementById('contentArea'), currentTransMode || 'view', currentViewID);
+            updateFilterDropdowns();
+            renderMaterialList(currentTransMode || 'view');
             window.scrollTo({ top: savedScrollY, behavior: 'instant' });
-            showToast('บันทึกข้อมูลวัสดุสำเร็จ', 'success');
-        } catch(e) {}
+            showToast(id ? 'บันทึกการแก้ไขวัสดุสำเร็จ' : 'เพิ่มวัสดุใหม่สำเร็จ', 'success');
+
+            // Refresh from DB in background to ensure 100% data consistency
+            fetchMaterialsData('manual').then(fresh => {
+                if (Array.isArray(fresh) && fresh.length > 0) {
+                    state.materials = fresh;
+                    updateFilterDropdowns();
+                    renderMaterialList(currentTransMode || 'view');
+                }
+            }).catch(() => {});
+        } catch(e) {
+            showToast('เกิดข้อผิดพลาดในการบันทึก: ' + (e.message || e), 'error');
+        }
     };
 
     document.getElementById('changePasswordForm').onsubmit = async (e) => {
@@ -7355,12 +7417,34 @@
 
     async function deleteMaterial(id) { 
         if(!confirm('คุณแน่ใจหรือไม่ที่จะลบรายการนี้อย่างถาวร?')) return; 
-        await api('deleteMaterial', { material_id: id }); 
-        cache.materials = null; 
-        const savedScrollY = window.scrollY;
-        await renderInventory(document.getElementById('contentArea'), currentTransMode || 'view', currentViewID); 
-        window.scrollTo({ top: savedScrollY, behavior: 'instant' });
-        showToast('ลบรายการสำเร็จ');
+        try {
+            await api('deleteMaterial', { material_id: id }); 
+            if (state.materials) {
+                state.materials = state.materials.filter(m => String(m.id || m.material_id) !== String(id));
+            }
+            lastMaterialsSyncTime = 0;
+            cache.materials = null; 
+            try {
+                localStorage.removeItem('kstore_mats_last_sync');
+                sessionStorage.removeItem('kstore_session_materials');
+            } catch(_) {}
+
+            const savedScrollY = window.scrollY;
+            updateFilterDropdowns();
+            renderMaterialList(currentTransMode || 'view'); 
+            window.scrollTo({ top: savedScrollY, behavior: 'instant' });
+            showToast('ลบรายการสำเร็จ', 'success');
+
+            fetchMaterialsData('manual').then(fresh => {
+                if (Array.isArray(fresh)) {
+                    state.materials = fresh;
+                    updateFilterDropdowns();
+                    renderMaterialList(currentTransMode || 'view');
+                }
+            }).catch(() => {});
+        } catch(e) {
+            showToast('เกิดข้อผิดพลาดในการลบ: ' + (e.message || e), 'error');
+        }
     }
     
     // --- MATERIAL TIMELINE LOGIC ---
