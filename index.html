@@ -3293,10 +3293,12 @@
         
         toggleSidebar(false);
 
-        // OPTIMIZATION: Safety check before destroying charts
+        // OPTIMIZATION: Safety check before destroying charts & timers
         try {
+            if (window.dashboardClockTimer) { clearInterval(window.dashboardClockTimer); window.dashboardClockTimer = null; }
             if (window.stockChartInstance) { window.stockChartInstance.destroy(); window.stockChartInstance = null; }
             if (window.statusChartInstance) { window.statusChartInstance.destroy(); window.statusChartInstance = null; }
+            if (window.valueChartInstance) { window.valueChartInstance.destroy(); window.valueChartInstance = null; }
             if (window.bottomChartInstance) { window.bottomChartInstance.destroy(); window.bottomChartInstance = null; }
         } catch(e) { console.warn("Chart destroy ignored during rapid switch"); }
 
@@ -3608,6 +3610,348 @@
         }
     }
 
+    // 🕒 REALTIME DASHBOARD CLOCK & THAI CALENDAR
+    window.dashboardClockTimer = null;
+    function startDashboardClock() {
+        if (window.dashboardClockTimer) {
+            clearInterval(window.dashboardClockTimer);
+            window.dashboardClockTimer = null;
+        }
+
+        function updateClock() {
+            const dateEl = document.getElementById('dashboardLiveDate');
+            const timeEl = document.getElementById('dashboardLiveTime');
+            const greetingEl = document.getElementById('dashboardGreeting');
+            if (!dateEl && !timeEl) {
+                if (window.dashboardClockTimer) {
+                    clearInterval(window.dashboardClockTimer);
+                    window.dashboardClockTimer = null;
+                }
+                return;
+            }
+
+            const now = new Date();
+            const thaiDays = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์'];
+            const thaiMonths = [
+                'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
+                'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
+            ];
+
+            const dayName = thaiDays[now.getDay()];
+            const day = now.getDate();
+            const monthName = thaiMonths[now.getMonth()];
+            const year = now.getFullYear() + 543;
+
+            if (dateEl) {
+                dateEl.innerText = `วัน${dayName}ที่ ${day} ${monthName} ${year}`;
+            }
+
+            const hh = String(now.getHours()).padStart(2, '0');
+            const mm = String(now.getMinutes()).padStart(2, '0');
+            const ss = String(now.getSeconds()).padStart(2, '0');
+            if (timeEl) {
+                timeEl.innerText = `${hh}:${mm}:${ss} น.`;
+            }
+
+            if (greetingEl) {
+                const h = now.getHours();
+                let greet = 'สวัสดี';
+                let icon = '🌤️';
+                if (h >= 5 && h < 12) { greet = 'สวัสดีตอนเช้า'; icon = '🌅'; }
+                else if (h >= 12 && h < 17) { greet = 'สวัสดีตอนบ่าย'; icon = '☀️'; }
+                else if (h >= 17 && h < 21) { greet = 'สวัสดีตอนเย็น'; icon = '🌆'; }
+                else { greet = 'สวัสดีรอบดึก'; icon = '🌙'; }
+                const uName = state.user?.fullname || state.user?.username || 'ผู้ใช้งาน';
+                greetingEl.innerHTML = `${greet}, <span class="text-primary-600 font-extrabold">${uName}</span> ${icon}`;
+            }
+        }
+
+        updateClock();
+        window.dashboardClockTimer = setInterval(updateClock, 1000);
+    }
+
+    // ⚡ LIVE SUPABASE DATABASE STATUS & LATENCY PING
+    async function updateDashboardDbStatus() {
+        const pingEl = document.getElementById('dashboardDbPing');
+        const dotEl = document.getElementById('dashboardDbDot');
+        const textEl = document.getElementById('dashboardDbText');
+        const syncEl = document.getElementById('dashboardDbSync');
+        if (!pingEl && !dotEl) return;
+
+        const t0 = performance.now();
+        try {
+            const { error } = await sb.from('settings').select('id').limit(1);
+            const latency = Math.round(performance.now() - t0);
+            if (pingEl) pingEl.innerHTML = `<i class="fas fa-bolt text-amber-500 mr-1"></i>${latency} ms`;
+            if (dotEl) dotEl.className = 'w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse';
+            if (textEl) textEl.innerText = 'ระบบออนไลน์';
+            if (syncEl) {
+                const now = new Date();
+                const hh = String(now.getHours()).padStart(2, '0');
+                const mm = String(now.getMinutes()).padStart(2, '0');
+                syncEl.innerText = `· ซิงค์สด 24 ชม.`;
+            }
+        } catch(e) {
+            if (pingEl) pingEl.innerHTML = `<i class="fas fa-exclamation-triangle text-rose-500 mr-1"></i>ออฟไลน์`;
+            if (dotEl) dotEl.className = 'w-2.5 h-2.5 rounded-full bg-rose-500';
+            if (textEl) textEl.innerText = 'ขาดการเชื่อมต่อ';
+        }
+    }
+
+    // 🖨️ PRINT DASHBOARD SUMMARY REPORT
+    function printDashboardSummary() {
+        const materials = state.materials || [];
+        const total = materials.length;
+        const outOfStock = materials.filter(m => parseInt(m.qty || 0) === 0).length;
+        const low = materials.filter(m => parseInt(m.qty || 0) > 0 && parseInt(m.qty || 0) < 150).length;
+        const normal = total - low - outOfStock;
+        const totalVal = materials.reduce((sum, m) => sum + (parseFloat(m.qty || 0) * parseFloat(m.price || 0) || 0), 0);
+        const lowAndOut = materials.filter(m => parseInt(m.qty || 0) < 150).sort((a,b) => parseInt(a.qty || 0) - parseInt(b.qty || 0));
+
+        const now = new Date();
+        const thaiDays = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์'];
+        const thaiMonths = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
+        const dateStr = `วัน${thaiDays[now.getDay()]}ที่ ${now.getDate()} ${thaiMonths[now.getMonth()]} พ.ศ. ${now.getFullYear() + 543} เวลา ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')} น.`;
+        const userStr = state.user?.fullname || state.user?.username || 'ผู้ใช้งาน';
+
+        let printContainer = document.getElementById('dashboardPrintContainer');
+        if (!printContainer) {
+            printContainer = document.createElement('div');
+            printContainer.id = 'dashboardPrintContainer';
+            printContainer.className = 'hidden print:block fixed inset-0 bg-white z-[99999] p-8 text-black';
+            document.body.appendChild(printContainer);
+        }
+
+        let rowsHtml = '';
+        lowAndOut.forEach((m, idx) => {
+            const q = parseInt(m.qty || 0);
+            const status = q === 0 ? '<span style="color:#e11d48;font-weight:bold;">หมด</span>' : '<span style="color:#d97706;font-weight:bold;">ใกล้หมด</span>';
+            rowsHtml += `
+            <tr>
+                <td style="border:1px solid #cbd5e1;padding:6px 10px;text-align:center;">${idx+1}</td>
+                <td style="border:1px solid #cbd5e1;padding:6px 10px;">${m.name}</td>
+                <td style="border:1px solid #cbd5e1;padding:6px 10px;text-align:center;">${m.type || '-'}</td>
+                <td style="border:1px solid #cbd5e1;padding:6px 10px;text-align:right;font-weight:bold;">${q.toLocaleString()}</td>
+                <td style="border:1px solid #cbd5e1;padding:6px 10px;text-align:center;">${m.units || '-'}</td>
+                <td style="border:1px solid #cbd5e1;padding:6px 10px;text-align:center;">${status}</td>
+            </tr>`;
+        });
+
+        if (lowAndOut.length === 0) {
+            rowsHtml = `<tr><td colspan="6" style="border:1px solid #cbd5e1;padding:12px;text-align:center;color:#059669;">พัสดุทุกรายการพร้อมใช้งาน ไม่มีรายการที่ใกล้หมดหรือหมด</td></tr>`;
+        }
+
+        printContainer.innerHTML = `
+            <div style="font-family:'Sarabun',sans-serif;color:#0f172a;max-width:800px;margin:0 auto;">
+                <div style="border-bottom:2px solid #0f172a;padding-bottom:12px;margin-bottom:16px;">
+                    <h2 style="font-size:20px;font-weight:bold;margin:0;">รายงานสรุปภาพรวมพัสดุในคลัง</h2>
+                    <div style="display:flex;justify-content:space-between;font-size:12px;color:#475569;margin-top:6px;">
+                        <span>วันที่พิมพ์: ${dateStr}</span>
+                        <span>ผู้จัดพิมพ์: ${userStr}</span>
+                    </div>
+                </div>
+
+                <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:20px;">
+                    <div style="border:1px solid #cbd5e1;border-radius:8px;padding:8px;text-align:center;">
+                        <div style="font-size:11px;color:#64748b;">พัสดุทั้งหมด</div>
+                        <div style="font-size:18px;font-weight:bold;color:#2563eb;">${total.toLocaleString()}</div>
+                    </div>
+                    <div style="border:1px solid #cbd5e1;border-radius:8px;padding:8px;text-align:center;">
+                        <div style="font-size:11px;color:#64748b;">ปกติ (พร้อมใช้)</div>
+                        <div style="font-size:18px;font-weight:bold;color:#059669;">${normal.toLocaleString()}</div>
+                    </div>
+                    <div style="border:1px solid #cbd5e1;border-radius:8px;padding:8px;text-align:center;">
+                        <div style="font-size:11px;color:#64748b;">ใกล้หมด</div>
+                        <div style="font-size:18px;font-weight:bold;color:#d97706;">${low.toLocaleString()}</div>
+                    </div>
+                    <div style="border:1px solid #cbd5e1;border-radius:8px;padding:8px;text-align:center;">
+                        <div style="font-size:11px;color:#64748b;">หมดสต๊อก</div>
+                        <div style="font-size:18px;font-weight:bold;color:#e11d48;">${outOfStock.toLocaleString()}</div>
+                    </div>
+                    <div style="border:1px solid #cbd5e1;border-radius:8px;padding:8px;text-align:center;">
+                        <div style="font-size:11px;color:#64748b;">มูลค่ารวมทั้งคลัง</div>
+                        <div style="font-size:16px;font-weight:bold;color:#7c3aed;">฿${Math.round(totalVal).toLocaleString()}</div>
+                    </div>
+                </div>
+
+                <h3 style="font-size:14px;font-weight:bold;margin:16px 0 8px 0;">รายการพัสดุที่ใกล้หมดหรือหมด (${lowAndOut.length} รายการ)</h3>
+                <table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:24px;">
+                    <thead>
+                        <tr style="background:#f1f5f9;">
+                            <th style="border:1px solid #cbd5e1;padding:6px 10px;text-align:center;width:40px;">ลำดับ</th>
+                            <th style="border:1px solid #cbd5e1;padding:6px 10px;text-align:left;">ชื่อพัสดุ</th>
+                            <th style="border:1px solid #cbd5e1;padding:6px 10px;text-align:center;">ประเภท</th>
+                            <th style="border:1px solid #cbd5e1;padding:6px 10px;text-align:right;">คงเหลือ</th>
+                            <th style="border:1px solid #cbd5e1;padding:6px 10px;text-align:center;">หน่วย</th>
+                            <th style="border:1px solid #cbd5e1;padding:6px 10px;text-align:center;">สถานะ</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${rowsHtml}
+                    </tbody>
+                </table>
+            </div>
+        `;
+
+        window.print();
+    }
+
+    // 📈 DASHBOARD MOVEMENT STATS & RECENT ACTIVITIES RENDERER
+    function updateDashboardActivities() {
+        const container = document.getElementById('dashboardActivityContainer');
+        if (!container) return;
+
+        const withdraws = (state.reports?.withdraw || []).map(w => ({ ...w, actType: 'withdraw' }));
+        const imports = (state.reports?.import || []).map(i => ({ ...i, actType: 'import' }));
+
+        const now = new Date();
+        const todayStr = now.toISOString().split('T')[0];
+        const curM = now.getMonth();
+        const curY = now.getFullYear();
+
+        let tInQty = 0, tInCount = 0;
+        let tOutQty = 0, tOutCount = 0;
+        let mInQty = 0, mOutQty = 0;
+
+        imports.forEach(i => {
+            if (!i.timestamp) return;
+            const d = new Date(i.timestamp);
+            const q = parseFloat(i.qty || 0);
+            if (d.toISOString().split('T')[0] === todayStr) { tInQty += q; tInCount++; }
+            if (d.getMonth() === curM && d.getFullYear() === curY) { mInQty += q; }
+        });
+
+        withdraws.forEach(w => {
+            if (!w.timestamp) return;
+            const d = new Date(w.timestamp);
+            const q = parseFloat(w.qty || 0);
+            if (d.toISOString().split('T')[0] === todayStr) { tOutQty += q; tOutCount++; }
+            if (d.getMonth() === curM && d.getFullYear() === curY) { mOutQty += q; }
+        });
+
+        const combined = [...withdraws, ...imports];
+        combined.sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+        const recent5 = combined.slice(0, 5);
+
+        let timelineRows = '';
+        if (recent5.length > 0) {
+            recent5.forEach(tx => {
+                const isImp = tx.actType === 'import';
+                const q = parseFloat(tx.qty || 0);
+                const d = new Date(tx.timestamp);
+                let timeDisp = '';
+                try {
+                    const isToday = d.toISOString().split('T')[0] === todayStr;
+                    const hh = String(d.getHours()).padStart(2, '0');
+                    const mm = String(d.getMinutes()).padStart(2, '0');
+                    if (isToday) {
+                        timeDisp = `วันนี้ ${hh}:${mm} น.`;
+                    } else {
+                        const thaiMonthsShort = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+                        timeDisp = `${d.getDate()} ${thaiMonthsShort[d.getMonth()]} ${hh}:${mm} น.`;
+                    }
+                } catch(e) { timeDisp = tx.timestamp || '-'; }
+
+                timelineRows += `
+                <div class="flex items-center justify-between gap-3 p-2.5 rounded-xl hover:bg-slate-50 transition-colors border border-transparent hover:border-gray-100">
+                    <div class="flex items-center gap-2.5 min-w-0">
+                        <div class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${isImp ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' : 'bg-rose-50 text-rose-600 border border-rose-200'}">
+                            <i class="fas ${isImp ? 'fa-arrow-down' : 'fa-arrow-up'} text-xs"></i>
+                        </div>
+                        <div class="min-w-0">
+                            <p class="font-bold text-xs text-gray-800 truncate" title="${tx.material_name || '-'}">${tx.material_name || '-'}</p>
+                            <p class="text-[10px] text-gray-400 truncate">โดย ${tx.user_name || 'ผู้ใช้งาน'} ${tx.ref_doc ? '· ' + tx.ref_doc : ''}</p>
+                        </div>
+                    </div>
+                    <div class="text-right shrink-0">
+                        <span class="text-xs sm:text-sm font-extrabold ${isImp ? 'text-emerald-600' : 'text-rose-600'}">${isImp ? '+' : '-'}${q.toLocaleString()}</span>
+                        <div class="text-[10px] text-gray-400">${timeDisp}</div>
+                    </div>
+                </div>`;
+            });
+        } else {
+            timelineRows = `<div class="text-xs text-gray-400 text-center py-6">ยังไม่มีประวัติการทำรายการล่าสุด</div>`;
+        }
+
+        container.innerHTML = `
+            <!-- COLUMN 1: สรุปการเบิกจ่ายและรับเข้า -->
+            <div class="bg-white p-5 rounded-2xl shadow-custom border border-custom dashboard-card flex flex-col justify-between">
+                <div class="flex items-center justify-between pb-3 mb-3 border-b border-custom/60">
+                    <div class="flex items-center gap-2">
+                        <div class="w-7 h-7 rounded-lg bg-primary-50 text-primary-600 border border-primary-200 flex items-center justify-center shadow-xs">
+                            <i class="fas fa-exchange-alt text-xs"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-sm text-gray-800">สรุปการเบิกจ่ายและรับเข้า</h3>
+                            <p class="text-[10px] text-gray-400">ภาพรวมการเคลื่อนไหวของพัสดุ</p>
+                        </div>
+                    </div>
+                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-primary-50 text-primary-700 border border-primary-200">เรียลไทม์</span>
+                </div>
+
+                <div class="space-y-3 flex-1 flex flex-col justify-around">
+                    <!-- วันนี้ -->
+                    <div class="p-3 rounded-xl bg-slate-50 border border-gray-100">
+                        <div class="text-[11px] font-bold text-gray-500 mb-2 flex items-center gap-1.5">
+                            <i class="fas fa-calendar-day text-primary-500"></i> ความเคลื่อนไหววันนี้
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div class="bg-white p-2.5 rounded-lg border border-emerald-100 shadow-2xs">
+                                <div class="text-[10px] text-gray-400">รับเข้าวันนี้</div>
+                                <div class="text-sm sm:text-base font-extrabold text-emerald-600">+${tInQty.toLocaleString()} <span class="text-[10px] font-normal text-gray-400">ชิ้น</span></div>
+                                <div class="text-[9px] text-gray-400">${tInCount} รายการ</div>
+                            </div>
+                            <div class="bg-white p-2.5 rounded-lg border border-rose-100 shadow-2xs">
+                                <div class="text-[10px] text-gray-400">เบิกจ่ายวันนี้</div>
+                                <div class="text-sm sm:text-base font-extrabold text-rose-600">-${tOutQty.toLocaleString()} <span class="text-[10px] font-normal text-gray-400">ชิ้น</span></div>
+                                <div class="text-[9px] text-gray-400">${tOutCount} รายการ</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- เดือนนี้ -->
+                    <div class="p-3 rounded-xl bg-slate-50 border border-gray-100">
+                        <div class="text-[11px] font-bold text-gray-500 mb-2 flex items-center gap-1.5">
+                            <i class="fas fa-calendar-alt text-indigo-500"></i> ยอดรวมประจำเดือนนี้
+                        </div>
+                        <div class="grid grid-cols-2 gap-2 text-center">
+                            <div class="bg-white p-2.5 rounded-lg border border-gray-100">
+                                <div class="text-[10px] text-gray-400">รับเข้ารวม</div>
+                                <div class="text-xs sm:text-sm font-bold text-emerald-600">+${mInQty.toLocaleString()}</div>
+                            </div>
+                            <div class="bg-white p-2.5 rounded-lg border border-gray-100">
+                                <div class="text-[10px] text-gray-400">เบิกจ่ายรวม</div>
+                                <div class="text-xs sm:text-sm font-bold text-rose-600">-${mOutQty.toLocaleString()}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- COLUMN 2 & 3: รายการเคลื่อนไหวล่าสุด -->
+            <div class="lg:col-span-2 bg-white p-5 rounded-2xl shadow-custom border border-custom dashboard-card flex flex-col justify-between">
+                <div class="flex items-center justify-between pb-3 mb-3 border-b border-custom/60">
+                    <div class="flex items-center gap-2">
+                        <div class="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-600 border border-indigo-200 flex items-center justify-center shadow-xs">
+                            <i class="fas fa-history text-xs"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-sm text-gray-800">รายการเคลื่อนไหวล่าสุด</h3>
+                            <p class="text-[10px] text-gray-400">ประวัติการเบิกจ่ายและรับเข้า 5 รายการล่าสุด</p>
+                        </div>
+                    </div>
+                    <button onclick="route('reports')" class="text-xs font-bold text-primary-600 hover:underline flex items-center gap-1">
+                        ดูประวัติทั้งหมด <i class="fas fa-arrow-right text-[10px]"></i>
+                    </button>
+                </div>
+
+                <div class="space-y-1.5 flex-1 flex flex-col justify-around">
+                    ${timelineRows}
+                </div>
+            </div>
+        `;
+    }
+
     function updateDashboardUI(c, viewID) {
          if(currentViewID !== viewID || !document.contains(c)) return;
          
@@ -3796,14 +4140,159 @@
          const allTypesList = getUniqueTypes();
          const typeOptions = allTypesList.map(t => `<option value="${t}" ${typeVal === t ? 'selected' : ''}>${t}</option>`).join('');
 
+         const totalValue = filteredMaterials.reduce((sum, m) => {
+             const q = parseFloat(m.qty || 0);
+             const p = parseFloat(m.price || 0);
+             return sum + (isNaN(q) || isNaN(p) ? 0 : q * p);
+         }, 0);
+
+         // 🚨 รายการพัสดุที่ใกล้หมดหรือหมด (Low & Out of stock list)
+         const lowAndOutMaterials = filteredMaterials.filter(m => parseInt(m.qty || 0) < 150);
+         lowAndOutMaterials.sort((a, b) => parseInt(a.qty || 0) - parseInt(b.qty || 0));
+
+         let lowAndOutHtml = '';
+         if (lowAndOutMaterials.length > 0) {
+             const displayList = lowAndOutMaterials.slice(0, 8);
+             let itemCards = '';
+             displayList.forEach(m => {
+                 const q = parseInt(m.qty || 0);
+                 const isOut = q === 0;
+                 const dispTypes = parseTypes(m.type || m.Type || m['ประเภท'] || m['type']);
+                 const dispCat = m.category || m.Category || m['หมวดหมู่'] || m['category'] || '';
+
+                 itemCards += `
+                 <div class="dashboard-card p-3 rounded-xl shadow-xs border border-custom flex items-center justify-between gap-3 hover:-translate-y-1 hover:shadow-md transition-all cursor-pointer group bg-white" onclick="navigateToInventoryWithFilter('${isOut ? 'out' : 'low'}')">
+                     <div class="flex items-center gap-2.5 min-w-0">
+                         <div class="w-10 h-10 rounded-lg p-1 bg-slate-50 border border-gray-100 flex items-center justify-center shrink-0">
+                             <img src="${getThumbUrl(m.image_url, 80)}" class="max-w-full max-h-full object-contain" onerror="onImgError(this)">
+                         </div>
+                         <div class="min-w-0">
+                             <p class="font-bold text-xs sm:text-sm text-gray-800 truncate group-hover:text-primary-600 transition-colors" title="${m.name}">${m.name}</p>
+                             <p class="text-[10px] text-gray-400 truncate">${dispTypes.join(', ') || '-'} ${dispCat ? '· ' + dispCat : ''}</p>
+                         </div>
+                     </div>
+                     <div class="text-right shrink-0">
+                         <span class="text-sm sm:text-base font-extrabold ${isOut ? 'text-rose-600' : 'text-amber-600'} leading-none">${q.toLocaleString()}</span>
+                         <span class="text-[10px] text-gray-400 ml-0.5">${m.units || m.Units || ''}</span>
+                         <div class="mt-0.5">
+                             <span class="px-2 py-0.5 rounded-full text-[9px] font-bold ${isOut ? 'bg-rose-100 text-rose-700 border border-rose-200' : 'bg-amber-100 text-amber-700 border border-amber-200'}">
+                                 ${isOut ? 'หมด' : 'ใกล้หมด'}
+                             </span>
+                         </div>
+                     </div>
+                 </div>`;
+             });
+
+             lowAndOutHtml = `
+             <div class="mb-8 fade-in bg-white p-4 sm:p-5 rounded-2xl border border-custom shadow-custom dashboard-card">
+                 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-3.5 pb-2.5 border-b border-custom/60">
+                     <div class="flex items-center gap-2">
+                         <div class="w-7 h-7 rounded-lg bg-amber-50 text-amber-600 border border-amber-200 flex items-center justify-center shadow-xs">
+                             <i class="fas fa-exclamation-triangle text-xs"></i>
+                         </div>
+                         <div>
+                             <h3 class="font-bold text-sm sm:text-base text-gray-800">รายการพัสดุที่ใกล้หมดหรือหมด</h3>
+                             <p class="text-[10px] text-gray-400">รายการที่ต้องตรวจเช็คและเติมสต๊อก</p>
+                         </div>
+                     </div>
+                     <div class="flex items-center gap-2">
+                         <span class="text-xs font-bold text-rose-600 bg-rose-50 border border-rose-200 px-2.5 py-0.5 rounded-full">หมด ${outOfStock} รายการ</span>
+                         <span class="text-xs font-bold text-amber-600 bg-amber-50 border border-amber-200 px-2.5 py-0.5 rounded-full">ใกล้หมด ${low} รายการ</span>
+                         ${lowAndOutMaterials.length > 8 ? `<button onclick="navigateToInventoryWithFilter('low')" class="text-xs text-primary-600 hover:underline font-bold ml-1">ดูทั้งหมด (${lowAndOutMaterials.length}) &rarr;</button>` : ''}
+                     </div>
+                 </div>
+                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                     ${itemCards}
+                 </div>
+             </div>`;
+         }
+
          c.innerHTML = `
-            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6 fade-in">
+            <!-- 🌟 MODERN CLEAN LIGHT HERO: REALTIME DATE, DIGITAL CLOCK, SYSTEM HEALTH & INVENTORY VALUE -->
+            <div class="relative overflow-hidden rounded-2xl sm:rounded-3xl p-5 sm:p-6 mb-7 shadow-custom border border-custom bg-white dashboard-card fade-in">
+                <!-- Subtle decorative background accent -->
+                <div class="absolute -top-16 -right-16 w-60 h-60 bg-primary-50/50 rounded-full blur-2xl pointer-events-none"></div>
+
+                <div class="relative z-10">
+                    <!-- Top Bar: Greeting & Realtime System Health Status -->
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3.5 pb-4 border-b border-custom/60">
+                        <div>
+                            <div id="dashboardGreeting" class="text-xs sm:text-sm font-medium text-gray-500 flex items-center gap-1.5">
+                                สวัสดี <span class="text-primary-600 font-bold">${state.user?.fullname || state.user?.username || 'ผู้ใช้งาน'}</span> 🌤️
+                            </div>
+                            <h2 class="text-xl sm:text-2xl font-black tracking-tight text-gray-800 mt-1 flex items-center gap-2">
+                                <span>ภาพรวมระบบสต๊อกพัสดุ</span>
+                            </h2>
+                        </div>
+
+                        <!-- Realtime System Health Badge (No DB Vendor mentioned) -->
+                        <div class="flex items-center gap-2 bg-emerald-50 border border-emerald-200 px-3.5 py-1.5 rounded-xl shadow-xs">
+                            <span id="dashboardDbDot" class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                            <span id="dashboardDbText" class="text-xs font-bold text-emerald-700">ระบบออนไลน์</span>
+                            <div class="h-3 w-px bg-emerald-200"></div>
+                            <span id="dashboardDbPing" class="text-[11px] font-mono font-bold bg-white text-emerald-800 px-2 py-0.5 rounded-lg border border-emerald-100 shadow-xs">
+                                <i class="fas fa-bolt text-amber-500 mr-1"></i>กำลังวัดความเร็ว...
+                            </span>
+                            <span id="dashboardDbSync" class="text-[10px] text-emerald-600 hidden sm:inline font-medium">· ซิงค์สด 24 ชม.</span>
+                        </div>
+                    </div>
+
+                    <!-- Middle Bar: 4 Clean Metric Cards (Light Theme) -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 pt-4">
+                        <!-- Live Thai Calendar -->
+                        <div class="flex items-center gap-3 bg-slate-50/90 hover:bg-slate-100/90 p-3.5 rounded-xl border border-gray-200/70 transition-colors">
+                            <div class="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center border border-amber-200 shrink-0 shadow-xs">
+                                <i class="fas fa-calendar-alt text-base"></i>
+                            </div>
+                            <div class="min-w-0">
+                                <div class="text-[11px] text-gray-400 font-medium">วันที่ปัจจุบัน (พ.ศ.)</div>
+                                <div id="dashboardLiveDate" class="text-xs sm:text-sm font-bold text-gray-800 truncate">กำลังซิงค์ปฏิทิน...</div>
+                            </div>
+                        </div>
+
+                        <!-- Live Digital Clock -->
+                        <div class="flex items-center gap-3 bg-slate-50/90 hover:bg-slate-100/90 p-3.5 rounded-xl border border-gray-200/70 transition-colors">
+                            <div class="w-10 h-10 rounded-xl bg-cyan-50 text-cyan-600 flex items-center justify-center border border-cyan-200 shrink-0 shadow-xs">
+                                <i class="fas fa-clock text-base"></i>
+                            </div>
+                            <div class="min-w-0">
+                                <div class="text-[11px] text-gray-400 font-medium">เวลาปัจจุบัน (Realtime)</div>
+                                <div id="dashboardLiveTime" class="text-sm sm:text-base font-black font-mono text-cyan-700 tracking-wider">--:--:-- น.</div>
+                            </div>
+                        </div>
+
+                        <!-- Total Inventory Valuation -->
+                        <div class="flex items-center gap-3 bg-slate-50/90 hover:bg-slate-100/90 p-3.5 rounded-xl border border-gray-200/70 transition-colors">
+                            <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-200 shrink-0 shadow-xs">
+                                <i class="fas fa-coins text-base"></i>
+                            </div>
+                            <div class="min-w-0">
+                                <div class="text-[11px] text-gray-400 font-medium">มูลค่าพัสดุในคลังรวม</div>
+                                <div class="text-xs sm:text-sm font-extrabold text-emerald-600">฿${Math.round(totalValue).toLocaleString()}</div>
+                            </div>
+                        </div>
+
+                        <!-- System Cloud Status (Generic & Professional) -->
+                        <div class="flex items-center gap-3 bg-slate-50/90 hover:bg-slate-100/90 p-3.5 rounded-xl border border-gray-200/70 transition-colors">
+                            <div class="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center border border-purple-200 shrink-0 shadow-xs">
+                                <i class="fas fa-shield-alt text-base"></i>
+                            </div>
+                            <div class="min-w-0">
+                                <div class="text-[11px] text-gray-400 font-medium">สถานะความพร้อมระบบ</div>
+                                <div class="text-xs sm:text-sm font-bold text-purple-700">พร้อมใช้งาน 24 ชั่วโมง</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- DASHBOARD FILTER & TOOLBAR (PLAIN EVERYDAY WORDS, NO JARGON) -->
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6 fade-in print:hidden">
                 <div>
-                    <h2 class="text-xl sm:text-2xl font-black text-gray-800 tracking-tight flex items-center gap-2">
-                        <span>ภาพรวมระบบสต๊อก</span>
-                        <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-primary-100 text-primary-700 border border-primary-200">Live</span>
-                    </h2>
-                    <p class="text-xs text-gray-500 mt-0.5">รายงานสถิติ ความพร้อมสต๊อก และการคาดการณ์กำลังผลิต</p>
+                    <h3 class="text-lg sm:text-xl font-black text-gray-800 tracking-tight flex items-center gap-2">
+                        <span>รายการพัสดุในคลัง</span>
+                    </h3>
+                    <p class="text-xs text-gray-500 mt-0.5">ภาพรวมจำนวนพัสดุทั้งหมด รายการที่พร้อมใช้ รายการที่ใกล้หมด และหมด</p>
                 </div>
                 <div class="flex items-center gap-2 self-end sm:self-auto">
                     <label for="dashboardFilterType" class="text-xs font-bold text-gray-500 flex items-center gap-1.5">
@@ -3817,6 +4306,10 @@
                         <i class="fas fa-sync-alt text-primary-500" id="iconRefreshDashboard"></i>
                         <span class="hidden sm:inline">รีเฟรช</span>
                     </button>
+                    <button onclick="printDashboardSummary()" id="btnPrintDashboard" class="px-3 py-2 rounded-xl shadow-sm transition transform active:scale-95 border border-custom flex items-center gap-1.5 text-xs sm:text-sm font-medium hover:bg-black/5" style="background: var(--card-bg); color: var(--text-main);" title="พิมพ์รายงานสรุปสต๊อก">
+                        <i class="fas fa-print text-primary-500"></i>
+                        <span class="hidden sm:inline">พิมพ์สรุป</span>
+                    </button>
                 </div>
             </div>
 
@@ -3824,17 +4317,20 @@
             ${bomHtml}
 
             <!-- 5 STAT METRIC CARDS WITH ANIMATED NUMBERS -->
-            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5 sm:gap-4 md:gap-6 mb-8 fade-in">
+            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5 sm:gap-4 md:gap-6 mb-7 fade-in">
                 ${statCard('ทั้งหมด', total, 'fas fa-boxes', 'blue', '100%', 'all')}
                 ${statCard('ปกติ (พร้อมใช้)', normal, 'fas fa-check-circle', 'emerald', `${normalPercent}%`, 'all')}
                 ${statCard('ใกล้หมด', low, 'fas fa-exclamation-triangle', 'amber', `${lowPercent}%`, 'low')}
                 ${statCard('หมดสต๊อก', outOfStock, 'fas fa-times-circle', 'rose', `${outPercent}%`, 'out')}
                 ${statCard('อัปเดตล่าสุด', last, 'fas fa-clock', 'purple', 'บันทึก')}
             </div>
-            
-            <!-- 3 CHARTS SECTION -->
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 fade-in mb-8">
-                <!-- TOP 5 Chart -->
+
+            <!-- 🚨 รายการพัสดุที่ใกล้หมดหรือหมด -->
+            ${lowAndOutHtml}
+
+            <!-- 4 CHARTS SECTION (2x2 GRID) -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 fade-in mb-8">
+                <!-- TOP 5 Chart (Highest Quantity) -->
                 <div class="bg-white p-5 md:p-6 rounded-2xl flex flex-col shadow-custom border border-custom dashboard-card hover:shadow-xl transition-all duration-200 relative overflow-hidden group">
                     <div class="flex justify-between items-center mb-4 pb-3 border-b border-custom/60">
                         <div class="flex items-center gap-2.5">
@@ -3843,15 +4339,32 @@
                             </div>
                             <div>
                                 <h3 class="font-bold text-sm sm:text-base text-gray-800">คงเหลือสูงสุด 5 อันดับ</h3>
-                                <p class="text-[10px] text-gray-400">Top 5 Highest Stock</p>
+                                <p class="text-[10px] text-gray-400">เรียงตามจำนวนคงเหลือในคลัง</p>
                             </div>
                         </div>
                         <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700 border border-emerald-200">พร้อมใช้</span>
                     </div>
-                    <div class="relative flex-1 min-h-[260px] w-full"><canvas id="stockChart"></canvas></div>
+                    <div class="relative flex-1 min-h-[250px] w-full"><canvas id="stockChart"></canvas></div>
                 </div>
-                
-                <!-- BOTTOM 5 Chart -->
+
+                <!-- TOP 5 VALUE Chart (Highest Valuation) -->
+                <div class="bg-white p-5 md:p-6 rounded-2xl flex flex-col shadow-custom border border-custom dashboard-card hover:shadow-xl transition-all duration-200 relative overflow-hidden group">
+                    <div class="flex justify-between items-center mb-4 pb-3 border-b border-custom/60">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 border border-indigo-200 flex items-center justify-center shadow-sm">
+                                <i class="fas fa-coins text-sm"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-sm sm:text-base text-gray-800">มูลค่ารวมสูงสุด 5 อันดับ</h3>
+                                <p class="text-[10px] text-gray-400">คำนวณจากจำนวนคงเหลือ × ราคาต่อหน่วย</p>
+                            </div>
+                        </div>
+                        <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-700 border border-indigo-200">มูลค่าสินทรัพย์</span>
+                    </div>
+                    <div class="relative flex-1 min-h-[250px] w-full"><canvas id="valueChart"></canvas></div>
+                </div>
+
+                <!-- BOTTOM 5 Chart (Lowest Stock) -->
                 <div class="bg-white p-5 md:p-6 rounded-2xl flex flex-col shadow-custom border border-custom dashboard-card hover:shadow-xl transition-all duration-200 relative overflow-hidden group">
                     <div class="flex justify-between items-center mb-4 pb-3 border-b border-custom/60">
                         <div class="flex items-center gap-2.5">
@@ -3860,14 +4373,14 @@
                             </div>
                             <div>
                                 <h3 class="font-bold text-sm sm:text-base text-gray-800">คงเหลือน้อยสุด 5 อันดับ</h3>
-                                <p class="text-[10px] text-gray-400">Lowest Stock Alerts</p>
+                                <p class="text-[10px] text-gray-400">รายการที่ใกล้หมดและต้องเติมสต๊อก</p>
                             </div>
                         </div>
-                        <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-100 text-rose-700 border border-rose-200">หมดสต๊อก</span>
+                        <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-100 text-rose-700 border border-rose-200">ใกล้หมด/หมด</span>
                     </div>
-                    <div class="relative flex-1 min-h-[260px] w-full"><canvas id="bottomStockChart"></canvas></div>
+                    <div class="relative flex-1 min-h-[250px] w-full"><canvas id="bottomStockChart"></canvas></div>
                 </div>
-                
+
                 <!-- STATUS Doughnut -->
                 <div class="bg-white p-5 md:p-6 rounded-2xl flex flex-col shadow-custom border border-custom dashboard-card hover:shadow-xl transition-all duration-200 relative overflow-hidden group">
                     <div class="flex justify-between items-center mb-4 pb-3 border-b border-custom/60">
@@ -3876,25 +4389,56 @@
                                 <i class="fas fa-chart-pie text-sm"></i>
                             </div>
                             <div>
-                                <h3 class="font-bold text-sm sm:text-base text-gray-800">สถานะความพร้อมสต๊อก</h3>
-                                <p class="text-[10px] text-gray-400">Inventory Readiness</p>
+                                <h3 class="font-bold text-sm sm:text-base text-gray-800">สัดส่วนสถานะพัสดุ</h3>
+                                <p class="text-[10px] text-gray-400">ความพร้อมใช้งานของพัสดุในคลัง</p>
                             </div>
                         </div>
                         <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-primary-100 text-primary-700 border border-primary-200">${total.toLocaleString()} รายการ</span>
                     </div>
-                    <div class="relative flex-1 min-h-[260px] w-full flex items-center justify-center"><canvas id="statusChart"></canvas></div>
+                    <div class="relative flex-1 min-h-[250px] w-full flex items-center justify-center"><canvas id="statusChart"></canvas></div>
+                </div>
+            </div>
+
+            <!-- สรุปการเบิกจ่าย-รับเข้า และ ประวัติการทำรายการล่าสุด (MOVEMENT & RECENT ACTIVITIES) -->
+            <div id="dashboardActivityContainer" class="grid grid-cols-1 lg:grid-cols-3 gap-6 fade-in mb-8">
+                <div class="lg:col-span-3 bg-white p-6 rounded-2xl border border-dashed border-gray-200 text-center text-xs text-gray-400 flex items-center justify-center gap-2">
+                    <i class="fas fa-spinner fa-spin text-primary-500"></i> กำลังโหลดข้อมูลสรุปการเบิกจ่ายและรับเข้า...
                 </div>
             </div>
         `;
-            
+
          // Trigger count-up animation for all numeric values and percentage pills
          triggerCountUpAnimations();
 
+         // 🕒 Start live date & digital clock with seconds & dynamic greeting
+         startDashboardClock();
+
+         // ⚡ Ping database latency and update status dot
+         updateDashboardDbStatus();
+
+         // 📈 Render Movement stats & Recent activities (progressive hydration)
+         if (state.reports && (state.reports.withdraw || state.reports.import)) {
+             updateDashboardActivities();
+         } else {
+             fetchReportsData(false).then(() => {
+                 if (currentViewID === viewID) updateDashboardActivities();
+             }).catch(() => {});
+         }
+
          const sortedByQtyDesc = [...filteredMaterials].sort((a,b) => parseInt(b.qty || 0) - parseInt(a.qty || 0));
          const sortedByQtyAsc = [...filteredMaterials].sort((a,b) => parseInt(a.qty || 0) - parseInt(b.qty || 0));
-         
+         const sortedByValueDesc = [...filteredMaterials]
+             .map(m => {
+                 const q = parseFloat(m.qty || 0);
+                 const p = parseFloat(m.price || 0);
+                 const totalVal = (isNaN(q) || isNaN(p)) ? 0 : q * p;
+                 return { ...m, totalVal };
+             })
+             .sort((a,b) => b.totalVal - a.totalVal);
+
          const top5 = sortedByQtyDesc.slice(0, 5);
          const bottom5 = sortedByQtyAsc.slice(0, 5);
+         const top5Value = sortedByValueDesc.slice(0, 5);
 
          // Ensure charts load with animated wave effect
          setTimeout(() => {
@@ -3932,13 +4476,7 @@
                          animation: {
                              duration: 1200,
                              easing: 'easeOutQuart',
-                             delay: (context) => {
-                                 let delay = 0;
-                                 if (context.type === 'data' && context.mode === 'default') {
-                                     delay = context.dataIndex * 140; // Wave animation!
-                                 }
-                                 return delay;
-                             }
+                             delay: (context) => (context.type === 'data' && context.mode === 'default') ? context.dataIndex * 140 : 0
                          },
                          plugins: { 
                              legend: { display: false },
@@ -3968,8 +4506,74 @@
                      } 
                  });
              }
+
+             // 2. TOP 5 VALUE BAR CHART
+             const ctxVal = document.getElementById('valueChart');
+             if (ctxVal) {
+                 if (window.valueChartInstance) { window.valueChartInstance.destroy(); }
+                 const cVal = ctxVal.getContext('2d');
+                 let gradientVal = 'rgba(99, 102, 241, 0.85)';
+                 try {
+                     gradientVal = cVal.createLinearGradient(0, 0, 0, 250);
+                     gradientVal.addColorStop(0, '#8b5cf6');
+                     gradientVal.addColorStop(1, '#6366f1');
+                 } catch(e) {}
+
+                 window.valueChartInstance = new Chart(ctxVal, {
+                     type: 'bar',
+                     data: {
+                         labels: top5Value.map(m => String(m.name || '').length > 14 ? String(m.name || '').substring(0, 14) + '...' : String(m.name || '')),
+                         datasets: [{
+                             label: 'มูลค่ารวม (บาท)',
+                             data: top5Value.map(m => Math.round(m.totalVal)),
+                             backgroundColor: gradientVal,
+                             hoverBackgroundColor: '#7c3aed',
+                             borderRadius: 8,
+                             borderSkipped: false,
+                             barPercentage: 0.65
+                         }]
+                     },
+                     options: {
+                         responsive: true,
+                         maintainAspectRatio: false,
+                         animation: {
+                             duration: 1200,
+                             easing: 'easeOutQuart',
+                             delay: (context) => (context.type === 'data' && context.mode === 'default') ? context.dataIndex * 140 : 0
+                         },
+                         plugins: {
+                             legend: { display: false },
+                             tooltip: {
+                                 backgroundColor: '#1e293b',
+                                 titleFont: { family: 'Sarabun, sans-serif', size: 13, weight: 'bold' },
+                                 bodyFont: { family: 'Sarabun, sans-serif', size: 12 },
+                                 padding: 10,
+                                 cornerRadius: 8,
+                                 callbacks: {
+                                     title: (items) => top5Value[items[0].dataIndex]?.name || '',
+                                     label: (item) => ` มูลค่ารวม: ฿${item.raw.toLocaleString()} (ชิ้นละ ฿${parseFloat(top5Value[item.dataIndex]?.price || 0).toLocaleString()})`
+                                 }
+                             }
+                         },
+                         scales: {
+                             y: {
+                                 beginAtZero: true,
+                                 grid: { color: 'rgba(128, 128, 128, 0.1)', borderDash: [4, 4] },
+                                 ticks: {
+                                     font: { family: 'Sarabun, sans-serif', size: 11 },
+                                     callback: (val) => '฿' + (val >= 1000 ? (val/1000).toLocaleString() + 'k' : val)
+                                 }
+                             },
+                             x: {
+                                 grid: { display: false },
+                                 ticks: { font: { family: 'Sarabun, sans-serif', size: 11, weight: 'bold' } }
+                             }
+                         }
+                     }
+                 });
+             }
              
-             // 2. BOTTOM 5 BAR CHART WITH STAGGERED WAVE ANIMATION
+             // 3. BOTTOM 5 BAR CHART WITH STAGGERED WAVE ANIMATION
              const ctxBottom = document.getElementById('bottomStockChart');
              if(ctxBottom) {
                  if (window.bottomChartInstance) { window.bottomChartInstance.destroy(); }
@@ -4001,13 +4605,7 @@
                          animation: {
                              duration: 1200,
                              easing: 'easeOutQuart',
-                             delay: (context) => {
-                                 let delay = 0;
-                                 if (context.type === 'data' && context.mode === 'default') {
-                                     delay = context.dataIndex * 140; // Wave animation!
-                                 }
-                                 return delay;
-                             }
+                             delay: (context) => (context.type === 'data' && context.mode === 'default') ? context.dataIndex * 140 : 0
                          },
                          plugins: { 
                              legend: { display: false },
@@ -4038,7 +4636,7 @@
                  });
              }
              
-             // 3. STATUS DOUGHNUT CHART WITH REALTIME COUNTING READINESS SCORE
+             // 4. STATUS DOUGHNUT CHART WITH REALTIME COUNTING READINESS SCORE
              const ctx2 = document.getElementById('statusChart');
              if(ctx2) {
                  if (window.statusChartInstance) { window.statusChartInstance.destroy(); }
@@ -4052,7 +4650,6 @@
                          ctx.textAlign = 'center';
                          ctx.textBaseline = 'middle';
                          
-                         // Realtime count-up synchronization with the doughnut sweep angle
                          let progress = 1;
                          const meta = chart.getDatasetMeta(0);
                          if (meta && meta.data && meta.data.length > 0) {
@@ -4069,15 +4666,13 @@
 
                          const currentPercent = Math.min(readinessPercent, Math.round(readinessPercent * progress));
                          
-                         // Score
-                         ctx.font = '900 28px Sarabun, sans-serif';
-                         ctx.fillStyle = '#10b981'; // Emerald
-                         ctx.fillText(`${currentPercent}%`, width / 2, height / 2 - 12);
+                         ctx.font = 'bold 24px Sarabun, sans-serif';
+                         ctx.fillStyle = '#0f172a';
+                         ctx.fillText(`${currentPercent}%`, width / 2, height / 2 - 8);
                          
-                         // Label
-                         ctx.font = 'bold 11px Sarabun, sans-serif';
-                         ctx.fillStyle = '#059669'; // Emerald text
-                         ctx.fillText('พร้อมใช้งาน', width / 2, height / 2 + 16);
+                         ctx.font = '500 11px Sarabun, sans-serif';
+                         ctx.fillStyle = '#64748b';
+                         ctx.fillText('พร้อมใช้งาน', width / 2, height / 2 + 14);
                          ctx.restore();
                      }
                  };
@@ -4085,49 +4680,51 @@
                  window.statusChartInstance = new Chart(ctx2, { 
                      type: 'doughnut', 
                      data: { 
-                         labels: ['ปกติ (พร้อมใช้)', 'ใกล้หมดสต๊อก', 'หมดสต๊อก'], 
+                         labels: ['ปกติ (พร้อมใช้)', 'ใกล้หมด', 'หมดสต๊อก'], 
                          datasets: [{ 
                              data: [normal, low, outOfStock], 
-                             backgroundColor: ['#10b981', '#f59e0b', '#ef4444'], 
-                             hoverBackgroundColor: ['#059669', '#d97706', '#dc2626'],
+                             backgroundColor: ['#10b981', '#f59e0b', '#f43f5e'],
+                             hoverBackgroundColor: ['#059669', '#d97706', '#e11d48'],
                              borderWidth: 2,
                              borderColor: '#ffffff',
-                             hoverOffset: 8
+                             hoverOffset: 6
                          }] 
                      }, 
-                     plugins: [centerDoughnutPlugin],
                      options: { 
                          responsive: true,
-                         maintainAspectRatio: false, 
-                         cutout: '72%', 
+                         maintainAspectRatio: false,
+                         cutout: '72%',
                          animation: {
-                             animateScale: true,
                              animateRotate: true,
-                             duration: 1300,
-                             easing: 'easeOutCirc'
+                             animateScale: true,
+                             duration: 1400,
+                             easing: 'easeOutQuart'
                          },
                          plugins: { 
                              legend: { 
                                  position: 'bottom', 
                                  labels: { 
-                                     padding: 16, 
+                                     boxWidth: 12, 
+                                     boxHeight: 12,
                                      usePointStyle: true,
                                      pointStyle: 'circle',
-                                     font: { family: 'Sarabun, sans-serif', size: 11, weight: 'bold' }
+                                     padding: 14,
+                                     font: { family: 'Sarabun, sans-serif', size: 11 } 
                                  } 
                              },
                              tooltip: {
                                  backgroundColor: '#1e293b',
-                                 titleFont: { family: 'Sarabun, sans-serif', size: 12, weight: 'bold' },
+                                 titleFont: { family: 'Sarabun, sans-serif', size: 13, weight: 'bold' },
                                  bodyFont: { family: 'Sarabun, sans-serif', size: 12 },
                                  padding: 10,
                                  cornerRadius: 8,
                                  callbacks: {
-                                     label: (item) => ` ${item.label}: ${item.raw.toLocaleString()} รายการ (${total > 0 ? Math.round(item.raw / total * 100) : 0}%)`
+                                     label: (item) => ` ${item.label}: ${item.raw.toLocaleString()} รายการ (${total > 0 ? Math.round((item.raw / total) * 100) : 0}%)`
                                  }
                              }
                          } 
-                     } 
+                     },
+                     plugins: [centerDoughnutPlugin]
                  });
              }
          }, 70);
