@@ -2426,24 +2426,24 @@
             if (mErr || !mat) throw new Error('ไม่พบรหัสวัสดุ: ' + matId);
 
             const currentQty = parseFloat(mat.qty || 0);
-            await sb.from('materials').update({
+            const { error: upErr } = await sb.from('materials').update({
               qty: currentQty + qtyAdd,
               last_import_date: ts,
-              last_import_by: payload.user_name || 'admin',
-              last_import_ref: payload.ref_doc || '',
               updated_at: new Date().toISOString()
             }).eq('id', matId);
+            if (upErr) throw upErr;
 
-            await sb.from('import_history').insert([{
+            const { error: histErr } = await sb.from('import_history').insert([{
               timestamp: ts,
               material_id: matId,
               material_name: payload.material_name,
               qty: qtyAdd,
-              user_name: payload.user_name,
+              user_name: payload.user_name || (state.user ? state.user.fullname : 'admin'),
               ref_doc: payload.ref_doc || '',
               type: payload.type || '',
               action_type: 'import'
             }]);
+            if (histErr) throw histErr;
 
             result = { message: 'นำเข้าสต๊อกสำเร็จ' };
             break;
@@ -2462,23 +2462,24 @@
               throw new Error(`สต๊อกไม่พอ (คงเหลือ ${currentQty}, ต้องการเบิก ${qtySub})`);
             }
 
-            await sb.from('materials').update({
+            const { error: upErr } = await sb.from('materials').update({
               qty: currentQty - qtySub,
               last_withdraw_date: ts,
-              last_withdraw_by: payload.user_name || 'admin',
               updated_at: new Date().toISOString()
             }).eq('id', matId);
+            if (upErr) throw upErr;
 
-            await sb.from('withdraw_history').insert([{
+            const { error: histErr } = await sb.from('withdraw_history').insert([{
               timestamp: ts,
               material_id: matId,
               material_name: payload.material_name,
               qty: qtySub,
-              user_name: payload.user_name,
+              user_name: payload.user_name || (state.user ? state.user.fullname : 'admin'),
               ref_doc: payload.ref_doc || '',
               type: payload.type || '',
               action_type: 'withdraw'
             }]);
+            if (histErr) throw histErr;
 
             result = { message: 'เบิกวัสดุสำเร็จ' };
             break;
@@ -2498,12 +2499,13 @@
             // Check stock for withdraw
             if (mode === 'withdraw') {
               for (const it of items) {
-                const { data: m } = await sb.from('materials').select('qty, name').eq('id', String(it.material_id)).single();
-                if (!m) throw new Error(`ไม่พบรหัสวัสดุ: ${it.material_id}`);
+                const mId = String(it.material_id || it.id);
+                const { data: m, error: mErr } = await sb.from('materials').select('qty, name').eq('id', mId).single();
+                if (mErr || !m) throw new Error(`ไม่พบรหัสวัสดุ: ${mId}`);
                 const cur = parseFloat(m.qty || 0);
                 const req = parseFloat(it.qty || 0);
                 if (cur < req) {
-                  throw new Error(`สต๊อก "${m.name || it.material_id}" ไม่พอ (คงเหลือ ${cur}, ต้องการเบิก ${req})`);
+                  throw new Error(`สต๊อก "${m.name || mId}" ไม่พอ (คงเหลือ ${cur}, ต้องการเบิก ${req})`);
                 }
               }
             }
@@ -2512,41 +2514,43 @@
             const histRecords = [];
             for (const it of items) {
               const delta = parseFloat(it.qty || 0);
-              const { data: m } = await sb.from('materials').select('qty').eq('id', String(it.material_id)).single();
+              const mId = String(it.material_id || it.id);
+              const { data: m, error: mErr } = await sb.from('materials').select('qty').eq('id', mId).single();
+              if (mErr || !m) throw new Error(`ไม่พบรหัสวัสดุ: ${mId}`);
               const cur = parseFloat(m?.qty || 0);
 
               if (mode === 'withdraw') {
-                await sb.from('materials').update({
+                const { error: upErr } = await sb.from('materials').update({
                   qty: cur - delta,
                   last_withdraw_date: ts,
-                  last_withdraw_by: uName,
                   updated_at: new Date().toISOString()
-                }).eq('id', String(it.material_id));
+                }).eq('id', mId);
+                if (upErr) throw upErr;
               } else {
-                await sb.from('materials').update({
+                const { error: upErr } = await sb.from('materials').update({
                   qty: cur + delta,
                   last_import_date: ts,
-                  last_import_by: uName,
-                  last_import_ref: refDoc,
                   updated_at: new Date().toISOString()
-                }).eq('id', String(it.material_id));
+                }).eq('id', mId);
+                if (upErr) throw upErr;
               }
 
               histRecords.push({
                 timestamp: ts,
-                material_id: String(it.material_id),
-                material_name: String(it.material_name || ''),
+                material_id: mId,
+                material_name: String(it.material_name || it.name || ''),
                 qty: delta,
                 user_name: uName,
                 ref_doc: refDoc,
-                type: it.type || '',
+                type: (typeof it.type === 'object') ? JSON.stringify(it.type) : (it.type || ''),
                 action_type: mode
               });
             }
 
             const histTable = (mode === 'import') ? 'import_history' : 'withdraw_history';
             if (histRecords.length) {
-              await sb.from(histTable).insert(histRecords);
+              const { error: histErr } = await sb.from(histTable).insert(histRecords);
+              if (histErr) throw histErr;
             }
 
             result = {
@@ -2580,9 +2584,6 @@
               pinned: Boolean(payload.pinned),
               last_import_date: new Date().toISOString(),
               last_withdraw_date: '',
-              last_import_by: payload.user_name || 'admin',
-              last_withdraw_by: '',
-              last_import_ref: payload.ref_doc || 'เพิ่มวัสดุใหม่',
               updated_at: new Date().toISOString()
             };
 
@@ -2685,12 +2686,12 @@
               const cur = parseFloat(mat?.qty || 0);
               const req = parseFloat(p.totalReq || 0);
 
-              await sb.from('materials').update({
+              const { error: upErr } = await sb.from('materials').update({
                 qty: cur - req,
                 last_withdraw_date: ts,
-                last_withdraw_by: payload.fullname || 'admin',
                 updated_at: new Date().toISOString()
               }).eq('id', p.material_id);
+              if (upErr) throw upErr;
 
               histRecords.push({
                 timestamp: ts,
@@ -2705,7 +2706,8 @@
             }
 
             if (histRecords.length) {
-              await sb.from('withdraw_history').insert(histRecords);
+              const { error: histErr } = await sb.from('withdraw_history').insert(histRecords);
+              if (histErr) throw histErr;
             }
 
             result = { message: 'บันทึกการสั่งผลิตและตัดสต๊อกสำเร็จ', ref_doc: txId };
@@ -2720,9 +2722,11 @@
               const { data: mat } = await sb.from('materials').select('qty').eq('id', it.material_id).single();
               if (mat) {
                 const cur = parseFloat(mat.qty || 0);
-                await sb.from('materials').update({
-                  qty: cur + parseFloat(it.qty || 0)
+                const { error: upErr } = await sb.from('materials').update({
+                  qty: cur + parseFloat(it.qty || 0),
+                  updated_at: new Date().toISOString()
                 }).eq('id', it.material_id);
+                if (upErr) throw upErr;
               }
             }
 
@@ -2840,14 +2844,15 @@
     let lastReportsSyncTime = 0;
     async function fetchReportsData(forceRefresh = false) {
         const now = Date.now();
-        const lastSync = lastReportsSyncTime || parseInt(localStorage.getItem('kstore_reports_last_sync') || '0', 10);
-        const cooldown = (forceRefresh === 'manual') ? 0 : 60000; // 60s cooldown for background / auto triggers
+        const isForce = (forceRefresh === true || forceRefresh === 'manual');
+        const lastSync = isForce ? 0 : (lastReportsSyncTime || parseInt(localStorage.getItem('kstore_reports_last_sync') || '0', 10));
+        const cooldown = isForce ? 0 : 60000; // 60s cooldown for background / auto triggers
 
         if (state.reports && (state.reports.withdraw?.length > 0 || state.reports.import?.length > 0)) {
-            if (now - lastSync < cooldown && forceRefresh !== 'manual') {
+            if (!isForce && now - lastSync < cooldown) {
                 return state.reports;
             }
-        } else if (cache.reports && cache.reports !== 'null' && forceRefresh !== 'manual') {
+        } else if (cache.reports && cache.reports !== 'null' && !isForce) {
             try {
                 const cached = typeof cache.reports === 'string' ? JSON.parse(cache.reports) : cache.reports;
                 if (cached && (cached.withdraw?.length > 0 || cached.import?.length > 0)) {
@@ -2859,7 +2864,7 @@
             } catch(e) {}
         }
 
-        if (reportsPromise) return reportsPromise;
+        if (reportsPromise && !isForce) return reportsPromise;
 
         reportsPromise = api('getReports', { force: forceRefresh }).then(data => {
             if (data && (data.withdraw || data.import)) {
@@ -6054,22 +6059,20 @@
             const isImport = currentTransMode === 'import';
 
             // Optimistic Update: อัปเดตยอดสต๊อกในความจำและแคชทันที 0ms ไม่ต้องลบแคชทิ้งให้ค้างหน้าโหลด
+            const nowIso = customTimestamp || new Date().toISOString();
             if (Array.isArray(state.materials)) {
                 completedItems.forEach(item => {
-                    const mat = state.materials.find(m => String(m.material_id) === String(item.material_id));
+                    const mat = state.materials.find(m => String(m.material_id || m.id) === String(item.material_id || item.id));
                     if (mat) {
                         const cur = parseFloat(mat.qty || mat.Qty || mat['จำนวน'] || 0);
                         const delta = parseFloat(item.transQty || 0);
                         mat.qty = isImport ? (cur + delta) : Math.max(0, cur - delta);
                         if (mat.Qty !== undefined) mat.Qty = mat.qty;
                         if (mat['จำนวน'] !== undefined) mat['จำนวน'] = mat.qty;
-                        const nowIso = new Date().toISOString();
                         if (isImport) {
                             mat.last_import_date = nowIso;
-                            mat.last_import_user = state.user.fullname;
                         } else {
                             mat.last_withdraw_date = nowIso;
-                            mat.last_withdraw_user = state.user.fullname;
                         }
                     }
                 });
@@ -6082,8 +6085,8 @@
                 if (!state.reports.import) state.reports.import = [];
 
                 const newHistoryRows = completedItems.map(item => ({
-                    timestamp: customTimestamp || new Date().toISOString(),
-                    material_id: String(item.material_id),
+                    timestamp: nowIso,
+                    material_id: String(item.material_id || item.id),
                     material_name: item.name,
                     qty: parseFloat(item.transQty || 0),
                     user_name: state.user.fullname,
@@ -6104,8 +6107,20 @@
             transCart = [];
             updateCartUI();
             closeModal('cartModal');
+
+            // ล้าง Cooldown เพื่อให้การซิงค์รอบถัดไปและ background sync ดึงข้อมูลสดจริงจาก Supabase
+            lastMaterialsSyncTime = 0;
+            lastReportsSyncTime = 0;
+            localStorage.removeItem('kstore_mats_last_sync');
+            localStorage.removeItem('kstore_reports_last_sync');
+            sessionStorage.removeItem('kstore_session_materials');
+
             renderInventory(document.getElementById('contentArea'), currentTransMode, currentViewID);
             showToast(`ทำรายการเสร็จสมบูรณ์ทั้งหมด ${count} รายการ`, 'success');
+
+            // ซิงค์ข้อมูลล่าสุดจริงจาก Supabase ในพื้นหลัง
+            fetchMaterialsData('manual').catch(() => {});
+            fetchReportsData('manual').catch(() => {});
         } catch (err) {
             // ถ้า Backend ยังไม่ได้ Deploy code4.gs (ไม่พบ batchTransaction) ให้ fallback ทำงานแบบทีละรายการโดยปิด Auto-retry
             if (err.message && (err.message.includes('Action not found: batchTransaction') || err.message.includes('Invalid action: batchTransaction'))) {
@@ -6133,7 +6148,7 @@
             try {
                 // retries = 0 เพื่อไม่ให้เกิดการเบิ้ลซ้ำหากหมดเวลา
                 await api(currentTransMode === 'import' ? 'importMaterial' : 'withdrawMaterial', {
-                    material_id: item.material_id,
+                    material_id: item.material_id || item.id,
                     material_name: item.name,
                     qty: item.transQty,
                     user_name: state.user.fullname,
@@ -6149,15 +6164,21 @@
 
         const completedItems = [...transCart];
         const isImport = currentTransMode === 'import';
+        const nowIso = customTimestamp || new Date().toISOString();
         if (Array.isArray(state.materials)) {
             completedItems.forEach(item => {
-                const mat = state.materials.find(m => String(m.material_id) === String(item.material_id));
+                const mat = state.materials.find(m => String(m.material_id || m.id) === String(item.material_id || item.id));
                 if (mat) {
                     const cur = parseFloat(mat.qty || mat.Qty || mat['จำนวน'] || 0);
                     const delta = parseFloat(item.transQty || 0);
                     mat.qty = isImport ? (cur + delta) : Math.max(0, cur - delta);
                     if (mat.Qty !== undefined) mat.Qty = mat.qty;
                     if (mat['จำนวน'] !== undefined) mat['จำนวน'] = mat.qty;
+                    if (isImport) {
+                        mat.last_import_date = nowIso;
+                    } else {
+                        mat.last_withdraw_date = nowIso;
+                    }
                 }
             });
             cache.materials = JSON.stringify(state.materials);
@@ -6167,8 +6188,8 @@
             if (!state.reports.withdraw) state.reports.withdraw = [];
             if (!state.reports.import) state.reports.import = [];
             const newHistoryRows = completedItems.map(item => ({
-                timestamp: customTimestamp || new Date().toISOString(),
-                material_id: String(item.material_id),
+                timestamp: nowIso,
+                material_id: String(item.material_id || item.id),
                 material_name: item.name,
                 qty: parseFloat(item.transQty || 0),
                 user_name: state.user.fullname,
@@ -6188,7 +6209,17 @@
         transCart = [];
         updateCartUI();
         closeModal('cartModal');
+
+        lastMaterialsSyncTime = 0;
+        lastReportsSyncTime = 0;
+        localStorage.removeItem('kstore_mats_last_sync');
+        localStorage.removeItem('kstore_reports_last_sync');
+        sessionStorage.removeItem('kstore_session_materials');
+
         renderInventory(document.getElementById('contentArea'), currentTransMode, currentViewID);
+
+        fetchMaterialsData('manual').catch(() => {});
+        fetchReportsData('manual').catch(() => {});
 
         if (errorMsgs.length > 0) {
             alert(`ทำรายการสำเร็จ ${successCount} รายการ\n\nเกิดข้อผิดพลาด ${errorMsgs.length} รายการ:\n${errorMsgs.join('\n')}`);
