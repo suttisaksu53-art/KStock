@@ -3698,103 +3698,6 @@
         }
     }
 
-    // 🖨️ PRINT DASHBOARD SUMMARY REPORT
-    function printDashboardSummary() {
-        const materials = state.materials || [];
-        const total = materials.length;
-        const outOfStock = materials.filter(m => parseInt(m.qty || 0) === 0).length;
-        const low = materials.filter(m => parseInt(m.qty || 0) > 0 && parseInt(m.qty || 0) < 150).length;
-        const normal = total - low - outOfStock;
-        const totalVal = materials.reduce((sum, m) => sum + (parseFloat(m.qty || 0) * parseFloat(m.price || 0) || 0), 0);
-        const lowAndOut = materials.filter(m => parseInt(m.qty || 0) < 150).sort((a,b) => parseInt(a.qty || 0) - parseInt(b.qty || 0));
-
-        const now = new Date();
-        const thaiDays = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์'];
-        const thaiMonths = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
-        const dateStr = `วัน${thaiDays[now.getDay()]}ที่ ${now.getDate()} ${thaiMonths[now.getMonth()]} พ.ศ. ${now.getFullYear() + 543} เวลา ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')} น.`;
-        const userStr = state.user?.fullname || state.user?.username || 'ผู้ใช้งาน';
-
-        let printContainer = document.getElementById('dashboardPrintContainer');
-        if (!printContainer) {
-            printContainer = document.createElement('div');
-            printContainer.id = 'dashboardPrintContainer';
-            printContainer.className = 'hidden print:block fixed inset-0 bg-white z-[99999] p-8 text-black';
-            document.body.appendChild(printContainer);
-        }
-
-        let rowsHtml = '';
-        lowAndOut.forEach((m, idx) => {
-            const q = parseInt(m.qty || 0);
-            const status = q === 0 ? '<span style="color:#e11d48;font-weight:bold;">หมด</span>' : '<span style="color:#d97706;font-weight:bold;">ใกล้หมด</span>';
-            rowsHtml += `
-            <tr>
-                <td style="border:1px solid #cbd5e1;padding:6px 10px;text-align:center;">${idx+1}</td>
-                <td style="border:1px solid #cbd5e1;padding:6px 10px;">${m.name}</td>
-                <td style="border:1px solid #cbd5e1;padding:6px 10px;text-align:center;">${m.type || '-'}</td>
-                <td style="border:1px solid #cbd5e1;padding:6px 10px;text-align:right;font-weight:bold;">${q.toLocaleString()}</td>
-                <td style="border:1px solid #cbd5e1;padding:6px 10px;text-align:center;">${m.units || '-'}</td>
-                <td style="border:1px solid #cbd5e1;padding:6px 10px;text-align:center;">${status}</td>
-            </tr>`;
-        });
-
-        if (lowAndOut.length === 0) {
-            rowsHtml = `<tr><td colspan="6" style="border:1px solid #cbd5e1;padding:12px;text-align:center;color:#059669;">พัสดุทุกรายการพร้อมใช้งาน ไม่มีรายการที่ใกล้หมดหรือหมด</td></tr>`;
-        }
-
-        printContainer.innerHTML = `
-            <div style="font-family:'Sarabun',sans-serif;color:#0f172a;max-width:800px;margin:0 auto;">
-                <div style="border-bottom:2px solid #0f172a;padding-bottom:12px;margin-bottom:16px;">
-                    <h2 style="font-size:20px;font-weight:bold;margin:0;">รายงานสรุปภาพรวมพัสดุในคลัง</h2>
-                    <div style="display:flex;justify-content:space-between;font-size:12px;color:#475569;margin-top:6px;">
-                        <span>วันที่พิมพ์: ${dateStr}</span>
-                        <span>ผู้จัดพิมพ์: ${userStr}</span>
-                    </div>
-                </div>
-
-                <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:20px;">
-                    <div style="border:1px solid #cbd5e1;border-radius:8px;padding:8px;text-align:center;">
-                        <div style="font-size:11px;color:#64748b;">พัสดุทั้งหมด</div>
-                        <div style="font-size:18px;font-weight:bold;color:#2563eb;">${total.toLocaleString()}</div>
-                    </div>
-                    <div style="border:1px solid #cbd5e1;border-radius:8px;padding:8px;text-align:center;">
-                        <div style="font-size:11px;color:#64748b;">ปกติ (พร้อมใช้)</div>
-                        <div style="font-size:18px;font-weight:bold;color:#059669;">${normal.toLocaleString()}</div>
-                    </div>
-                    <div style="border:1px solid #cbd5e1;border-radius:8px;padding:8px;text-align:center;">
-                        <div style="font-size:11px;color:#64748b;">ใกล้หมด</div>
-                        <div style="font-size:18px;font-weight:bold;color:#d97706;">${low.toLocaleString()}</div>
-                    </div>
-                    <div style="border:1px solid #cbd5e1;border-radius:8px;padding:8px;text-align:center;">
-                        <div style="font-size:11px;color:#64748b;">หมดสต๊อก</div>
-                        <div style="font-size:18px;font-weight:bold;color:#e11d48;">${outOfStock.toLocaleString()}</div>
-                    </div>
-                    <div style="border:1px solid #cbd5e1;border-radius:8px;padding:8px;text-align:center;">
-                        <div style="font-size:11px;color:#64748b;">มูลค่ารวมทั้งคลัง</div>
-                        <div style="font-size:16px;font-weight:bold;color:#7c3aed;">฿${Math.round(totalVal).toLocaleString()}</div>
-                    </div>
-                </div>
-
-                <h3 style="font-size:14px;font-weight:bold;margin:16px 0 8px 0;">รายการพัสดุที่ใกล้หมดหรือหมด (${lowAndOut.length} รายการ)</h3>
-                <table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:24px;">
-                    <thead>
-                        <tr style="background:#f1f5f9;">
-                            <th style="border:1px solid #cbd5e1;padding:6px 10px;text-align:center;width:40px;">ลำดับ</th>
-                            <th style="border:1px solid #cbd5e1;padding:6px 10px;text-align:left;">ชื่อพัสดุ</th>
-                            <th style="border:1px solid #cbd5e1;padding:6px 10px;text-align:center;">ประเภท</th>
-                            <th style="border:1px solid #cbd5e1;padding:6px 10px;text-align:right;">คงเหลือ</th>
-                            <th style="border:1px solid #cbd5e1;padding:6px 10px;text-align:center;">หน่วย</th>
-                            <th style="border:1px solid #cbd5e1;padding:6px 10px;text-align:center;">สถานะ</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${rowsHtml}
-                    </tbody>
-                </table>
-            </div>
-        `;
-
-        window.print();
-    }
 
     // 📈 DASHBOARD MOVEMENT STATS & RECENT ACTIVITIES RENDERER
     function updateDashboardActivities() {
@@ -4305,10 +4208,6 @@
                     <button onclick="refreshDashboard()" id="btnRefreshDashboard" class="px-3 py-2 rounded-xl shadow-sm transition transform active:scale-95 border border-custom flex items-center gap-1.5 text-xs sm:text-sm font-medium hover:bg-black/5" style="background: var(--card-bg); color: var(--text-main);" title="รีเฟรชข้อมูลจากฐานข้อมูล">
                         <i class="fas fa-sync-alt text-primary-500" id="iconRefreshDashboard"></i>
                         <span class="hidden sm:inline">รีเฟรช</span>
-                    </button>
-                    <button onclick="printDashboardSummary()" id="btnPrintDashboard" class="px-3 py-2 rounded-xl shadow-sm transition transform active:scale-95 border border-custom flex items-center gap-1.5 text-xs sm:text-sm font-medium hover:bg-black/5" style="background: var(--card-bg); color: var(--text-main);" title="พิมพ์รายงานสรุปสต๊อก">
-                        <i class="fas fa-print text-primary-500"></i>
-                        <span class="hidden sm:inline">พิมพ์สรุป</span>
                     </button>
                 </div>
             </div>
