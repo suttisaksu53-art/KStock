@@ -2341,10 +2341,12 @@
               role: user.role
             }]).then(() => {});
 
-            // Fetch initial data
-            const [mRes, bRes] = await Promise.all([
+            // Fetch initial data in parallel (Materials, BOM, Reports History)
+            const [mRes, bRes, wRes, iRes] = await Promise.all([
               sb.from('materials').select('*'),
-              sb.from('bom').select('*')
+              sb.from('bom').select('*'),
+              sb.from('withdraw_history').select('*').order('timestamp', { ascending: false }).limit(250),
+              sb.from('import_history').select('*').order('timestamp', { ascending: false }).limit(250)
             ]);
 
             const { password, ...userData } = user;
@@ -2354,7 +2356,11 @@
               bom: (bRes.data || []).map(d => {
                 const req = parseFloat(d.req_per_kit ?? d.req_qty ?? 0);
                 return { ...d, req_per_kit: req, req_qty: req };
-              })
+              }),
+              reports: {
+                withdraw: wRes.data || [],
+                import: iRes.data || []
+              }
             };
             result = userData;
             break;
@@ -2989,6 +2995,15 @@
             try {
                 state.user = JSON.parse(savedUserStr);
                 if(state.user && state.user.fullname) {
+                    // Restore reports from cache if available so dashboard renders immediately in 0ms
+                    if ((!state.reports || (!state.reports.withdraw?.length && !state.reports.import?.length)) && cache.reports && cache.reports !== 'null') {
+                        try {
+                            const cachedReps = typeof cache.reports === 'string' ? JSON.parse(cache.reports) : cache.reports;
+                            if (cachedReps && (cachedReps.withdraw || cachedReps.import)) {
+                                state.reports = cachedReps;
+                            }
+                        } catch(e) {}
+                    }
                     setupUI();
                     const lastView = sessionStorage.getItem('last_view') || 'dashboard';
                     route(lastView);
@@ -3195,6 +3210,12 @@
                 if (Array.isArray(user.initialData.bom) && user.initialData.bom.length > 0) {
                     state.bom = user.initialData.bom;
                     cache.bom = JSON.stringify(user.initialData.bom);
+                }
+                if (user.initialData.reports && (user.initialData.reports.withdraw || user.initialData.reports.import)) {
+                    state.reports = user.initialData.reports;
+                    cache.reports = JSON.stringify(user.initialData.reports);
+                    lastReportsSyncTime = Date.now();
+                    localStorage.setItem('kstore_reports_last_sync', lastReportsSyncTime.toString());
                 }
             }
 
@@ -3708,29 +3729,37 @@
         const imports = (state.reports?.import || []).map(i => ({ ...i, actType: 'import' }));
 
         const now = new Date();
-        const todayStr = now.toISOString().split('T')[0];
-        const curM = now.getMonth();
         const curY = now.getFullYear();
+        const curM = now.getMonth();
+        const curD = now.getDate();
 
         let tInQty = 0, tInCount = 0;
         let tOutQty = 0, tOutCount = 0;
-        let mInQty = 0, mOutQty = 0;
+        let mInQty = 0, mInCount = 0;
+        let mOutQty = 0, mOutCount = 0;
 
         imports.forEach(i => {
             if (!i.timestamp) return;
             const d = new Date(i.timestamp);
             const q = parseFloat(i.qty || 0);
-            if (d.toISOString().split('T')[0] === todayStr) { tInQty += q; tInCount++; }
-            if (d.getMonth() === curM && d.getFullYear() === curY) { mInQty += q; }
+            const isToday = (d.getFullYear() === curY && d.getMonth() === curM && d.getDate() === curD);
+            const isThisMonth = (d.getFullYear() === curY && d.getMonth() === curM);
+            if (isToday) { tInQty += q; tInCount++; }
+            if (isThisMonth) { mInQty += q; mInCount++; }
         });
 
         withdraws.forEach(w => {
             if (!w.timestamp) return;
             const d = new Date(w.timestamp);
             const q = parseFloat(w.qty || 0);
-            if (d.toISOString().split('T')[0] === todayStr) { tOutQty += q; tOutCount++; }
-            if (d.getMonth() === curM && d.getFullYear() === curY) { mOutQty += q; }
+            const isToday = (d.getFullYear() === curY && d.getMonth() === curM && d.getDate() === curD);
+            const isThisMonth = (d.getFullYear() === curY && d.getMonth() === curM);
+            if (isToday) { tOutQty += q; tOutCount++; }
+            if (isThisMonth) { mOutQty += q; mOutCount++; }
         });
+
+        const thaiMonthsFull = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
+        const monthTitle = `ยอดรวมเดือน${thaiMonthsFull[curM]} ${curY + 543}`;
 
         const combined = [...withdraws, ...imports];
         combined.sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
@@ -3744,7 +3773,7 @@
                 const d = new Date(tx.timestamp);
                 let timeDisp = '';
                 try {
-                    const isToday = d.toISOString().split('T')[0] === todayStr;
+                    const isToday = (d.getFullYear() === curY && d.getMonth() === curM && d.getDate() === curD);
                     const hh = String(d.getHours()).padStart(2, '0');
                     const mm = String(d.getMinutes()).padStart(2, '0');
                     if (isToday) {
@@ -3814,17 +3843,20 @@
 
                     <!-- เดือนนี้ -->
                     <div class="p-3 rounded-xl bg-slate-50 border border-gray-100">
-                        <div class="text-[11px] font-bold text-gray-500 mb-2 flex items-center gap-1.5">
-                            <i class="fas fa-calendar-alt text-indigo-500"></i> ยอดรวมประจำเดือนนี้
+                        <div class="text-[11px] font-bold text-gray-500 mb-2 flex items-center justify-between">
+                            <span class="flex items-center gap-1.5"><i class="fas fa-calendar-alt text-indigo-500"></i> ${monthTitle}</span>
+                            <span class="text-[9px] font-normal text-gray-400">รอบเดือนนี้</span>
                         </div>
                         <div class="grid grid-cols-2 gap-2 text-center">
                             <div class="bg-white p-2.5 rounded-lg border border-gray-100">
                                 <div class="text-[10px] text-gray-400">รับเข้ารวม</div>
                                 <div class="text-xs sm:text-sm font-bold text-emerald-600">+${mInQty.toLocaleString()}</div>
+                                <div class="text-[9px] text-gray-400">${mInCount} รายการ</div>
                             </div>
                             <div class="bg-white p-2.5 rounded-lg border border-gray-100">
                                 <div class="text-[10px] text-gray-400">เบิกจ่ายรวม</div>
                                 <div class="text-xs sm:text-sm font-bold text-rose-600">-${mOutQty.toLocaleString()}</div>
+                                <div class="text-[9px] text-gray-400">${mOutCount} รายการ</div>
                             </div>
                         </div>
                     </div>
@@ -4315,14 +4347,24 @@
          // ⚡ Ping database latency and update status dot
          updateDashboardDbStatus();
 
-         // 📈 Render Movement stats & Recent activities (progressive hydration)
+         // 📈 Render Movement stats & Recent activities (Instant Cache-First + Silent SWR)
+         if ((!state.reports || (!state.reports.withdraw?.length && !state.reports.import?.length)) && cache.reports && cache.reports !== 'null') {
+             try {
+                 const cached = typeof cache.reports === 'string' ? JSON.parse(cache.reports) : cache.reports;
+                 if (cached && (cached.withdraw || cached.import)) {
+                     state.reports = cached;
+                 }
+             } catch(e) {}
+         }
+
          if (state.reports && (state.reports.withdraw || state.reports.import)) {
              updateDashboardActivities();
-         } else {
-             fetchReportsData(false).then(() => {
-                 if (currentViewID === viewID) updateDashboardActivities();
-             }).catch(() => {});
          }
+
+         // ซิงค์ข้อมูลล่าสุดจากฐานข้อมูลในพื้นหลังเสมอแบบเงียบๆ (Silent Background Revalidation)
+         fetchReportsData(false).then(() => {
+             if (currentViewID === viewID) updateDashboardActivities();
+         }).catch(() => {});
 
          const sortedByQtyDesc = [...filteredMaterials].sort((a,b) => parseInt(b.qty || 0) - parseInt(a.qty || 0));
          const sortedByQtyAsc = [...filteredMaterials].sort((a,b) => parseInt(a.qty || 0) - parseInt(b.qty || 0));
